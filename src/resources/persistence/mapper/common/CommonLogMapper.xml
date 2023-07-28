@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CommonLogRepository">
+
+	<insert id="insertCommonLog" parameterType="CoLogDTO">
+	<![CDATA[
+		/* CommonLogRepository.insertCommonLog */
+		INSERT INTO CO_LOG (
+			MENU_ID,
+		    CRUD_TYPE,
+		    MTHD_NM,
+		    LOG_TYPE,
+		    REMOTE_IP,
+		    REMARK,
+		    REMARK_TYPE,
+		    REQ_PARAM,
+		    REG_ID,
+		    REG_DT
+		)
+		VALUES ( 
+			#{menuId},
+		    #{crudType},
+		    #{mthdNm},
+		    'MSA',
+		    #{remoteIp},
+		    #{remark},
+		    #{remarkType},
+		    #{reqParam},
+		    #{regId},
+		    SYSDATE
+		)
+	]]>
+	</insert>
+	
+	<insert id="insertMailLog" parameterType="MailLogDTO">
+	<![CDATA[
+		/* CommonLogRepository.insertMailLog */
+		INSERT INTO SY_EMAIL (
+		   SEND_SEQ,  EMP_ID, SCHEMA_NM, EMAIL, CONTENT, SEND_DTM, SEND_YN,
+		   APPR_DEPT_KND, DOC_ID, AC_IP, CRT_BY, CRT_DTM
+		) VALUES ( 
+		   SEQUENCE_SY_EMAIL.NEXTVAL, SUBSTR(#{empId},1,10), #{schemaNm}, #{email}, #{content},
+		   SYSDATE, #{sendYn}, #{apprDeptKnd}, #{docId}, #{acIp}, SUBSTR(#{crtBy},1,10), SYSDATE
+		)
+	]]>
+	</insert>
+	
+	<insert id="insertSyAcLog" parameterType="CoSyAcLogDTO">
+	<![CDATA[
+		/* CommonLogRepository.insertSyAcLog */
+		INSERT INTO SY_AC_LOG (
+			MENU_ID,
+		    EMP_ID,
+		    AC_IP,
+		    AC_DT,
+		    AC_TM
+		) 
+		VALUES ( 
+			#{menuId},
+		    #{empId},
+		    #{acIp},
+		    TO_CHAR(SYSDATE, 'YYYYMMDD'),
+		    TO_CHAR(SYSDATE, 'HH24MISS')
+		)
+	]]>
+	</insert>
+	
+</mapper>
+
+

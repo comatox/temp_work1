@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.EmergencyRepository">
+
+	<insert id="insertEmergencyReg" parameterType="Map">
+		<selectKey keyProperty="emergencyNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMERGENCY_NO.NEXTVAL AS EMERGENCY_NO FROM DUAL
+	    </selectKey>
+	    
+		/* EmergencyRepository.insertEmergencyReg (dmEmergency_Reg) */
+		INSERT INTO IO_EMERGENCY (
+			EMERGENCY_NO, VST_DTM, ORG_NM, 
+			VSTR, IO_RSN, CAR_KND, 
+			CAR_NO, DEL_YN, AC_IP, 
+			CRT_BY, CRT_DTM, MOD_BY, 
+			MOD_DTM, COMP_ID, VST_GBN,
+			CRT_BY_DEPT, CRT_BY_JW,
+			EMP_NM, EMP_HP, EMP_DEPT,
+			EMP_SEC_NM, EMP_SEC_HP, EMP_SEC_DEPT
+		) VALUES ( 
+			#{emergencyNo},
+			SYSDATE,
+			#{orgNm},
+			#{vstr},
+			#{ioRsn},
+			#{carKnd},
+			#{carNo},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE,
+			#{applCompId},
+			#{vstGbn},
+			#{crtByDept},
+			#{crtByJw},
+			#{empNm},
+			#{empHp},
+			#{empDept},
+			#{empSecNm},
+			#{empSecHp},
+			#{empSecDept}
+		 )
+	</insert>
+	
+	<select id="selectEmergencyList" parameterType="Map" resultType="CamelHashMap">
+		/* EmergencyRepository.selectEmergencyList (dmEmergency_List) */
+		WITH PAGE AS
+	    (
+		SELECT  ROW_NUMBER() OVER ( ORDER BY EMERGENCY_NO DESC ) AS ROW_NUM,
+			   EMERGENCY_NO, TO_CHAR(VST_DTM,'YYYY-MM-DD HH24:MI:SS') AS VST_DTM, CASE WHEN LENGTH(ORG_NM) > 8 THEN SUBSTR(ORG_NM,1,8)||'..' ELSE ORG_NM END AS ORG_NM, 
+			   VSTR AS VSTR_FULL,
+			   CASE WHEN LENGTH(VSTR) > 8 THEN SUBSTR(VSTR,1,8)||'..' ELSE VSTR END AS VSTR, CASE WHEN LENGTH(IO_RSN) > 40 THEN SUBSTR(IO_RSN,1,40)||'..' ELSE IO_RSN END AS IO_RSN, 
+			   CAR_KND, CAR_NO,
+			   CASE WHEN COMP_ID = '1101000001' THEN '이천'
+			        WHEN COMP_ID = '1102000001' OR COMP_ID = '1105000001' OR COMP_ID = '1106000001' OR COMP_ID = '1109000001' THEN '청주'
+			        WHEN COMP_ID = '1103000001' THEN '영동'
+			        WHEN COMP_ID = '1107000001' THEN '분당사무소(서현)'
+			        WHEN COMP_ID = '1108000001' THEN '분당사무소(정자)'
+			        ELSE '기타'
+			    END COMP_NM
+			FROM IO_EMERGENCY
+			WHERE NVL(DEL_YN,'N') = 'N'
+			AND VST_GBN = #{vstGbn}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND TO_CHAR(VST_DTM,'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND TO_CHAR(VST_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(orgNm)">
+			AND ORG_NM LIKE '%' || #{orgNm} || '%' ESCAPE '[' 
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(vstr)">
+			AND VSTR LIKE '%' || #{vstr} || '%' ESCAPE '[' 
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(carNo)">
+			AND CAR_NO LIKE '%' || #{carNo} || '%' ESCAPE '[' 
+			</if>
+			<choose>
+				<when test='"1".equals(vstGbn)'>
+					<choose>
+						<when test='"1102000001".equals(searchCompId)'>
+						AND COMP_ID IN ('1102000001','1105000001','1106000001','1109000001')
+						</when>
+						<otherwise>
+						AND COMP_ID = #{searchCompId}
+						</otherwise>
+					</choose>
+				</when>
+				<otherwise>
+				AND COMP_ID = #{searchCompId}
+				</otherwise>
+			</choose>
+		)
+	    SELECT *
+	    FROM PAGE T2
+	</select>
+
+	<update id="updateEmergency" parameterType="Map">
+		/* EmergencyRepository.updateEmergency (dmEmergency_Mod) */
+		UPDATE IO_EMERGENCY SET       
+	       ORG_NM       = #{orgNm},
+	       VSTR         = #{vstr},
+	       IO_RSN       = #{ioRsn},
+	       CAR_KND      = #{carKnd},
+	       CAR_NO       = #{carNo},     
+	       MOD_BY       = #{crtBy},
+	       MOD_DTM      = SYSDATE
+		WHERE  EMERGENCY_NO = #{emergencyNo}
+	</update>
+	
+	<update id="deleteEmergency" parameterType="Map">
+		/* EmergencyRepository.updateEmergency (dmEmergency_Del) */
+		UPDATE IO_EMERGENCY SET
+			DEL_YN = 'Y'
+			,MOD_BY = #{crtBy}
+			,MOD_DTM = SYSDATE
+		WHERE EMERGENCY_NO = #{emergencyNo}
+	</update>
+	
+	<select id="selectEmerencyView" parameterType="Integer" resultType="CamelHashMap">
+		/* EmergencyRepository.selectEmerencyView (dmEmerency_View) */
+		SELECT EMERGENCY_NO, TO_CHAR(VST_DTM,'YYYY-MM-DD HH24:MI:SS') AS VST_DTM, ORG_NM, FN_GET_COMP_NM(COMP_ID) AS CRT_COMP_NM,
+	 					VSTR, IO_RSN, CRT_BY, CRT_BY_DEPT, CRT_BY_JW, CAR_KND, CAR_NO,
+	 					EMP_NM, EMP_DEPT, EMP_HP, EMP_SEC_NM, EMP_SEC_DEPT, EMP_SEC_HP
+		FROM IO_EMERGENCY
+		WHERE EMERGENCY_NO = #{emergencyNo}
+	</select>
+	
+	<select id="selectEmerencyVipCnt" parameterType="Map" resultType="Integer">
+		/* EmergencyRepository.selectEmerencyView (dmEmerencyVip_Cnt) */
+	    SELECT COUNT(*)  AS CNT 
+		FROM (
+		    SELECT A.VST_APPL_NO, B.DOC_ID
+		    FROM (
+		      SELECT VST_APPL_NO 
+		      FROM IO_VST_MAN_VIP 
+		      WHERE IO_EMP_NM = #{vstr}
+		          AND IO_COMP_NM LIKE '%' || #{orgNm} || '%'
+		    ) A, IO_VST B
+		    WHERE A.VST_APPL_NO = B.VST_APPL_NO
+		) C, AP_DOC D
+		WHERE C.DOC_ID = D.DOC_ID
+      	  AND D.APPR_RESULT = '1'
+      	  AND TO_CHAR(D.CRT_DTM, 'YYYY-MM-DD') BETWEEN ADD_MONTHS(TRUNC(SYSDATE) +1, -24) AND SYSDATE
+	</select>
+	
+</mapper>

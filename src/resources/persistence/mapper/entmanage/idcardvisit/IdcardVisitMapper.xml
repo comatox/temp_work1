@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.idcardvisit.IdcardVisitRepository">
+
+	<select id="selectPassBuildingGateOldList" parameterType="String" resultType="CamelHashMap">
+		/* IdcardVisitRepository.selectPassBuildingGateOldList (dmPassBuildingGateOldList) */
+		EXEC [Hynix_AccessControl].[dbo].[SP_SELE_User_Category_New]
+		  @inemp_id = #{idcardId}
+	</select>
+
+	<select id="selectSpecialPassList" parameterType="Map" resultType="HashMap">
+		/* IdcardVisitRepository.selectSpecialPassList (dmSpecialPassList) */
+		EXEC [Hynix_AccessControl].[dbo].[uSP_SK_SpecialGroupUserCount]
+		  @GATE_ID = #{gateId},
+		  @PType = #{empGb},
+		  @PAGE_CNT = #{currentPage},
+		  @GroupName = #{groupName},
+		  @UserName  = #{userName},
+		  @Count = #{ioCnt}
+	</select>
+
+	<select id="selectSpecialPassCount" parameterType="Map" resultType="Map">
+		/* IdcardVisitRepository.selectSpecialPassCount (dmSpecialPassListCount) */
+		EXEC [Hynix_AccessControl].[dbo].[uSP_SK_SpecialGroupCount]
+		  @GATE_ID = #{gateId},
+		  @PType = #{empGb},
+		  @GroupName = #{groupName},
+		  @UserName  = #{userName},
+		  @Count = #{ioCnt}
+	</select>
+
+	<update id="procedureSpecialPassIoEmpBldgCancIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureSpecialPassIoEmpBldgCancIf (dmSpecialPassIoEmpBldgCanc_IF) */
+		EXEC [Hynix_AccessControl].[dbo].[uSP_SK_SpecialGroupUserDel]
+		  @GATE_ID   = #{gateId},
+		  @IDCARD_ID = #{idcardId},
+		  @EMP_NO    = #{empId}
+	</update>
+
+	<update id="procedureBuildingPassInIf" parameterType="Map">
+		/* IdcardVisitRepository."procedureBuildingPassInProcIf (dmBuildingPass_InProc_IF) */
+		EXEC [Hynix_AccessControl].[dbo].[uSP_SK_Visitor_Insert_DoorIn2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@passport = #{passportNo},
+			@area_code = #{areaCode},
+			@doorin_at = #{doorinAt},
+			@company_name = #{companyName},
+			@email = #{emailId},
+			@photo = #{photoUrl},
+			@building = #{building},
+			@LeaderEmp = #{leaderEmp},
+			@LeadYn = #{leadYn},
+			@vstApplNo = #{vstApplNo},
+			@ioEmpId = #{ioEmpId}
+	</update>
+
+	<update id="procedureBuildingPassOutIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureBuildingPassOutIf (dmBuildingPass_OutProc_IF) */
+		EXEC [dbo].[uSP_SK_Visitor_Insert_DoorOut2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@area_code = #{areaCode},
+			@doorout_at = #{dooroutAt},
+			@passport = #{passportNo},
+			@company_name = #{companyName},
+			@reason = #{reason},
+			@building = #{building}
+	</update>
+
+	<update id="procedureDeliveryPassInIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureDeliveryPassInIf (dmDeliveryPass_InProc_IF) */
+		EXEC [dbo].[uSP_SK_Visitor_Insert_DoorIn2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@passport = #{passportNo},
+			@area_code = #{areaCode},
+		    @doorin_at = #{doorinAt},
+		    @company_name = #{companyName},
+			@email = #{emailId},
+			@photo = #{photoUrl},
+			@building = #{building},
+			@LeaderEmp = #{leaderEmp},
+			@LeadYn = #{leadYn},
+			@vstApplNo = #{vstApplNo},
+			@ioEmpId = #{ioEmpId}
+	</update>
+
+	<update id="procedureDeliveryPassOutIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureDeliveryPassOutIf (dmDeliveryPass_OutProc_IF) */
+		EXEC [dbo].[uSP_SK_Visitor_Insert_DoorOut2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@area_code = #{areaCode},
+			@doorout_at = #{dooroutAt},
+			@passport = #{passportNo},
+			@company_name = #{companyName},
+			@reason = #{reason},
+			@building = #{building}
+	</update>
+
+	<delete id="procedurePassExcptDeleteIf" parameterType="Integer">
+		/* IdcardVisitRepository.procedurePassExcptDeleteIf (dmPassExcptIF_Excpt_Delete) */
+		EXEC [Hynix_AccessControl].[dbo].[uSP_SK_IF_IO_PASS_EXCPT_DEL]
+			@EXCPT_APPL_NO = #{excptApplNo},
+			@IDCARD_ID = ''
+	</delete>
+
+	<update id="procedurePassExcptIoPassExcptIf" parameterType="Map">
+		/* IdcardVisitRepository.procedurePassExcptIoPassExcptIF ("dmPassExcptIF_IoPassExcpt") */
+		EXEC [dbo].[uSP_SK_IF_IO_PASS_EXCPT]
+		@EXCPT_APPL_NO = #{excptApplNo},
+		@IDCARD_ID = #{idcardId},
+		@EXCPT_STRT_DT = #{excptStrtDt},
+		@EXCPT_END_DT = #{excptEndDt}
+	</update>
+
+	<select id="selectOnedayIdCardIf" parameterType="String" resultType="CamelHashMap">
+		/* IdcardVisitRepository.selectOnedayIdCardIf ("dmOnedayEmpCardGetIdcardIF") */
+		exec [dbo].[uSP_SK_Visitor_Card]
+			@Card_No =#{cardNo}
+	</select>
+
+	<update id="procedureOnedayEmpCardInfoIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureOnedayEmpCardInfoIf ("dmOnedayEmpCardInfo_IF") */
+		exec [dbo].[uSP_SK_Daily_Employee]
+			@card_no = #{cardNo},
+			@EmpNum = #{empNum},
+			@CompType = #{compType},
+			@InOut = #{inOut}
+	</update>
+
+	<update id="procedureIoPassExcptIf" parameterType="Map">
+		/* IdcardVisitRepository.procedureIoPassExcptIf ("dmPassExcptIF_IoPassExcpt") */
+		exec [dbo].[uSP_SK_IF_IO_PASS_EXCPT]
+			@EXCPT_APPL_NO = #{excptApplNo},
+			@IDCARD_ID = #{idcardId},
+			@EXCPT_STRT_DT = #{excptStrtDt},
+			@EXCPT_END_DT = #{excptEndDt}
+	</update>
+
+	<update id="procedurePassExcptIFIoPassExprHist" parameterType="Map">
+		/* IdcardVisitRepository.procedureIoPassExprHistIf ("DU_PassExcptIF_dmPassExcptIF_IoPassExprHist") */
+		exec [dbo].[uSP_SK_IF_IO_PASS_EXPR_HIST]
+			@EXPR_APPL_NO = #{exprApplNo},
+			@S_C_GBN = #{sCGbn},
+			@IDCARD_ID = #{idcardId},
+			@EXPR_CODE = #{exprCode}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(siteType)">
+				<if test='siteType.equals("HS")'>
+					, @PTYPE = 'N'
+				</if>
+				<if test='siteType.equals("SI")'>
+					, @PTYPE = '8'
+				</if>
+			</if>
+	</update>
+
+	<select id="selectPassReceiptMngListGetLastCnt" parameterType="String" resultType="CamelHashMap">
+		/* IdcardVisitRepository.selectPassReceiptMngListGetLastCnt ("DU_InsPass_dmPassReceiptMngListGetLastCnt") */
+		exec usP_USER_Count_2Month
+			@u_INPUTDATA = #{cardNoStr}
+	</select>
+
+	<select id="selectHazardousChemicalsVisitList" parameterType="Map" resultType="CamelHashMap">
+		/* IdcardVisitRepository.selectHazardousChemicalsVisitList ("DU_CurrentStatus_dmHazardousChemicalsVisit_List") */
+		EXEC SP_SELE_EventLogByDoorID
+			@Date = #{searchDate},
+			@RoleID = #{actLocate}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			,@UserName = #{ioEmpNm}
+		</if>
+	</select>
+
+	<update id="procedureFrontDoorOutProcIF" parameterType="Map">
+		/* (출문) IdcardVisitRepository.procedureFrontDoorOutProcIF ("dmFrontDoor_OutProc_IF") */
+		exec [dbo].[uSP_SK_Visitor_Insert_DoorOut2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@area_code = #{areaCode},
+			@doorout_at = #{dooroutAt},
+			@passport = #{passportNo},
+			@company_name = #{companyName},
+			@reason = #{reason},
+			@building = #{building}
+	</update>
+
+	<update id="procedureFrontDoorInProcIF" parameterType="Map">
+		/* (입문) IdcardVisitRepository.procedureFrontDoorInProcIF ("dmFrontDoor_InProc_IF") */
+		exec [dbo].[uSP_SK_Visitor_Insert_DoorIn2]
+			@card_no = #{cardNo},
+			@ssn = #{juminNo},
+			@name = #{name},
+			@passport = #{passportNo},
+			@area_code = #{areaCode},
+		    @doorin_at = #{doorinAt},
+		    @company_name = #{companyName},
+			@email = #{emailId},
+			@photo = #{photoUrl},
+			@building = #{building},
+			@LeaderEmp = #{leaderEmp},
+			@LeadYn = #{leadYn},
+			@vstApplNo = #{vstApplNo},
+			@ioEmpId = #{ioEmpId}
+	</update>
+
+	<!-- 환경설정 > 구성원 관리(제한관리) > 출입제한  - procedureOffLimitsEmpCardExprHist (ASIS : dmOffLimits_EmpCardExprHist) -->
+	<update id="procedureOffLimitsEmpCardExprHist" parameterType="Map">
+		/* 환경설정 > 구성원 관리(제한관리) > 출입제한  - procedureOffLimitsEmpCardExprHist (ASIS : dmOffLimits_EmpCardExprHist) */
+		exec [dbo].[uSP_SK_IF_IO_PASS_EXPR_HIST]
+				  @EXPR_APPL_NO = #{exprApplNo}
+				, @S_C_GBN = #{sCGbn}
+				, @IDCARD_ID = #{empcardNo}
+				, @EXPR_CODE = #{exprCode}
+				, @PTYPE = 'H'
+	</update>
+
+	<!-- 환경설정 > 방문객 관리(제한관리) > 출입제한  - procedureOffLimitsIoPassExprHist (ASIS : dmOffLimits_IoPassExprHist) -->
+	<update id="procedureOffLimitsIoPassExprHist" parameterType="Map">
+		/* 환경설정 > 방문객 관리(제한관리) > 출입제한  - procedureOffLimitsIoPassExprHist (ASIS : dmOffLimits_IoPassExprHist) */
+		exec [dbo].[uSP_SK_IF_IO_PASS_EXPR_HIST]
+				  @EXPR_APPL_NO = #{exprApplNo}
+				, @S_C_GBN = #{sCGbn}
+				, @IDCARD_ID = #{idcardId}
+				, @EXPR_CODE = #{exprCode}
+				<if test='"SI".equals(siteType)'>
+				, @PTYPE='8'
+				</if>
+	</update>
+
+
+
+
+</mapper>

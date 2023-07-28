@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.AuthMenuManageRepository">
+
+	<select id="selectAuthList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			AUTH_ID,
+			AUTH_NM,
+			AUTH_RMRK,
+		  SEQ
+		FROM CO_AUTH
+		WHERE USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+			AND AUTH_KND = #{authKnd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(managementKnd)">
+			<if test='"2".equals(managementKnd)'>
+				AND MANAGEMENT_KND = '2'
+			</if>
+		</if>
+		ORDER BY AUTH_NM
+	</select>
+	
+	<select id="selectAuthMenuList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			A.MENU_ID AS MENU_ID,
+			A.MENU_NM AS MENU_NM,
+			A.DEPTH AS DEPTH,
+			FN_GET_SUB_MENU_COUNT(A.MENU_ID, '') AS SUB_MENU_COUNT,
+			A.USE_YN AS USE_YN,
+			DECODE(B.AUTH_ID, null, #{authId}, '', #{authId}, B.AUTH_ID) AS AUTH_ID,
+			DECODE(B.MENU_ID, null, 'N', '', 'N', 'Y') AS MENU_AUTH_YN
+		FROM 	CO_MENU A, CO_AUTH_MENU B
+		WHERE A.MENU_ID = B.MENU_ID(+)
+			AND B.AUTH_ID(+) = #{authId}
+		ORDER BY A.MENU_ID ASC
+	</select>
+	
+	<update id="upsertAuthMenuManage" parameterType="hashMap">
+		MERGE INTO CO_AUTH T1
+		    USING (
+		        SELECT #{authId} AS AUTH_ID
+		        	  ,#{authNm} AS AUTH_NM
+		        	  ,#{authRmrk}   AS AUTH_RMRK
+		        	  ,#{useYn} AS USE_YN
+		        	  ,#{acIp}  AS AC_IP
+		        	  ,#{crtBy} AS CRT_BY
+		        	  ,#{modBy} AS MOD_BY
+		       	FROM DUAL ) T2
+		    ON (T1.AUTH_ID = T2.AUTH_ID)
+		    WHEN MATCHED THEN
+		        UPDATE SET
+		        	 T1.AUTH_NM = T2.AUTH_NM
+		        	,T1.AUTH_RMRK = T2.AUTH_RMRK
+		        	,T1.USE_YN = T2.USE_YN
+		        	,T1.MOD_BY = T2.MOD_BY
+		        	,T1.MOD_DTM = SYSDATE
+		    WHEN NOT MATCHED THEN
+		        INSERT 
+		        (
+		           AUTH_ID
+		         , AUTH_NM
+		         , AUTH_RMRK
+		         , USE_YN
+		         , AC_IP
+		         , CRT_BY
+		         , CRT_DTM         
+		        )
+		        VALUES
+		        (
+		          (SELECT MAX (T3.AUTH_ID) + 1 FROM CO_AUTH T3) 	
+		         ,T2.AUTH_NM
+		         ,T2.AUTH_RMRK
+		         ,T2.USE_YN
+		         ,T2.AC_IP
+		         ,T2.CRT_BY
+		         ,SYSDATE
+		        )
+	</update>
+	
+	<delete id="deleteAuthMenuManage" parameterType="String">
+		DELETE 
+		FROM 
+			CO_AUTH_MENU
+		WHERE 
+			AUTH_ID = #{authId}
+	</delete>
+	
+	<insert id="insertAuthMenuManage" parameterType="hashMap">
+		INSERT INTO SECURITYADM.CO_AUTH_MENU
+		(
+		   AUTH_ID, MENU_ID, AC_IP, 
+		   CRT_BY, CRT_DTM
+		) 
+		VALUES 
+		( 
+			#{authId}, #{menuId}, #{acIp},
+			#{crtBy}, SYSDATE
+		)
+	</insert>
+
+</mapper>
+
+

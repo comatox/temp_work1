@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.icvstcargotham.IcVstcarGothamRepository">
+
+	<select id="sendICSpmsInsertMemberInnerGotham" statementType="CALLABLE" parameterType="SendSpmsDTO" resultType="CamelHashMap">
+
+        EXEC sp_InsertMember_Inner
+        						 @Division='1', 						     @VehicleNumber=#{VehicleNumber}
+								,@VehicleName=#{VehicleName},			     @EnterDateTime=#{EnterDateTime}
+								,@NoEntryDateTime=#{NoEntryDateTime}, 	     @VisitPurpose=#{VisitPurpose}
+								,@ApproverName=#{ApproverName}, 		 	 @VisitorName=#{VisitorName}
+								,@AffiliatedCompany=#{AffiliatedCompany},    @ContactNumber=#{ContactNumber}
+								,@Destination=#{Destination},			     @Note=#{Note}
+								,@SecurityID=#{SecurityID},				     @MemberType=#{MemberType}
+								,@UnionNumber=#{UnionNumber}
+	</select>
+
+	<update id="procedureFrontDoorSpOutState" parameterType="Map">
+		exec sp_OutState
+			@Division = #{division},
+			@VehicleNumber = #{vehicleNumber},
+			@VisitorName = #{visitorName},
+			@ReturnDateTime = #{returnDateTime}
+	</update>
+
+</mapper>

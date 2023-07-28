@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.smartTag.SmartTagRepository">
+
+	<update id="insertPassReceiptMngExtnIdcard" parameterType="Map">
+		/* SmartTagRepository.updateSmartTagVisitInOutProcess (dmSmartTagVisitInOutProcessU) */
+		MERGE INTO ESHTAG.STG_VISITOR_VISIT_INFO T1
+		USING (
+			SELECT
+				#{vstApplNo} AS VISIT_ID,
+				TO_CHAR(SYSDATE,'YYYYMMDD') AS VISIT_DATE,
+				#{ioEmpId} AS VISITOR_EMAIL,
+				#{empNm} AS VISITOR_NAME,
+				#{ioHpNo} AS TEL,
+				#{ioCompNm} AS COMPANY,
+				#{ioCardNo} AS IDCARD_ID,
+				#{bareaCd} AS BAREA_CD,
+				#{bareaNm} AS BAREA_NAME,
+				#{inGate} AS PLACE_ID,
+				#{inGateNm} AS PLACE_NAME,
+				SYSDATE AS IDCARD_ISSUE_DATE,
+				SYSDATE AS IDCARD_RETURN_DATE,
+				#{crtBy} AS CUSER,
+				#{ioknd} AS IOKND
+			FROM DUAL
+		) T2 ON (
+			T1.VISIT_ID = T2.VISIT_ID
+			AND T1.VISITOR_EMAIL = T2.VISITOR_EMAIL
+			AND T1.VISIT_DATE = T2.VISIT_DATE
+			AND T1.IDCARD_ID = T2.IDCARD_ID
+		)
+
+		WHEN MATCHED THEN
+
+		UPDATE SET
+		T1.IOKND = T2.IOKND,
+		T1.UUSER = T2.CUSER,
+		T1.UDATE = SYSDATE,
+		T1.BAREA_CD = BAREA_CD,
+		T1.BAREA_NAME = BAREA_NAME,
+		T1.PLACE_ID = T2.PLACE_ID,
+		T1.PLACE_NAME = T2.PLACE_NAME
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioknd)">
+			<if test='ioknd.equals("1")'>
+				, T1.IDCARD_RETURN_DATE = ''
+			</if>
+			<if test='ioknd.equals("2")'>
+				, T1.IDCARD_RETURN_DATE = T2.IDCARD_RETURN_DATE
+			</if>
+		</if>
+
+		WHEN NOT MATCHED THEN
+			INSERT (
+				VISIT_ID,
+		        VISIT_DATE,
+		        VISITOR_EMAIL,
+		        VISITOR_NAME,
+		        TEL,
+		        COMPANY,
+		        IDCARD_ID,
+		        IOKND,
+		        BAREA_CD,
+		        BAREA_NAME,
+		        IDCARD_ISSUE_DATE,
+		        CUSER,
+		        CDATE,
+		        PLACE_ID,
+		        PLACE_NAME
+			) VALUES (
+				T2.VISIT_ID,
+		        T2.VISIT_DATE,
+		        T2.VISITOR_EMAIL,
+		        T2.VISITOR_NAME,
+		        T2.TEL,
+		        T2.COMPANY,
+		        T2.IDCARD_ID,
+		        T2.IOKND,
+		        T2.BAREA_CD,
+		        T2.BAREA_NAME,
+		        T2.IDCARD_ISSUE_DATE,
+		        T2.CUSER,
+		        SYSDATE,
+		        T2.PLACE_ID,
+		        T2.PLACE_NAME
+			)
+	</update>
+
+	<update id="procedureBuildingPassInProcSmartTagIf" parameterType="Map">
+		/* SmartTagRepository.procedureBuildingPassInProcSmartTagIf (dmBuildingPass_InProc_SmartTag_IF) */
+		/* 외부인 건물 입문 시 SmartTag로 온라인 인솔 I/F */
+		CALL ESHVISIT.SP_STG_VISIT_INFO_ENTER (
+			#{inVisitDate},
+			#{inVisitSeq},
+			#{inVisitorId},
+			#{inIdcardId},
+			#{inBuildingId},
+			#{inBuildingName},
+			#{inDestIds},
+			#{inDestNames}
+		)
+	</update>
+
+	<update id="procedureOutGateInProcSmartTagIf" parameterType="Map">
+		/* SmartTagRepository.procedureOutGateInProcSmartTagIf (dmOutGate_InProc_SmartTag_IF) */
+		/* 외부인 외곽 입문 시 SmartTag로 온라인 인솔 I/F */
+		CALL ESHVISIT.SP_STG_VISIT_OUTSIDE_ENTER (
+			#{inVisitDate},
+			#{inVisitSeq},
+			#{inVisitorId},
+			#{inVisitorName},
+			#{inTel},
+			#{inCompany},
+			#{inIdcardId},
+			#{inIoknd},
+			#{inBareaCd},
+			#{inBareaName},
+			#{inPlaceId},
+			#{inPlaceName},
+			#{inCuser},
+			#{inStaffId},
+			#{inMeetStaffId},
+			#{inBuildingId},
+			#{inBuildingName},
+			#{inDestIds},
+			#{inDestNames},
+			#{inTogetherYn},
+			#{inStayTime},
+			#{inVisitObjCd},
+			#{inVisitObjName},
+			#{unpermittedLocAgreeYn}
+		)
+	</update>
+
+	<update id="procedureOutGateOutProcSmartTagIF" parameterType="Map">
+		/* SmartTagRepository.procedureOutGateOutProcSmartTagIF (dmOutGate_OutProc_SmartTag_IF) */
+		/* 외부인 외곽 출문 시 SmartTag로 온라인 인솔 I/F */
+		CALL ESHVISIT.SP_STG_VISIT_OUTSIDE_OUT(
+			#{inVisitDate},
+			#{inVisitSeq},
+			#{inVisitorId},
+			#{inIdcardId}
+		)
+	</update>
+
+	<update id="proceduteOutGateCubeApprovalSmartTagIF" parameterType="Map">
+		/* SmartTagRepository.proceduteOutGateCubeApprovalSmartTagIF (dmOutGate_Cube_Approval_SmartTag_IF) */
+		/* 구성원 큐브 인솔 승인 시 SmartTag로 온라인 인솔 I/F */
+		CALL ESHVISIT.SP_STG_VISIT_BUILDING_ENTER(
+			#{inVisitDate},
+			#{inVisitSeq},
+			#{inVisitorId},
+			#{inIdcardId},
+			#{inBuildingId},
+			#{inBuildingName}
+		)
+	</update>
+
+</mapper>

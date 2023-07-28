@@ -1,0 +1,2889 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityUSBPortLockRepository">
+
+	<select id="productionMasterKeyList" parameterType="Map" resultType="CamelHashMap">
+	/*  SecurityUSBPortLockRepository.productionMasterKeyList (dmSelectUSBPortLockMastKeyList) */
+		SELECT * FROM (
+			SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+			,A.PK_SEQ
+			,A.SERIAL_NO
+			,A.SECRT_EMP_ID
+			,FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+			,A.RECV_EMP_ID
+			,FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+			,A.MGMT_EMP_ID
+			,FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+			,A.MGMT_DEPT_ID
+			,FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+			,TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+			,CASE WHEN A.MGMT_EMP_ID = #{empId}
+	         	  THEN 'Y'
+	              ELSE (SELECT DECODE((COUNT(ENA_DEPT_ID)+COUNT(SEC_DEPT_ID)),0,'N','Y')
+						FROM SC_DEPT_SEC_EMP  WHERE (ENA_DEPT_ID = A.MGMT_DEPT_ID OR SEC_DEPT_ID = #{deptId})
+						AND SEC_EMP_ID = #{empId} AND DEL_YN = 'N')
+				  END AS DEPT_SEC_YN
+			,A.SITE_ID
+			,CASE A.SITE_ID
+			    WHEN 'IC'   THEN '이천'
+			    WHEN 'CJ'   THEN '청주'
+			 END AS SITE_NM
+			,A.BLDG_ID
+			,FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+			,A.KEEP_STATUS
+			,CASE A.KEEP_STATUS
+			    WHEN '1' THEN '보유'
+			    WHEN '2' THEN '파손'
+			    WHEN '3' THEN '분실'
+			    WHEN '4' THEN '반납(불필요)'
+			 END AS KEEP_STATUS_NM
+			,A.CHG_REQ_TYPE
+			,CASE A.CHG_REQ_TYPE
+			    WHEN '2' THEN '파손'
+			    WHEN '3' THEN '분실'
+			    WHEN '4' THEN '반납(불필요)'
+			    ELSE ''
+			 END AS CHG_REQ_TYPE_NM
+			,MOD_DTM
+			,A.CHECK_YN
+			,A.CHECK_BY
+			,NVL(TO_CHAR(A.CHECK_DTM, 'YYYY-MM-DD HH24:MI:SS'),' ') AS CHECK_DTM
+			FROM SC_USB_PORTLOCK_MAST_KEY A
+			WHERE A.DEL_YN = 'N'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.MGMT_DEPT_ID = #{deptId}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+			<![CDATA[
+			AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+				<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.SITE_ID = #{searchComp}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+			<![CDATA[
+			AND A.BLDG_ID = #{searchBldgId}
+			]]></if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+				<if test='!"ALL".equals(searchKeepStatus)'>
+				<![CDATA[
+				AND A.KEEP_STATUS = #{searchKeepStatus}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+			<![CDATA[
+			AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+			<![CDATA[
+			AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+			<![CDATA[
+			AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+			]]>
+			</if>
+
+			<if test='not @org.springframework.util.StringUtils@isEmpty(searchCheckYn) and searchCheckYn.equals("SAVE")'>
+				AND A.CHECK_YN IS NOT NULL
+			</if>
+			<if test='not @org.springframework.util.StringUtils@isEmpty(searchCheckYn) and searchCheckYn.equals("NONE")'>
+				AND A.CHECK_YN IS NULL
+			</if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND ROW_NUM > (#{currentPage} - 1) * #{rowPerPage} AND ROW_NUM <= #{currentPage} * #{rowPerPage}
+		]]> 
+	    </if>
+	</select>
+
+	<select id="productionMasterKeyListCnt" parameterType="Map" resultType="Integer">
+		/*  SecurityUSBPortLockRepository.productionMasterKeyListCnt */
+		SELECT COUNT(*)
+		FROM SC_USB_PORTLOCK_MAST_KEY A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		<![CDATA[
+		AND A.MGMT_DEPT_ID = #{deptId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+		<![CDATA[
+		AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+		<![CDATA[
+		AND A.BLDG_ID = #{searchBldgId}
+		]]></if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+			<if test='!"ALL".equals(searchKeepStatus)'>
+			<![CDATA[
+			AND A.KEEP_STATUS = #{searchKeepStatus}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+		<![CDATA[
+		AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+		]]>
+		</if>
+
+		<if test='not @org.springframework.util.StringUtils@isEmpty(searchCheckYn) and searchCheckYn.equals("SAVE")'>
+			AND A.CHECK_YN IS NOT NULL
+		</if>
+		<if test='not @org.springframework.util.StringUtils@isEmpty(searchCheckYn) and searchCheckYn.equals("NONE")'>
+			AND A.CHECK_YN IS NULL
+		</if>
+	</select>
+
+	<update id="productionMasterKeyStatusChange" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeyStatusChange (dmUpdateUSBPortLockMastKeyChgReq) */
+	UPDATE SC_USB_PORTLOCK_MAST_KEY
+	SET CHG_REQ_TYPE = #{chgReqType}
+	  , MOD_BY = #{empId}
+	  , MOD_DTM = SYSDATE
+	WHERE DEL_YN = 'N'
+	  AND KEEP_STATUS = 1
+	 ]]>
+	<foreach collection="pkSeqIds" item="item" index="index" separator="," open="AND PK_SEQ IN (" close=")">
+	#{item}
+	</foreach>
+	</update>
+
+	<select id="selectProductionMasterKeyEmailAddr" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.selectProductionMasterKeyEmailAddr (dmSelectMastKeyChgReqEmailAddr) */
+	SELECT
+		DISTINCT EMAIL FROM
+	(
+		SELECT
+			C.EMAIL
+		FROM SC_DEPT_SEC A
+		   , SC_DEPT_SEC_EMP B
+		   , CO_EMP C
+		WHERE A.EMP_ID = B.SEC_EMP_ID
+			AND A.EMP_ID = C.EMP_ID
+			AND A.DEL_YN = 'N'
+			AND B.ENA_DEPT_ID = #{deptId}
+		UNION ALL
+		SELECT
+			EMAIL
+		FROM CO_EMP
+		WHERE
+			EMP_ID = #{empId}
+		UNION ALL
+		SELECT 'yongbum.kim@sk.com' AS EMAIL FROM DUAL
+		UNION ALL
+		SELECT 'skhy.X0102904@partner.sk.com' AS EMAIL FROM DUAL /*서형석*/
+		UNION ALL
+		SELECT 'skhy.X0108429@partner.sk.com' AS EMAIL FROM DUAL /*정예지*/
+		UNION ALL
+		SELECT 'skhy.X0116042@partner.sk.com' AS EMAIL FROM DUAL /*임완재 */
+		)
+	]]>
+	</select>
+
+	<update id="productionMasterKeyMgmtChange" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeyMgmtChange (dmUpdateUSBPortLockMastKeyChgMgmt) */
+		UPDATE SC_USB_PORTLOCK_MAST_KEY
+		SET MGMT_EMP_ID = #{mgmtEmpId}
+ 		  ,	MGMT_DEPT_ID = #{mgmtDeptId}
+ 		  , MOD_BY = #{empId}
+		  , MOD_DTM = SYSDATE
+		WHERE DEL_YN = 'N'
+		  AND PK_SEQ = #{pkSeq}
+	]]>
+	</update>
+
+	<select id="industryControlMasterKeyList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.industryControlMasterKeyList (dmInduConUSBPortLockMastKeyList) */
+		SELECT * FROM (
+			SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+			,A.PK_SEQ
+			,A.SERIAL_NO
+			,A.SECRT_EMP_ID
+			,FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+			,A.RECV_EMP_ID
+			,FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+			,A.MGMT_EMP_ID
+			,FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+			,A.MGMT_DEPT_ID
+			,FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+			,TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+			,A.SITE_ID
+			,CASE A.SITE_ID
+			    WHEN 'IC'   THEN '이천'
+			    WHEN 'CJ'   THEN '청주'
+			 END AS SITE_NM
+			,A.BLDG_ID
+			,FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+			,A.KEEP_STATUS
+			,CASE A.KEEP_STATUS
+			    WHEN '1' THEN '보유'
+			    WHEN '2' THEN '파손'
+			    WHEN '3' THEN '분실'
+			    WHEN '4' THEN '반납(불필요)'
+			 END AS KEEP_STATUS_NM
+			,A.CHG_REQ_TYPE
+			,CASE A.CHG_REQ_TYPE
+			    WHEN '2' THEN '파손'
+			    WHEN '3' THEN '분실'
+			    WHEN '4' THEN '반납(불필요)'
+			    ELSE ''
+			 END AS CHG_REQ_TYPE_NM
+			,MOD_DTM
+			FROM SC_IC_USB_PORTLOCK_MST_KEY A
+			WHERE A.DEL_YN = 'N'
+			]]>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.MGMT_DEPT_ID = #{deptId}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+			<![CDATA[
+			AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+			<![CDATA[
+			AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+				<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.SITE_ID = #{searchComp}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+			<![CDATA[
+			AND A.BLDG_ID = #{searchBldgId}
+			]]></if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+				<if test='!"ALL".equals(searchKeepStatus)'>
+				<![CDATA[
+				AND A.KEEP_STATUS = #{searchKeepStatus}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+			<![CDATA[
+			AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+			<![CDATA[
+			AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+			<![CDATA[
+			AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+			]]>
+			</if>
+			<![CDATA[
+		)
+		]]>
+	</select>
+
+	<update id="industryControlMasterKeyStatusChange" parameterType="Map" >
+		<![CDATA[
+		/*  SecurityUSBPortLockRepository.industryControlMasterKeyStatusChange (dmIcUSBPortLockMastKeyChgReq) */
+		UPDATE SC_IC_USB_PORTLOCK_MST_KEY
+			SET CHG_REQ_TYPE = #{chgReqType}
+		  , MOD_BY = #{empId}
+		  , MOD_DTM = SYSDATE
+		WHERE DEL_YN = 'N'
+		   AND KEEP_STATUS = 1
+		 ]]>
+		<foreach collection="pkSeqIds" item="item" index="index" separator="," open="AND PK_SEQ IN (" close=")">
+		#{item}
+		</foreach>
+	</update>
+
+	<select id="selectIncMasterKeyEmailAddr" parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityUSBPortLockRepository.selectIncMasterKeyEmailAddr ("dmicMstKeyChgReqEmailAddr") */
+		SELECT A.EMAIL
+		FROM CO_EMP A, CO_DEPT B
+		WHERE A.DEPT_ID=B.DEPT_ID AND EMP_ID IN ('X0116042','2035305')
+		]]>
+	</select>
+
+	<select id="dataCenterUSBPortLockList" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."dataCenterUSBPortLockList" ("dmSelectDataCenterUSBPortLockList") */
+	SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.ASSET_ID DESC ) AS ROW_NUM,
+		A.CLASS_NM as EQ_CLASS_NM,
+	    A.ASSET_ID as ASSET_ID,
+	    A.ASSET_ID as ASSET_NUM,
+	    A.SERIAL_NO as SERIAL_NO,
+	    A.HOST_NM  AS HOST_NM,
+	    A.MODEL_NM as EQ_MODEL_NM,
+	    nvl(B.TARGET_YN, 'Y') as TARGET_YN,
+	    A.LOC_XY AS SITE_NM,
+	    A.LOC_NM as BLDG_NM,
+	    B.USB_PORT_CNT,
+	    B.USB_PORTLOCK_CNT AS USB_PORT_LOCK_CNT,
+	    TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM,
+	    B.ETC,
+	    A.CONF_NM,
+	    A.USE_TYPE,
+	    A.VENDOR_NM,
+	    A.REGION_NM,
+	    A.LOC_XY
+		FROM SC_ITAM_IF_EQUIPMENT A
+		, SC_DC_USB_PORTLOCK B
+		WHERE A.ASSET_ID = b.ASSET_ID (+)
+		AND a.DEL_YN = 'N'
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+			<![CDATA[
+			AND A.ASSET_ID like '%' || #{searchAssetNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseGbn)">
+			<![CDATA[
+			AND A.USE_TYPE like '%' || #{searchUseGbn} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConfNm)">
+			<![CDATA[
+			AND A.CONF_NM like '%' || #{searchConfNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.REGION_NM = #{searchComp}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHostNm)">
+			<![CDATA[
+			AND A.HOST_NM like '%' || #{searchHostNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.DEPT_ID = #{deptId}
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocNm)">
+			<![CDATA[
+			AND A.LOC_NM like '%' || #{searchLocNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocXy)">
+			<![CDATA[
+			AND A.LOC_XY like '%' || #{searchLocXy} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+				AND B.TARGET_YN = #{searchTargetYn}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+			<choose>
+				<when test='"1".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<![CDATA[
+		)
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(rowPerPage)">
+			<if test='!"-1".equals(rowPerPage)'>
+			<![CDATA[
+			WHERE ROW_NUM
+			BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+			]]>
+			</if>
+		</if>
+	</select>
+
+	<select id="dataCenterUSBPortLockListCnt" parameterType="Map"  resultType="int">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."dataCenterUSBPortLockListCnt" ("dmSelectDataCenterUSBPortLockListCnt") */
+	SELECT COUNT(*) FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.ASSET_ID DESC ) AS ROW_NUM,
+		A.CLASS_NM as EQ_CLASS_NM,
+	    A.ASSET_ID as ASSET_ID,
+	    A.ASSET_ID as ASSET_NUM,
+	    A.SERIAL_NO as SERIAL_NO,
+	    A.HOST_NM  AS HOST_NM,
+	    A.MODEL_NM as EQ_MODEL_NM,
+	    nvl(B.TARGET_YN, 'Y') as TARGET_YN,
+	    A.LOC_XY AS SITE_NM,
+	    A.LOC_NM as BLDG_NM,
+	    B.USB_PORT_CNT,
+	    B.USB_PORTLOCK_CNT AS USB_PORT_LOCK_CNT,
+	    TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM,
+	    B.ETC,
+	    A.CONF_NM,
+	    A.USE_TYPE,
+	    A.VENDOR_NM,
+	    A.REGION_NM,
+	    A.LOC_XY
+		FROM SC_ITAM_IF_EQUIPMENT A
+		, SC_DC_USB_PORTLOCK B
+		WHERE A.ASSET_ID = b.ASSET_ID (+)
+		AND a.DEL_YN = 'N'
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+			<![CDATA[
+			AND A.ASSET_ID like '%' || #{searchAssetNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseGbn)">
+			<![CDATA[
+			AND A.USE_TYPE like '%' || #{searchUseGbn} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConfNm)">
+			<![CDATA[
+			AND A.CONF_NM like '%' || #{searchConfNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.REGION_NM = #{searchComp}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHostNm)">
+			<![CDATA[
+			AND A.HOST_NM like '%' || #{searchHostNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.DEPT_ID = #{deptId}
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocNm)">
+			<![CDATA[
+			AND A.LOC_NM like '%' || #{searchLocNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocXy)">
+			<![CDATA[
+			AND A.LOC_XY like '%' || #{searchLocXy} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+				AND B.TARGET_YN = #{searchTargetYn}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+			<choose>
+				<when test='"1".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<![CDATA[
+		)
+		]]>
+	</select>
+
+
+	<insert id="dataCenterUSBPortLockSave" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."dataCenterUSBPortLockSave" ("dmSaveDC_USBPortLock") */
+	MERGE INTO SC_DC_USB_PORTLOCK A
+	USING ( SELECT #{assetId} AS ASSET_ID
+				, #{targetYn} AS TARGET_YN
+				, DECODE(#{targetYn}, 'Y', #{usbPortCnt}, '') AS USB_PORT_CNT
+				, DECODE(#{targetYn}, 'Y', #{usbPortLockCnt}, '') AS USB_PORTLOCK_CNT
+				, DECODE(#{targetYn}, 'Y', #{etc}, '') AS ETC
+				, #{empId} AS MOD_BY
+			FROM DUAL
+	) B
+	ON( A.ASSET_ID = B.ASSET_ID)
+	WHEN MATCHED THEN
+		UPDATE SET
+		      A.TARGET_YN = B.TARGET_YN
+			, A.USB_PORT_CNT = B.USB_PORT_CNT
+			, A.USB_PORTLOCK_CNT = B.USB_PORTLOCK_CNT
+			, A.ETC = B.ETC
+			, A.MOD_BY = B.MOD_BY
+			, A.MOD_DTM = SYSDATE
+	WHEN NOT MATCHED THEN
+		INSERT( ASSET_ID,  TARGET_YN, USB_PORT_CNT, USB_PORTLOCK_CNT, ETC, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM )
+		VALUES ( B.ASSET_ID,  B.TARGET_YN, B.USB_PORT_CNT, B.USB_PORTLOCK_CNT, B.ETC, B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE )
+	]]>
+	</insert>
+
+	<select id="dataCenterUSBPortLockExcel" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."dataCenterUSBPortLockExcel" ("dmDC_USBPortLockExcel") */
+	SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.ASSET_ID DESC ) AS ROW_NUM,
+		A.CLASS_NM as EQ_CLASS_NM,
+	    A.ASSET_ID as ASSET_ID,
+	    A.ASSET_ID as ASSET_NUM,
+	    A.SERIAL_NO as SERIAL_NO,
+	    A.HOST_NM  AS HOST_NM,
+	    A.MODEL_NM as EQ_MODEL_NM,
+	    nvl(B.TARGET_YN, 'Y') as TARGET_YN,
+	    A.LOC_XY AS SITE_NM,
+	    A.LOC_NM as BLDG_NM,
+	    B.USB_PORT_CNT,
+	    B.USB_PORTLOCK_CNT AS USB_PORT_LOCK_CNT,
+	    TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM,
+	    B.ETC,
+	    A.CONF_NM,
+	    A.USE_TYPE,
+	    A.VENDOR_NM,
+	    A.REGION_NM,
+	    A.LOC_XY
+		FROM SC_ITAM_IF_EQUIPMENT A
+		, SC_DC_USB_PORTLOCK B
+		WHERE A.ASSET_ID = b.ASSET_ID (+)
+		AND a.DEL_YN = 'N'
+		and rownum < 20000
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+			<![CDATA[
+			AND A.ASSET_ID like '%' || #{searchAssetNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseGbn)">
+			<![CDATA[
+			AND A.USE_TYPE like '%' || #{searchUseGbn} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConfNm)">
+			<![CDATA[
+			AND A.CONF_NM like '%' || #{searchConfNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.REGION_NM = #{searchComp}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHostNm)">
+			<![CDATA[
+			AND A.HOST_NM like '%' || #{searchHostNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.DEPT_ID = #{deptId}
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocNm)">
+			<![CDATA[
+			AND A.LOC_NM like '%' || #{searchLocNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchLocXy)">
+			<![CDATA[
+			AND A.LOC_XY like '%' || #{searchLocXy} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+				AND B.TARGET_YN = #{searchTargetYn}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+			<choose>
+				<when test='"1".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn)'>
+				<![CDATA[
+				AND B.MOD_DTM IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<![CDATA[
+			)
+		]]>
+	</select>
+
+	<select id="industryControlUSBPortLockList" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."industryControlUSBPortLockList" ("dmInduConUSBPortLockList") */
+	 SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		, A.PK_SEQ
+		, A.EQ_MODEL_NM
+		, A.ASSET_NUM
+		, A.EQ_CLASS_NM
+		, A.COM_NM
+		, A.IP_NUM
+		, A.net_gbn as NET_GBN
+		, A.SITE_ID
+		, CASE A.SITE_ID
+	        WHEN 'IC' THEN '이천'
+	        WHEN 'CJ' THEN '청주'
+	        ELSE ''
+	        END AS SITE_NM
+		, A.BLDG_NM
+		, A.DEPT_ID
+		, FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+		, NVL(A.TARGET_YN, 'Y') AS TARGET_YN
+		, A.USBPORT_CNT AS USB_PORT_CNT
+		, A.USBPORTLOCK_CNT AS USB_PORT_LOCK_CNT
+		, A.ETC
+		, TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+		FROM SC_IC_USB_PORTLOCK_EQUIPMENT A
+		WHERE A.DEL_YN = 'N'
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.DEPT_ID like '%' || #{deptId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			<![CDATA[
+			AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.SITE_ID = #{searchComp}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+			<![CDATA[
+			AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+			<![CDATA[
+			AND A.PK_SEQ like '%' || #{searchEqId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIpNum)">
+			<![CDATA[
+			AND A.IP_NUM like '%' || #{searchIpNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqClassNm)">
+			<![CDATA[
+			AND A.EQ_CLASS_NM like '%' || #{searchEqClassNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+				AND A.TARGET_YN = #{searchTargetYn}
+				]]>
+			</if>
+		</if>
+	<![CDATA[
+		)
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(rowPerPage)">
+		<if test='!"-1".equals(rowPerPage)'>
+		<![CDATA[
+		WHERE ROW_NUM
+		BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+		]]>
+		</if>
+	</if>
+	</select>
+
+	<select id="industryControlUSBPortLockListCnt" parameterType="Map"  resultType="int">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."industryControlUSBPortLockListCnt" ("dmInduConUSBPortLockListCnt") */
+	 SELECT COUNT(*) FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		, A.PK_SEQ
+		, A.EQ_MODEL_NM
+		, A.ASSET_NUM
+		, A.EQ_CLASS_NM
+		, A.COM_NM
+		, A.IP_NUM
+		, A.net_gbn as NET_GBN
+		, A.SITE_ID
+		, CASE A.SITE_ID
+	        WHEN 'IC' THEN '이천'
+	        WHEN 'CJ' THEN '청주'
+	        ELSE ''
+	        END AS SITE_NM
+		, A.BLDG_NM
+		, A.DEPT_ID
+		, FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+		, NVL(A.TARGET_YN, 'Y') AS TARGET_YN
+		, A.USBPORT_CNT AS usbPortCnt
+		, A.USBPORTLOCK_CNT AS usbPortLockCnt
+		, A.ETC
+		, TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+		FROM SC_IC_USB_PORTLOCK_EQUIPMENT A
+		WHERE A.DEL_YN = 'N'
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<![CDATA[
+			AND A.DEPT_ID like '%' || #{deptId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			<![CDATA[
+			AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.SITE_ID = #{searchComp}
+				]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+			<![CDATA[
+			AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+			<![CDATA[
+			AND A.PK_SEQ like '%' || #{searchEqId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIpNum)">
+			<![CDATA[
+			AND A.IP_NUM like '%' || #{searchIpNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqClassNm)">
+			<![CDATA[
+			AND A.EQ_CLASS_NM like '%' || #{searchEqClassNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+				AND A.TARGET_YN = #{searchTargetYn}
+				]]>
+			</if>
+		</if>
+	<![CDATA[
+		)
+	]]>
+	</select>
+
+	<insert id="industryControlUSBPortLockSave" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."industryControlUSBPortLockSave" ("dmSaveIcUSBPortLock") */
+		MERGE INTO SC_IC_USB_PORTLOCK_EQUIPMENT A
+		USING (
+					SELECT  #{pkSeq} AS PK_SEQ
+		            , #{empId} AS MOD_BY
+		            , #{etc} as ETC
+		            , #{usbPortCnt} as USBPORT_CNT
+		            , #{usbPortLockCnt} as USB_PORTLOCK_CNT
+		            , #{targetYn} as TARGET_YN
+		            , #{eqClassNm} as EQ_CLASS_NM
+		            , #{netGbn} as NET_GBN
+		            , #{ipNum} as IP_NUM
+		            , #{bldgNm} as BLDG_NM
+		            , #{siteId} as SITE_ID
+				FROM DUAL
+		) B
+		ON( A.PK_SEQ = B.PK_SEQ)
+		WHEN MATCHED THEN
+			UPDATE SET
+		          A.MOD_DTM = SYSDATE
+		        , A.MOD_BY = B.MOD_BY
+		        , A.USBPORT_CNT = B.USBPORT_CNT
+		        , A.USBPORTLOCK_CNT = B.USB_PORTLOCK_CNT
+		        , A.ETC = B.ETC
+		        , A.TARGET_YN = B.TARGET_YN
+		        , A.EQ_CLASS_NM = B.EQ_CLASS_NM
+		        , A.NET_GBN = B.NET_GBN
+		        , A.IP_NUM = B.IP_NUM
+		        , A.BLDG_NM = B.BLDG_NM
+		        , A.SITE_ID = B.SITE_ID
+		WHEN NOT MATCHED THEN
+			INSERT (PK_SEQ,EQ_CLASS_NM, NET_GBN, IP_NUM, BLDG_NM, SITE_ID, MOD_DTM, MOD_BY)
+			VALUES ( B.PK_SEQ,B.EQ_CLASS_NM, B.NET_GBN, B.IP_NUM, B.BLDG_NM, B.SITE_ID, SYSDATE, B.MOD_BY)
+		]]>
+	</insert>
+
+	<insert id="industryControlUSBPortLockInsert" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."industryControlUSBPortLockInsert" ("dmInsertIcUSBPortLock") */
+		INSERT INTO SC_IC_USB_PORTLOCK_EQUIPMENT
+		(
+			PK_SEQ ,EQ_CLASS_NM
+			, NET_GBN, IP_NUM
+			, MOD_DTM, MOD_BY
+			, DEPT_ID, DEL_YN
+			, TARGET_YN, ETC
+			, USBPORT_CNT, USBPORTLOCK_CNT
+			, BLDG_NM, SITE_ID
+		)
+		VALUES
+		(
+			(#{siteId}||'-'||#{deptId}||'-'||SQ_IC_USB_PORTLOCK_KEY.NEXTVAL), #{eqClassNm}
+			, #{netGbn}, #{ipNum}
+			, SYSDATE, #{empId}
+			,  #{deptId},'N'
+			,#{targetYn}, #{etc}
+			,#{usbPortCnt}, #{usbPortLockCnt}
+			,#{bldgId},#{siteId}
+		)
+	]]>
+	</insert>
+
+	<select id="productionSafetyStockList" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."productionSafetyStockList" ("dmSelectUSBPortLockStoreList") */
+		SELECT * FROM (
+			SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		  , A.PK_SEQ
+		  , A.COMP_ID
+		  , FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+		  , A.BLDG_ID
+		  , FN_GET_CODE_NM('C063', A.BLDG_ID) AS BLDG_NM
+		  , A.SECRT_EMP_NM
+		  , A.EMP_ID
+		  , FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_NM
+		  , A.OBJECT_TYPE
+		  , FN_GET_CODE_NM('C076', A.OBJECT_TYPE) AS OBJECT_TYPE_NM
+		  , A.SERIAL_NO
+		  , A.SERIAL_NO_RTN
+		  , TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		  , A.GIVE_QTY
+		  , A.BALANCE_QTY
+		FROM SC_USB_PORTLOCK_STORE A, CO_EMP B, CO_DEPT C
+		WHERE A.EMP_ID = B.EMP_ID
+		AND B.DEPT_ID = C.DEPT_ID
+		AND A.DEL_YN = 'N'
+	]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchObjectType)">
+			<if test='!"ALL".equals(searchObjectType)'>
+			<![CDATA[
+			AND A.OBJECT_TYPE = #{searchObjectType}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+			<if test='!"ALL".equals(searchCompId)'>
+			<![CDATA[
+			AND A.COMP_ID = #{searchCompId}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+		<![CDATA[
+		AND A.BLDG_ID = #{searchBldgId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+		<![CDATA[
+		AND A.SECRT_EMP_NM like '%' || #{searchSecrtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		<![CDATA[
+		AND B.EMP_NM like '%' || #{searchEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+		AND C.DEPT_NM like '%' || #{searchDeptNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+		]]>
+		</if>
+
+		<![CDATA[
+		)
+		]]>
+	</select>
+
+	<update id="productionSafetyStockDelete" parameterType="Map" >
+		<![CDATA[
+		/*  SecurityUSBPortLockRepository."productionSafetyStockDelete" ("dmDeleteUSBPortLockStore") */
+		UPDATE SC_USB_PORTLOCK_STORE
+		SET DEL_YN = 'Y'
+			, MOD_BY = #{empId}
+			, MOD_DTM = SYSDATE
+		WHERE 1=1
+		AND PK_SEQ IN
+		]]>
+		<foreach collection="pkSeqs" item="item" separator="," open="(" close=")">
+			#{item}
+		</foreach>
+	</update>
+
+	<select id="getProductionSafetyStockPkSeq"  parameterType="Map" resultType="String">
+		<![CDATA[
+		/*  SecurityUSBPortLockRepository."getProductionSafetyStockPkSeq" ("dmSelectUSBPortLockStorePkSeq") */
+		SELECT 'SS'|| LPAD(SQ_SC_USB_PORTLOCK_STORE.NEXTVAL, 10, 0) AS PK_SEQ FROM DUAL
+		]]>
+	</select>
+
+	<update id="productionSafetyStockSave" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."productionSafetyStockSave" ("dmSaveUSBPortLockStore") */
+		MERGE INTO SC_USB_PORTLOCK_STORE A
+		USING ( SELECT #{pkSeq} AS PK_SEQ
+					, #{compId} AS COMP_ID
+					, #{bldgId} AS BLDG_ID
+					, #{secrtEmpNm} AS SECRT_EMP_NM
+					, #{empId} AS EMP_ID
+					, #{objectType} AS OBJECT_TYPE
+					, #{serialNo} AS SERIAL_NO
+					, #{serialNoRtn} AS SERIAL_NO_RTN
+					, TO_DATE(#{giveDate}, 'YYYY-MM-DD') AS GIVE_DATE
+					, #{giveQty} AS GIVE_QTY
+					, #{balanceQty} AS BALANCE_QTY
+					, #{loginId} AS MOD_BY
+				FROM DUAL
+		) B
+		ON( A.PK_SEQ = B.PK_SEQ )
+		WHEN MATCHED THEN
+			UPDATE
+			SET A.COMP_ID = B.COMP_ID
+				, A.BLDG_ID = B.BLDG_ID
+				, A.SECRT_EMP_NM = B.SECRT_EMP_NM
+				, A.EMP_ID = B.EMP_ID
+				, A.OBJECT_TYPE = B.OBJECT_TYPE
+				, A.SERIAL_NO = B.SERIAL_NO
+				, A.SERIAL_NO_RTN = B.SERIAL_NO_RTN
+				, A.GIVE_DATE = B.GIVE_DATE
+				, A.GIVE_QTY = B.GIVE_QTY
+				, A.BALANCE_QTY = B.BALANCE_QTY
+				, A.MOD_BY = B.MOD_BY
+				, A.MOD_DTM = SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT( PK_SEQ, COMP_ID, BLDG_ID, SECRT_EMP_NM, EMP_ID, OBJECT_TYPE
+			, SERIAL_NO, SERIAL_NO_RTN, GIVE_DATE, GIVE_QTY, BALANCE_QTY, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM )
+			VALUES( B.PK_SEQ, B.COMP_ID, B.BLDG_ID, B.SECRT_EMP_NM, B.EMP_ID, B.OBJECT_TYPE
+			, B.SERIAL_NO, B.SERIAL_NO_RTN, B.GIVE_DATE, B.GIVE_QTY, B.BALANCE_QTY, B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE )]]>
+	</update>
+
+	<update id="updateUSBPortLockMasterKeyStatus" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."updateUSBPortLockMasterKeyStatus" ("dmUpdateUSBPortLockMastKeyStatus") */
+		UPDATE SC_USB_PORTLOCK_MAST_KEY
+		SET KEEP_STATUS = 2
+		  , MOD_BY = #{empId}
+		  , MOD_DTM = SYSDATE
+		WHERE DEL_YN = 'N'
+		  AND SERIAL_NO = #{serialNoRtn}
+	  ]]>
+	</update>
+
+	<update id="updateUSBPortLockMasterKeyMerge" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."updateUSBPortLockMasterKeyMerge" ("dmSaveUSBPortLockMastKeyMerge") */
+		MERGE INTO SC_USB_PORTLOCK_MAST_KEY A
+		USING ( SELECT (SELECT PK_SEQ FROM SC_USB_PORTLOCK_MAST_KEY WHERE SERIAL_NO = #{serialNo} AND DEL_YN = 'N') AS PK_SEQ
+				,  #{serialNo} AS SERIAL_NO
+				,( SELECT A.EMP_ID
+					FROM SC_DEPT_SEC A, (SELECT * FROM SC_DEPT_SEC_EMP T WHERE T.ENA_DEPT_ID = #{deptId} ORDER BY T.CRT_DTM DESC) B
+					WHERE A.EMP_ID = B.SEC_EMP_ID
+					AND A.COMP_ID = B.SEC_COMP_ID
+					AND A.DEPT_ID = B.SEC_DEPT_ID
+					AND A.DEL_YN = 'N'
+					AND A.JB_GBN = 'C0711001'
+					AND ROWNUM = 1
+					) AS SECRT_EMP_ID
+				, #{empId} AS RECV_EMP_ID
+				, NVL((SELECT MGMT_EMP_ID
+	                   FROM SC_USB_PORTLOCK_MAST_KEY
+	                   WHERE PK_SEQ = (SELECT MAX(PK_SEQ) AS PK_SEQ FROM SC_USB_PORTLOCK_MAST_KEY WHERE DEL_YN = 'N'  AND SERIAL_NO=#{serialNoRtn} GROUP BY SERIAL_NO)
+	                   ),#{empId}) AS MGMT_EMP_ID
+	            , NVL((SELECT MGMT_DEPT_ID
+	                   FROM SC_USB_PORTLOCK_MAST_KEY
+	                   WHERE PK_SEQ = (SELECT MAX(PK_SEQ) AS PK_SEQ FROM SC_USB_PORTLOCK_MAST_KEY WHERE DEL_YN = 'N'  AND SERIAL_NO=#{serialNoRtn} GROUP BY SERIAL_NO)
+	                   ),#{deptId}) AS MGMT_DEPT_ID
+	            , TO_DATE(#{giveDate}, 'YYYY-MM-DD') AS GIVE_DATE
+				, CASE #{compId} WHEN '1101000001' THEN 'IC' WHEN '1102000001' THEN 'CJ' ELSE '' END AS SITE_ID
+				, 'C0632999' AS BLDG_ID
+				, '1' AS KEEP_STATUS
+				, #{loginId} AS MOD_BY
+			FROM DUAL
+		) B
+		ON( A.PK_SEQ = B.PK_SEQ )
+		WHEN MATCHED THEN
+			UPDATE
+			SET A.SERIAL_NO = B.SERIAL_NO
+				, A.SECRT_EMP_ID = B.SECRT_EMP_ID
+				, A.RECV_EMP_ID = B.RECV_EMP_ID
+				, A.MGMT_EMP_ID = B.MGMT_EMP_ID
+				, A.MGMT_DEPT_ID = B.MGMT_DEPT_ID
+				, A.GIVE_DATE = B.GIVE_DATE
+				, A.SITE_ID = B.SITE_ID
+				, A.BLDG_ID = B.BLDG_ID
+				, A.KEEP_STATUS = B.KEEP_STATUS
+				, A.MOD_BY = B.MOD_BY
+				, A.MOD_DTM = SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT( PK_SEQ, SERIAL_NO, SECRT_EMP_ID, RECV_EMP_ID, MGMT_EMP_ID, MGMT_DEPT_ID
+			, GIVE_DATE, SITE_ID, BLDG_ID, KEEP_STATUS, CHG_REQ_TYPE, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM )
+			VALUES('M'|| lpad(sq_sc_usb_portlock_mast_key.NEXTVAL,10,0),
+			  B.SERIAL_NO, B.SECRT_EMP_ID, B.RECV_EMP_ID, B.MGMT_EMP_ID, B.MGMT_DEPT_ID,
+			  B.GIVE_DATE, B.SITE_ID, B.BLDG_ID, '1', '1', B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE )
+	]]>
+	</update>
+
+	<select id="productionSafetyStockDetail" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."productionSafetyStockDetail" ("dmSelectUSBPortLockStoreDetail") */
+		SELECT A.PK_SEQ
+		  , A.COMP_ID
+		  , FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+		  , A.BLDG_ID
+		  , FN_GET_CODE_NM('C063', A.BLDG_ID) AS BLDG_NM
+		  , A.SECRT_EMP_NM
+		  , A.EMP_ID
+		  , FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM
+		  , B.DEPT_ID
+		  , B.COMP_ID AS CO_COMP_ID
+		  , A.OBJECT_TYPE
+		  , FN_GET_CODE_NM('C076', A.OBJECT_TYPE) AS OBJECT_TYPE_NM
+		  , A.SERIAL_NO
+		  , A.SERIAL_NO_RTN
+		  , TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		  , A.GIVE_QTY
+		  , A.BALANCE_QTY
+		FROM SC_USB_PORTLOCK_STORE A, CO_EMP B
+		WHERE A.DEL_YN = 'N'
+		AND A.PK_SEQ = #{pkSeq}
+		AND A.EMP_ID = B.EMP_ID
+	]]>
+	</select>
+
+
+	<select id="productionUSBPortLockList" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository."productionUSBPortLockList" ("dmSelectUSBPortLockList") */
+		SELECT * FROM (
+			SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+			,   A.PK_SEQ
+			,   A.PK_SITE
+			,   A.EQ_ID
+			,   A.ASSET_NUM
+			,   A.EQ_MODEL_NM
+			,   A.EQ_CLASS_NM
+			,   A.EQ_CLASS_CD
+			,   CASE A.SITE_ID
+		        WHEN 'IC' THEN '이천'
+		        WHEN 'CJ' THEN '청주'
+		        ELSE ''
+		        END AS SITE_NM
+			,   A.BLDG_NM
+			,   A.DEPT_ID
+			,   FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+			,   NVL(B.TARGET_YN, 'Y') AS TARGET_YN
+			,   NVL(B.CHECK_YN, 'N') AS CHECK_YN
+			,   B.USB_PORT_CNT
+			,   B.USB_PORTLOCK_CNT AS USB_PORT_LOCK_CNT
+			,   B.ETC
+			,   TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+			,   TO_CHAR(B.MOD_DTM1, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM1
+			FROM SC_USB_PORTLOCK_EQUIPMENT A
+			, SC_USB_PORTLOCK B
+			WHERE A.PK_SEQ = B.PK_SEQ (+)
+			AND A.PK_SITE = B.PK_SITE (+)
+			AND A.DEL_YN = 'N'
+			AND A.DEPT_ID  in ( SELECT ETC1 FROM CO_CODE_D WHERE USE_YN = 'Y' AND GRP_CD = 'Z050' )
+			]]>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+				<choose>
+					<when test='"50078357".equals(searchTargetYn)'>
+					<![CDATA[
+					AND A.DEPT_ID IN ( #{deptId}, '50073649')
+					]]>
+					</when>
+					<otherwise>
+					<![CDATA[
+					AND A.DEPT_ID = #{deptId}
+					]]>
+					</otherwise>
+				</choose>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+				<![CDATA[
+				AND A.ASSET_NUM like '%' || #{searchAssetNum} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+				<![CDATA[
+				AND A.EQ_ID like '%' || #{searchEqId} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+				<if test='!"ALL".equals(searchComp)'>
+				<![CDATA[
+				AND A.SITE_ID = #{searchComp}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqModelNm)">
+				<![CDATA[
+				AND A.EQ_MODEL_NM like '%' || #{searchEqModelNm} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+				<![CDATA[
+				AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqClassNm)">
+				<![CDATA[
+				AND A.EQ_CLASS_NM like '%' || #{searchEqClassNm} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+				<choose>
+					<when test='"1".equals(searchInputYn)'>
+					<![CDATA[
+						AND B.MOD_DTM IS NOT NULL
+					]]>
+					</when>
+					<when test='"2".equals(searchInputYn)'>
+					<![CDATA[
+						AND B.MOD_DTM IS NULL
+					]]>
+					</when>
+				</choose>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn1)">
+				<choose>
+					<when test='"1".equals(searchInputYn1)'>
+					<![CDATA[
+						AND B.MOD_DTM1 IS NOT NULL
+					]]>
+					</when>
+					<when test='"2".equals(searchInputYn1)'>
+					<![CDATA[
+						AND B.MOD_DTM1 IS NULL
+					]]>
+					</when>
+				</choose>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+				<if test='!"ALL".equals(searchTargetYn)'>
+				<![CDATA[
+					AND B.TARGET_YN = #{searchTargetYn}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+				<if test='!"ALL".equals(searchCheckYn)'>
+				<![CDATA[
+					AND B.CHECK_YN = #{searchCheckYn}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			<![CDATA[
+				AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSdpt)">
+			<![CDATA[
+				AND A.SDPT like '%' || #{searchSdpt} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStructType)">
+				<if test='!"ALL".equals(searchStructType)'>
+				<![CDATA[
+					AND A.EQ_STRUCT_TYPE = #{searchStructType}
+				]]>
+				</if>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSourceSystem)">
+				<choose>
+					<when test='"HIMDM".equals(searchSourceSystem)'>
+					<![CDATA[
+						AND A.PK_SITE = 'SEC'
+					]]>
+					</when>
+					<when test='"GIPMS".equals(searchSourceSystem)'>
+					<![CDATA[
+						AND A.PK_SITE = 'SEC_F'
+					]]>
+					</when>
+				</choose>
+			</if>
+		<![CDATA[
+		)
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(rowPerPage)">
+			<if test='!"-1".equals(rowPerPage)'>
+			<![CDATA[
+			WHERE ROW_NUM
+			BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+			]]>
+			</if>
+		</if>
+	</select>
+
+	<select id="productionUSBPortLockListCnt"  parameterType="Map"  resultType="int">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."productionUSBPortLockListCnt" ("dmSelectUSBPortLockListCnt") */
+		SELECT COUNT(*) AS TOTAL_COUNT
+		FROM SC_USB_PORTLOCK_EQUIPMENT A
+		, SC_USB_PORTLOCK B
+		WHERE A.PK_SEQ = B.PK_SEQ (+)
+		AND A.PK_SITE = B.PK_SITE (+)
+		AND A.DEL_YN = 'N'
+		AND A.DEPT_ID  in ( SELECT ETC1 FROM CO_CODE_D WHERE USE_YN = 'Y' AND GRP_CD = 'Z050' )
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<choose>
+				<when test='"50078357".equals(searchTargetYn)'>
+				<![CDATA[
+				AND A.DEPT_ID IN ( #{deptId}, '50073649')
+				]]>
+				</when>
+				<otherwise>
+				<![CDATA[
+				AND A.DEPT_ID = #{deptId}
+				]]>
+				</otherwise>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+			<![CDATA[
+			AND A.ASSET_NUM like '%' || #{searchAssetNum} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+			<![CDATA[
+			AND A.EQ_ID like '%' || #{searchEqId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqModelNm)">
+			<![CDATA[
+			AND A.EQ_MODEL_NM like '%' || #{searchEqModelNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+			<![CDATA[
+			AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqClassNm)">
+			<![CDATA[
+			AND A.EQ_CLASS_NM like '%' || #{searchEqClassNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+			<choose>
+				<when test='"1".equals(searchInputYn)'>
+				<![CDATA[
+					AND B.MOD_DTM IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn)'>
+				<![CDATA[
+					AND B.MOD_DTM IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn1)">
+			<choose>
+				<when test='"1".equals(searchInputYn1)'>
+				<![CDATA[
+					AND B.MOD_DTM1 IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn1)'>
+				<![CDATA[
+					AND B.MOD_DTM1 IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+			<![CDATA[
+				AND B.TARGET_YN = #{searchTargetYn}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+			<if test='!"ALL".equals(searchCheckYn)'>
+			<![CDATA[
+				AND B.CHECK_YN = #{searchCheckYn}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+			AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSdpt)">
+		<![CDATA[
+			AND A.SDPT like '%' || #{searchSdpt} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStructType)">
+			<if test='!"ALL".equals(searchStructType)'>
+			<![CDATA[
+				AND A.EQ_STRUCT_TYPE = #{searchStructType}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSourceSystem)">
+			<choose>
+				<when test='"HIMDM".equals(searchSourceSystem)'>
+				<![CDATA[
+					AND A.PK_SITE = 'SEC'
+				]]>
+				</when>
+				<when test='"GIPMS".equals(searchSourceSystem)'>
+				<![CDATA[
+					AND A.PK_SITE = 'SEC_F'
+				]]>
+				</when>
+			</choose>
+		</if>
+	</select>
+
+	<select id="productionUSBPortLockExcel" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."productionUSBPortLockExcel" ("dmSelectUSBPortLockExcel") */
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		,   A.PK_SEQ
+		,   A.PK_SITE
+		,	CASE A.PK_SITE
+		WHEN 'SEC' THEN 'MDM'
+		WHEN 'SEC_F' THEN 'GIPMS'
+		ELSE ''
+		END AS PK_SITE_NM
+		,   A.EQ_ID
+		,   A.ASSET_NUM
+		,   A.EQ_MODEL_NM
+		,   A.EQ_CLASS_NM
+		,   A.EQ_CLASS_CD
+		,   CASE A.SITE_ID
+		WHEN 'IC' THEN '이천'
+		WHEN 'CJ' THEN '청주'
+		ELSE ''
+		END AS SITE_NM
+		,   A.BLDG_NM
+		,   A.DEPT_ID
+		,   FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+		,   CASE B.TARGET_YN
+		WHEN 'Y' THEN '대상'
+		WHEN 'N' THEN '비대상'
+		ELSE ''
+		END AS TARGET_YN
+		,   CASE B.CHECK_YN
+		WHEN 'Y' THEN '완료'
+		WHEN 'N' THEN '미완료'
+		ELSE ''
+		END AS CHECK_YN
+		,   B.USB_PORT_CNT
+		,   B.USB_PORTLOCK_CNT
+		,   B.USB_PORT_CNT - B.USB_PORTLOCK_CNT AS USB_PORT_MINUS
+		,   B.ETC
+		,   TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+		,   TO_CHAR(B.MOD_DTM1, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM1
+		,	A.EQ_STRUCT_TYPE
+		FROM SC_USB_PORTLOCK_EQUIPMENT A
+		, SC_USB_PORTLOCK B
+		WHERE A.PK_SEQ = B.PK_SEQ (+)
+		AND A.PK_SITE = B.PK_SITE (+)
+		AND A.DEL_YN = 'N'
+		AND A.DEPT_ID  in ( SELECT ETC1 FROM CO_CODE_D WHERE USE_YN = 'Y' AND GRP_CD = 'Z050' )
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+			<choose>
+				<when test='"50078357".equals(searchTargetYn)'>
+				<![CDATA[
+				AND A.DEPT_ID IN ( #{deptId}, '50073649')
+				]]>
+				</when>
+				<otherwise>
+				<![CDATA[
+				AND A.DEPT_ID = #{deptId}
+				]]>
+				</otherwise>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+			<![CDATA[
+			AND A.ASSET_NUM like '%' || #{searchAssetNum} || '%'
+			]]>
+		</if>
+
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+			<![CDATA[
+			AND A.EQ_ID like '%' || #{searchEqId} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqModelNm)">
+			<![CDATA[
+			AND A.EQ_MODEL_NM like '%' || #{searchEqModelNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+			<![CDATA[
+			AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+			]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEqClassNm)">
+			<![CDATA[
+			AND A.EQ_CLASS_NM like '%' || #{searchEqClassNm} || '%'
+			]]>
+		</if>
+
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+			<choose>
+				<when test='"1".equals(searchInputYn)'>
+				<![CDATA[
+					AND B.MOD_DTM IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn)'>
+				<![CDATA[
+					AND B.MOD_DTM IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn1)">
+			<choose>
+				<when test='"1".equals(searchInputYn1)'>
+				<![CDATA[
+					AND B.MOD_DTM1 IS NOT NULL
+				]]>
+				</when>
+				<when test='"2".equals(searchInputYn1)'>
+				<![CDATA[
+					AND B.MOD_DTM1 IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTargetYn)">
+			<if test='!"ALL".equals(searchTargetYn)'>
+			<![CDATA[
+				AND B.TARGET_YN = #{searchTargetYn}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+			<if test='!"ALL".equals(searchCheckYn)'>
+			<![CDATA[
+				AND B.CHECK_YN = #{searchCheckYn}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+			AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSdpt)">
+		<![CDATA[
+			AND A.SDPT like '%' || #{searchSdpt} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStructType)">
+			<if test='!"ALL".equals(searchStructType)'>
+			<![CDATA[
+				AND A.EQ_STRUCT_TYPE = #{searchStructType}
+			]]>
+			</if>
+		</if>
+
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSourceSystem)">
+			<choose>
+				<when test='"HIMDM".equals(searchSourceSystem)'>
+				<![CDATA[
+					AND A.PK_SITE = 'SEC'
+				]]>
+				</when>
+				<when test='"GIPMS".equals(searchSourceSystem)'>
+				<![CDATA[
+					AND A.PK_SITE = 'SEC_F'
+				]]>
+				</when>
+			</choose>
+		</if>
+	</select>
+
+
+	<insert id="productionUSBPortLockInstallResultSave" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."productionUSBPortLockInstallResultSave" ("dmSaveUSBPortLockResult") */
+		MERGE INTO SC_USB_PORTLOCK A
+		USING ( SELECT #{pkSeq} AS PK_SEQ
+					, #{pkSite} AS PK_SITE
+					, #{targetYn} AS TARGET_YN
+					, DECODE(#{targetYn}, 'Y', #{usbPortCnt}, '') AS USB_PORT_CNT
+					, DECODE(#{targetYn}, 'Y', #{usbPortLockCnt}, '') AS USB_PORTLOCK_CNT
+					, DECODE(#{targetYn}, 'Y', #{etc}, '') AS ETC
+					, #{empId} AS MOD_BY
+				FROM DUAL
+		) B
+		ON( A.PK_SEQ = B.PK_SEQ AND A.PK_SITE = B.PK_SITE )
+		WHEN MATCHED THEN
+			UPDATE SET
+			      A.TARGET_YN = B.TARGET_YN
+				, A.USB_PORT_CNT = B.USB_PORT_CNT
+				, A.USB_PORTLOCK_CNT = B.USB_PORTLOCK_CNT
+				, A.ETC = B.ETC
+				, A.MOD_BY = B.MOD_BY
+				, A.MOD_DTM = SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT( PK_SEQ, PK_SITE, TARGET_YN, USB_PORT_CNT, USB_PORTLOCK_CNT, ETC, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM )
+			VALUES ( B.PK_SEQ, B.PK_SITE, B.TARGET_YN, B.USB_PORT_CNT, B.USB_PORTLOCK_CNT, B.ETC, B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE )
+	]]>
+	</insert>
+
+	<insert id="productionUSBPortLockCheckResultSave" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."productionUSBPortLockCheckResultSave" ("dmSaveUSBPortLockResult1") */
+		MERGE INTO SC_USB_PORTLOCK A
+		USING ( SELECT #{pkSeq} AS PK_SEQ
+					, #{pkSite} AS PK_SITE
+					, #{checkYn} AS CHECK_YN
+					, #{empId} AS MOD_BY1
+				FROM DUAL
+		) B
+		ON( A.PK_SEQ = B.PK_SEQ AND A.PK_SITE = B.PK_SITE )
+		WHEN MATCHED THEN
+			UPDATE SET
+			      A.CHECK_YN = B.CHECK_YN
+				, A.MOD_BY1 = B.MOD_BY1
+				, A.MOD_DTM1 = SYSDATE
+		WHEN NOT MATCHED THEN
+			INSERT( PK_SEQ, PK_SITE, CHECK_YN, MOD_BY1, MOD_DTM1 )
+			VALUES ( B.PK_SEQ, B.PK_SITE, B.CHECK_YN, B.MOD_BY1, SYSDATE )
+	]]>
+	</insert>
+
+	<select id="dataCenterMasterKeyList" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository."dataCenterMasterKeyList" ("dmDcenterUSBPortLockMastKeyList") */
+	SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		,   A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   CASE A.SITE_ID
+		        WHEN 'IC'   THEN '이천'
+		        WHEN 'CJ'   THEN '청주'
+		    END AS SITE_NM
+		,   A.BLDG_ID
+		,   FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+		,   A.KEEP_STATUS
+		,   CASE A.KEEP_STATUS
+		    WHEN '1' THEN '보유'
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    END AS KEEP_STATUS_NM
+		,   A.CHG_REQ_TYPE
+		,   CASE A.CHG_REQ_TYPE
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    ELSE ''
+		    END AS CHG_REQ_TYPE_NM
+		,   MOD_DTM
+		FROM SC_DC_USB_PORTLOCK_MST_KEY A
+		WHERE A.DEL_YN = 'N'
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		<![CDATA[
+		AND A.MGMT_DEPT_ID = #{deptId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+		<![CDATA[
+		AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+		<![CDATA[
+		AND A.BLDG_ID = #{searchBldgId}
+		]]></if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+			<if test='!"ALL".equals(searchKeepStatus)'>
+			<![CDATA[
+			AND A.KEEP_STATUS = #{searchKeepStatus}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+		<![CDATA[
+		AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+		]]>
+		</if>
+	<![CDATA[
+	)
+	]]>
+	</select>
+
+	<update id="dataCenterMasterKeyStatusChange" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeyStatusChange (dmDc_USBPortLockMstKeyChgReq) */
+	UPDATE SC_DC_USB_PORTLOCK_MST_KEY
+	SET CHG_REQ_TYPE = #{chgReqType}
+	  , MOD_BY = #{empId}
+	  , MOD_DTM = SYSDATE
+	WHERE DEL_YN = 'N'
+	  AND KEEP_STATUS = 1
+	  ]]>
+	  <foreach collection="pkSeqIds" item="item" index="index" separator="," open="AND PK_SEQ IN (" close=")">
+		#{item}
+		</foreach>
+	</update>
+
+	<select id="selectDataCenterEmailAddr" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.selectDataCenterEmailAddr (dmMstKeyChgReqEmailAddr) */
+	SELECT A.EMAIL
+	FROM CO_EMP A, CO_DEPT B
+	WHERE A.DEPT_ID=B.DEPT_ID AND EMP_ID IN ('X0116042','2035305')
+	]]>
+	</select>
+
+	<update id="updateScUSBPortLockMastKeyCheck" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.updateScUSBPortLockMastKeyCheck (dmSaveUSBPortLockMastKeyCheck1) */
+		UPDATE SC_USB_PORTLOCK_MAST_KEY SET
+			CHECK_YN = #{checkYn},
+			CHECK_BY = #{empId},
+			CHECK_DTM = SYSDATE
+		WHERE DEL_YN = 'N'
+		AND PK_SEQ = #{pkSeq}
+		AND SERIAL_NO = #{serialNo}
+	]]>
+	</update>
+
+	<update id="productionUSBPortLockDelete" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionUSBPortLockDelete (dmDeleteUSBPortLockEquip) */
+	UPDATE SC_USB_PORTLOCK_EQUIPMENT
+	SET DEL_YN = 'Y'
+	, MOD_BY = #{empId}
+	, MOD_DTM = SYSDATE
+	WHERE PK_SEQ IN
+	]]>
+	<foreach collection="pkSeqIds" item="item" index="index" separator="," open="(" close=")">
+	#{item}
+	</foreach>
+	</update>
+
+	<select id="productionMasterKeyListDownload" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeyListDownload ("dmSelectUSBPortLockMastKeyExcel") */
+	SELECT
+		A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   CASE A.SITE_ID
+				WHEN 'IC'   THEN '이천'
+				WHEN 'CJ'   THEN '청주'
+			END AS SITE_NM
+		,   A.BLDG_ID
+		,   FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+		,   A.KEEP_STATUS
+		,   CASE A.KEEP_STATUS
+			WHEN '1' THEN '보유'
+			WHEN '2' THEN '파손'
+			WHEN '3' THEN '분실'
+			WHEN '4' THEN '반납(불필요)'
+			END AS KEEP_STATUS_NM
+		,	NVL(TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS'),' ') AS MOD_DTM
+		,	CASE A.CHECK_YN
+				 WHEN 'Y' THEN '실물있음'
+				 WHEN 'N' THEN '실물없음'
+				 ELSE ''
+			 END AS CHECK_YN
+		,	A.CHECK_BY
+		,	NVL(TO_CHAR(A.CHECK_DTM, 'YYYY-MM-DD HH24:MI:SS'),' ') AS CHECK_DTM
+	FROM SC_USB_PORTLOCK_MAST_KEY A
+	WHERE A.DEL_YN = 'N'
+	]]>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+	<![CDATA[
+	AND A.MGMT_DEPT_ID = #{deptId}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+	<![CDATA[
+	AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+	<![CDATA[
+	AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+	<![CDATA[
+	AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+	<![CDATA[
+	AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+		<if test='!"ALL".equals(searchComp)'>
+		<![CDATA[
+		AND A.SITE_ID = #{searchComp}
+		]]>
+		</if>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+	<![CDATA[
+	AND A.BLDG_ID = #{searchBldgId}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+		<if test='!"ALL".equals(searchKeepStatus)'>
+		<![CDATA[
+		AND A.KEEP_STATUS = #{searchKeepStatus}
+		]]>
+		</if>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+	<![CDATA[
+	AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+	<![CDATA[
+	AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+	<![CDATA[
+	AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+		<choose>
+			<when test='"SAVE".equals(searchCheckYn)'>
+			<![CDATA[
+			AND A.CHECK_YN IS NOT NULL
+			]]>
+			</when>
+			<when test='"NONE".equals(searchCheckYn)'>
+			<![CDATA[
+			AND A.CHECK_YN IS NULL
+			]]>
+			</when>
+		</choose>
+	</if>
+	</select>
+
+	<update id="productionMasterKeyDelete" parameterType="Map" >
+		<![CDATA[
+		/*  SecurityUSBPortLockRepository.productionMasterKeyDelete (dmDeleteUSBPortLockMastKey) */
+		UPDATE SC_USB_PORTLOCK_MAST_KEY
+		SET DEL_YN = 'Y'
+			, MOD_BY = #{empId}
+			, MOD_DTM = SYSDATE
+		WHERE PK_SEQ IN
+		]]>
+		<foreach collection="pkSeqs" item="item" index="index" separator="," open="(" close=")">
+		#{item}
+		</foreach>
+	</update>
+
+	<select id="selectSecrtEmpMng" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.selectSecrtEmpMng ("dmSelectSecrtEmp") */
+	SELECT A.EMP_ID
+	  , FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM
+	FROM SC_DEPT_SEC A
+	  , SC_DEPT_SEC_EMP B
+	WHERE A.EMP_ID   = B.SEC_EMP_ID
+	AND A.COMP_ID    = B.SEC_COMP_ID
+	AND A.DEPT_ID    = B.SEC_DEPT_ID
+	AND A.DEL_YN     = 'N'
+	AND B.ENA_DEPT_ID= #{secDeptId}
+	/* 관리부서를 넣으면, 보안담당자를 가져온다. */
+	]]>
+	</select>
+
+	<select id="productionMasterKeyDetail" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeyDetail ("dmSelectUSBPortLockMastKey") */
+	SELECT  A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   A.BLDG_ID
+		,   A.KEEP_STATUS
+		,	A.CHECK_YN
+		,	A.CHECK_BY
+		,	NVL(TO_CHAR(A.CHECK_DTM, 'YYYY-MM-DD HH24:MI:SS'),' ') AS CHECK_DTM
+		FROM SC_USB_PORTLOCK_MAST_KEY A
+		WHERE A.DEL_YN = 'N'
+			AND A.PK_SEQ = #{pkSeq}
+	]]>
+	</select>
+
+	<select id="selectProductionMastKeyPkSeq" parameterType="Map" resultType="String">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.selectProductionMastKeyPkSeq ("dmSelectUSBPortLockMastKeyPkSeq") */
+	SELECT
+		'M'|| LPAD(SQ_SC_USB_PORTLOCK_MAST_KEY.nextval, 10, 0) AS PK_SEQ
+	FROM DUAL
+	]]>
+	</select>
+
+	<update id="productionMasterKeySave" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.productionMasterKeySave ("dmSaveUSBPortLockMastKey") */
+	MERGE INTO SC_USB_PORTLOCK_MAST_KEY A
+	USING ( SELECT #{pkSeq} AS PK_SEQ
+				, #{serialNo} AS SERIAL_NO
+				, #{secrtEmpId} AS SECRT_EMP_ID
+				, #{recvEmpId} AS RECV_EMP_ID
+				, #{mgmtEmpId} AS MGMT_EMP_ID
+				, #{mgmtDeptId} AS MGMT_DEPT_ID
+				, TO_DATE(#{giveDate}, 'YYYY-MM-DD') AS GIVE_DATE
+				, #{siteId} AS SITE_ID
+				, #{bldgId} AS BLDG_ID
+				, #{keepStatus} AS KEEP_STATUS
+				, #{empId} AS MOD_BY
+				, DECODE(#{checkYn},'NULL',NULL,NULL,NULL,#{checkYn}) AS CHECK_YN
+			FROM DUAL
+	) B
+	ON( A.PK_SEQ = B.PK_SEQ )
+	WHEN MATCHED THEN
+		UPDATE
+		SET A.SERIAL_NO = B.SERIAL_NO
+			, A.SECRT_EMP_ID = B.SECRT_EMP_ID
+			, A.RECV_EMP_ID = B.RECV_EMP_ID
+			, A.MGMT_EMP_ID = B.MGMT_EMP_ID
+			, A.MGMT_DEPT_ID = B.MGMT_DEPT_ID
+			, A.GIVE_DATE = B.GIVE_DATE
+			, A.SITE_ID = B.SITE_ID
+			, A.BLDG_ID = B.BLDG_ID
+			, A.KEEP_STATUS = B.KEEP_STATUS
+			, A.MOD_BY = B.MOD_BY
+			, A.MOD_DTM = SYSDATE
+			, A.CHECK_YN = B.CHECK_YN
+			, A.CHECK_BY = B.MOD_BY
+			, A.CHECK_DTM = SYSDATE
+	WHEN NOT MATCHED THEN
+		INSERT( PK_SEQ, SERIAL_NO, SECRT_EMP_ID, RECV_EMP_ID, MGMT_EMP_ID, MGMT_DEPT_ID
+		, GIVE_DATE, SITE_ID, BLDG_ID, KEEP_STATUS, CHG_REQ_TYPE, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM, CHECK_YN, CHECK_BY, CHECK_DTM)
+		VALUES( B.PK_SEQ, B.SERIAL_NO, B.SECRT_EMP_ID, B.RECV_EMP_ID, B.MGMT_EMP_ID, B.MGMT_DEPT_ID
+		, B.GIVE_DATE, B.SITE_ID, B.BLDG_ID, B.KEEP_STATUS, '1', B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE, B.CHECK_YN, B.MOD_BY, SYSDATE )
+	]]>
+	</update>
+
+	<update id="dataCenterUSBPortLockDelete" parameterType="Map">
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository.dataCenterUSBPortLockDelete ("dmDelDc_USBPortLockEquip") */
+		UPDATE SC_ITAM_IF_EQUIPMENT
+		SET DEL_YN = 'Y'
+		, MOD_BY = #{empId}
+		, MOD_DTM = SYSDATE
+		WHERE ASSET_ID IN
+	]]>
+	<foreach collection="assetIds" item="item" index="index" separator="," open="(" close=")">
+	#{item}
+	</foreach>
+	</update>
+
+	<update id="industryControlUSBPortLockDelete"  parameterType="Map">
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository.industryControlUSBPortLockDelete ("dmDelIc_USBPortLockEquip") */
+		UPDATE SC_IC_USB_PORTLOCK_EQUIPMENT
+		SET DEL_YN = 'Y'
+		, MOD_BY = #{empId}
+		, MOD_DTM = SYSDATE
+		WHERE PK_SEQ IN
+		]]>
+		<foreach collection="pkSeqs" item="item" index="index" separator="," open="(" close=")">
+		#{item}
+		</foreach>
+	</update>
+
+	<select id="selectDataCenterMastKeyPkSeq" parameterType="Map" resultType="String">
+	<![CDATA[
+		/*  SecurityUSBPortLockRepository.selectDataCenterMastKeyPkSeq ("dmDcUSBPortLockMstKeyPkSeq") */
+		SELECT 'M'|| LPAD(SQ_DC_USB_PORTLOCK_MST_KEY.NEXTVAL, 10, 0) AS PK_SEQ
+		FROM DUAL
+	]]>
+	</select>
+
+	<update id="dataCenterMasterKeySave" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.dataCenterMasterKeySave ("dmSaveDcUSBPortLockMastKey") */
+	MERGE INTO SC_DC_USB_PORTLOCK_MST_KEY A
+	USING ( SELECT #{pkSeq} AS PK_SEQ
+				, #{serialNo} AS SERIAL_NO
+				, #{secrtEmpId} AS SECRT_EMP_ID
+				, #{recvEmpId} AS RECV_EMP_ID
+				, #{mgmtEmpId} AS MGMT_EMP_ID
+				, #{mgmtDeptId} AS MGMT_DEPT_ID
+				, TO_DATE(#{giveDate}, 'YYYY-MM-DD') AS GIVE_DATE
+				, #{siteId} AS SITE_ID
+				, #{bldgId} AS BLDG_ID
+				, #{keepStatus} AS KEEP_STATUS
+				, #{empId} AS MOD_BY
+				, 'N' as del_yn
+			FROM DUAL
+	) B
+	ON( A.PK_SEQ = B.PK_SEQ )
+	WHEN MATCHED THEN
+		UPDATE
+		SET A.SERIAL_NO = B.SERIAL_NO
+			, A.SECRT_EMP_ID = B.SECRT_EMP_ID
+			, A.RECV_EMP_ID = B.RECV_EMP_ID
+			, A.MGMT_EMP_ID = B.MGMT_EMP_ID
+			, A.MGMT_DEPT_ID = B.MGMT_DEPT_ID
+			, A.GIVE_DATE = B.GIVE_DATE
+			, A.SITE_ID = B.SITE_ID
+			, A.BLDG_ID = B.BLDG_ID
+			, A.KEEP_STATUS = B.KEEP_STATUS
+			, A.MOD_BY = B.MOD_BY
+			, A.MOD_DTM = SYSDATE
+			, A.del_yn = 'N'
+	WHEN NOT MATCHED THEN
+		INSERT( PK_SEQ, SERIAL_NO, SECRT_EMP_ID, RECV_EMP_ID, MGMT_EMP_ID, MGMT_DEPT_ID
+		, GIVE_DATE, SITE_ID, BLDG_ID, KEEP_STATUS, CHG_REQ_TYPE, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM, del_yn )
+		VALUES( B.PK_SEQ, B.SERIAL_NO, B.SECRT_EMP_ID, B.RECV_EMP_ID, B.MGMT_EMP_ID, B.MGMT_DEPT_ID
+		, B.GIVE_DATE, B.SITE_ID, B.BLDG_ID, B.KEEP_STATUS, '1', B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE, b.del_yn )
+	]]>
+	</update>
+
+	<select id="dataCenterMasterKeyExcel" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.dataCenterMasterKeyExcel ("dmDC_USBPortLockMSTExcel") */
+	SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		,   A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   CASE A.SITE_ID
+		        WHEN 'IC'   THEN '이천'
+		        WHEN 'CJ'   THEN '청주'
+		    END AS SITE_NM
+		,   A.BLDG_ID
+		,   FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+		,   A.KEEP_STATUS
+		,   CASE A.KEEP_STATUS
+		    WHEN '1' THEN '보유'
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    END AS KEEP_STATUS_NM
+		,   A.CHG_REQ_TYPE
+		,   CASE A.CHG_REQ_TYPE
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    ELSE ''
+		    END AS CHG_REQ_TYPE_NM
+		,   TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') MOD_DTM
+		FROM SC_DC_USB_PORTLOCK_MST_KEY A
+		WHERE A.DEL_YN = 'N'
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		<![CDATA[
+		AND A.MGMT_DEPT_ID = #{deptId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+		<![CDATA[
+		AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+		<![CDATA[
+		AND A.BLDG_ID = #{searchBldgId}
+		]]></if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+			<if test='!"ALL".equals(searchKeepStatus)'>
+			<![CDATA[
+			AND A.KEEP_STATUS = #{searchKeepStatus}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+		<![CDATA[
+		AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+		]]>
+		</if>
+
+	<![CDATA[
+	)
+	]]>
+	</select>
+
+	<update id="dataCenterMasterKeyDelete"  parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.dataCenterMasterKeyDelete ("dmDelDc_USBPortLockMstKey") */
+	UPDATE SC_DC_USB_PORTLOCK_MST_KEY
+	SET DEL_YN = 'Y'
+		, MOD_BY = #{empId}
+		, MOD_DTM = SYSDATE
+	WHERE PK_SEQ IN
+	]]>
+	<foreach collection="pkSeqs" item="item" separator="," open="(" close=")">
+		#{item}
+	</foreach>
+	</update>
+
+	<select id="dataCenterMasterKeyDetail" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.dataCenterMasterKeyDetail ("dmDcUSBPortLockMastKey") */
+	SELECT  A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   A.BLDG_ID
+		,   A.KEEP_STATUS
+		FROM SC_DC_USB_PORTLOCK_MST_KEY A
+		WHERE A.DEL_YN = 'N'
+		AND A.PK_SEQ = #{pkSeq}
+	]]>
+	</select>
+
+	<select id="industryControlMasterKeyListExcel" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.industryControlMasterKeyListExcel ("dmIC_USBPortLockMastKeyExcel") */
+	SELECT * FROM (
+		SELECT ROW_NUMBER() OVER( ORDER BY A.PK_SEQ DESC ) AS ROW_NUM
+		,   A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   CASE A.SITE_ID
+		        WHEN 'IC'   THEN '이천'
+		        WHEN 'CJ'   THEN '청주'
+		    END AS SITE_NM
+		,   A.BLDG_ID
+		,   FN_GET_CODE_NM('C063', A.BLDG_ID) as BLDG_NM
+		,   A.KEEP_STATUS
+		,   CASE A.KEEP_STATUS
+		    WHEN '1' THEN '보유'
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    END AS KEEP_STATUS_NM
+		,   A.CHG_REQ_TYPE
+		,   CASE A.CHG_REQ_TYPE
+		    WHEN '2' THEN '파손'
+		    WHEN '3' THEN '분실'
+		    WHEN '4' THEN '반납(불필요)'
+		    ELSE ''
+		    END AS CHG_REQ_TYPE_NM
+		,   TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') MOD_DTM
+		FROM SC_IC_USB_PORTLOCK_MST_KEY A
+		WHERE A.DEL_YN = 'N'
+	]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		<![CDATA[
+		AND A.MGMT_DEPT_ID = #{deptId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSerialNo)">
+		<![CDATA[
+		AND A.SERIAL_NO like '%' || #{searchSerialNo} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSecrtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.SECRT_EMP_ID) like '%' || #{searchSecrtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRecvEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.RECV_EMP_ID) like '%' || #{searchRecvEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtEmpNm)">
+		<![CDATA[
+		AND FN_GET_EMP_NM(A.MGMT_EMP_ID) like '%' || #{searchMgmtEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchComp)">
+			<if test='!"ALL".equals(searchComp)'>
+			<![CDATA[
+			AND A.SITE_ID = #{searchComp}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgId)">
+		<![CDATA[
+		AND A.BLDG_ID = #{searchBldgId}
+		]]></if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKeepStatus)">
+			<if test='!"ALL".equals(searchKeepStatus)'>
+			<![CDATA[
+			AND A.KEEP_STATUS = #{searchKeepStatus}
+			]]>
+			</if>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') >= #{searchStrtDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+		AND TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') <= #{searchEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchMgmtDeptNm)">
+		<![CDATA[
+		AND FN_GET_DEPT_NM(A.MGMT_DEPT_ID) like '%' || #{searchMgmtDeptNm} || '%'
+		]]>
+		</if>
+
+	<![CDATA[
+	)
+	]]>
+	</select>
+
+	<select id="industryControlMasterKeyDetail" parameterType="Map"  resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.industryControlMasterKeyDetail ("dmIcUSBPortLockMastKey") */
+	SELECT  A.PK_SEQ
+		,   A.SERIAL_NO
+		,   A.SECRT_EMP_ID
+		,   FN_GET_EMP_NM(A.SECRT_EMP_ID) AS SECRT_EMP_NM
+		,   A.RECV_EMP_ID
+		,   FN_GET_EMP_NM(A.RECV_EMP_ID) AS RECV_EMP_NM
+		,   A.MGMT_EMP_ID
+		,   FN_GET_EMP_NM(A.MGMT_EMP_ID) AS MGMT_EMP_NM
+		,   A.MGMT_DEPT_ID
+		,   FN_GET_DEPT_NM(A.MGMT_DEPT_ID) AS MGMT_DEPT_NM
+		,   TO_CHAR(A.GIVE_DATE, 'YYYY-MM-DD') AS GIVE_DATE
+		,   A.SITE_ID
+		,   A.BLDG_ID
+		,   A.KEEP_STATUS
+	FROM SC_IC_USB_PORTLOCK_MST_KEY A
+	WHERE A.DEL_YN = 'N'
+		AND A.PK_SEQ = #{pkSeq}
+	]]>
+	</select>
+
+	<select id="selectindustryControlMastKeyPkSeq" parameterType="Map" resultType="String">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.selectindustryControlMastKeyPkSeq ("dmInduConUSBPortLockMastKeyPkSeq") */
+	SELECT SQ_IC_USB_PORTLOCK_MST_KEY.NEXTVAL AS PK_SEQ
+	FROM DUAL
+	]]>
+	</select>
+
+
+	<update id="industryControlMasterKeySave" parameterType="Map">
+	<![CDATA[
+	/*  SecurityUSBPortLockRepository.industryControlMasterKeySave ("dmSaveIcUSBPortLockMstKey") */
+	MERGE INTO SC_IC_USB_PORTLOCK_MST_KEY A
+	USING ( SELECT #{pkSeq} AS PK_SEQ
+				, #{serialNo} AS SERIAL_NO
+				, #{secrtEmpId} AS SECRT_EMP_ID
+				, #{recvEmpId} AS RECV_EMP_ID
+				, #{mgmtEmpId} AS MGMT_EMP_ID
+				, #{mgmtDeptId} AS MGMT_DEPT_ID
+				, TO_DATE(#{giveDate}, 'YYYY-MM-DD') AS GIVE_DATE
+				, #{siteId} AS SITE_ID
+				, #{bldgId} AS BLDG_ID
+				, #{keepStatus} AS KEEP_STATUS
+				, #{empId} AS MOD_BY
+				, 'N' as del_yn
+			FROM DUAL
+	) B
+	ON( A.PK_SEQ = B.PK_SEQ )
+	WHEN MATCHED THEN
+		UPDATE
+		SET A.SERIAL_NO = B.SERIAL_NO
+			, A.SECRT_EMP_ID = B.SECRT_EMP_ID
+			, A.RECV_EMP_ID = B.RECV_EMP_ID
+			, A.MGMT_EMP_ID = B.MGMT_EMP_ID
+			, A.MGMT_DEPT_ID = B.MGMT_DEPT_ID
+			, A.GIVE_DATE = B.GIVE_DATE
+			, A.SITE_ID = B.SITE_ID
+			, A.BLDG_ID = B.BLDG_ID
+			, A.KEEP_STATUS = B.KEEP_STATUS
+			, A.MOD_BY = B.MOD_BY
+			, A.MOD_DTM = SYSDATE
+			, a.del_yn = b.del_yn
+	WHEN NOT MATCHED THEN
+		INSERT( PK_SEQ, SERIAL_NO, SECRT_EMP_ID, RECV_EMP_ID, MGMT_EMP_ID, MGMT_DEPT_ID
+		, GIVE_DATE, SITE_ID, BLDG_ID, KEEP_STATUS, CHG_REQ_TYPE, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM, del_yn )
+		VALUES( B.PK_SEQ, B.SERIAL_NO, B.SECRT_EMP_ID, B.RECV_EMP_ID, B.MGMT_EMP_ID, B.MGMT_DEPT_ID
+		, B.GIVE_DATE, B.SITE_ID, B.BLDG_ID, B.KEEP_STATUS, '1', B.MOD_BY, SYSDATE, B.MOD_BY, SYSDATE, b.del_yn )
+	]]>
+	</update>
+	
+	<update id="productionUSBPortLockReset" parameterType="Map" >
+		<![CDATA[
+			/*  SecurityUSBPortLockRepository."productionUSBPortLockReset" ("productionUSBPortLockReset") */
+			UPDATE SC_USB_PORTLOCK
+			    SET CHECK_YN = 'N'
+			      , MOD_DTM1 = NULL
+			      , MOD_BY1 = #{empId}
+			      , MOD_BY = #{empId}
+			      , MOD_DTM = SYSDATE
+			WHERE 1 = 1
+			  AND PK_SEQ IN (SELECT A.PK_SEQ
+							   FROM SC_USB_PORTLOCK_EQUIPMENT A
+							      , SC_USB_PORTLOCK B
+							   WHERE A.PK_SEQ = B.PK_SEQ (+)
+								 AND A.PK_SITE = B.PK_SITE (+)
+								 AND A.DEL_YN = 'N'
+								 AND A.DEPT_ID  in ( SELECT ETC1 FROM CO_CODE_D WHERE USE_YN = 'Y' AND GRP_CD = 'Z050' )
+		]]>								  
+						         <if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+								 	<![CDATA[
+										AND A.ASSET_NUM like '%' || #{searchAssetNum} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+								 	<![CDATA[
+										AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+								 	<![CDATA[
+										AND A.EQ_ID like '%' || #{searchEqId} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+								 	<![CDATA[
+										AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchEqModelNm)">
+								 	<![CDATA[
+										AND A.EQ_MODEL_NM like '%' || #{searchEqModelNm} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+								 	<choose>
+										<when test='"1".equals(searchInputYn)'>
+											<![CDATA[
+												AND B.MOD_DTM IS NOT NULL
+											]]>
+										</when>
+										<when test='"2".equals(searchInputYn)'>
+											<![CDATA[
+												AND B.MOD_DTM IS NULL
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchStructType)">
+								 	<if test='!"ALL".equals(searchStructType)'>
+										<![CDATA[
+											AND A.EQ_STRUCT_TYPE = #{searchStructType}
+										]]>
+									</if>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+								 	<if test='!"ALL".equals(searchCheckYn)'>
+										<![CDATA[
+											AND B.CHECK_YN = #{searchCheckYn}
+										]]>
+									</if>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn1)">
+								 	<choose>
+										<when test='"1".equals(searchInputYn1)'>
+											<![CDATA[
+												AND B.MOD_DTM1 IS NOT NULL
+											]]>
+										</when>
+										<when test='"2".equals(searchInputYn1)'>
+											<![CDATA[
+												AND B.MOD_DTM1 IS NULL
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchSourceSystem)">
+								 	<choose>
+										<when test='"HIMDM".equals(searchSourceSystem)'>
+											<![CDATA[
+												AND A.PK_SITE = 'SEC'
+											]]>
+										</when>
+										<when test='"GIPMS".equals(searchSourceSystem)'>
+											<![CDATA[
+												AND A.PK_SITE = 'SEC_F'
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchSdpt)">
+								 	<![CDATA[
+										AND A.SDPT like '%' || #{searchSdpt} || '%'
+									]]>
+								 </if>
+				  )	
+	</update>
+	
+	<update id="productionUSBPortLockResetTarget" parameterType="Map" >
+		<![CDATA[
+			/*  SecurityUSBPortLockRepository."productionUSBPortLockResetTarget" ("productionUSBPortLockResetTarget") */
+			UPDATE SC_USB_PORTLOCK
+			    SET USB_PORT_CNT = ''
+			      , USB_PORTLOCK_CNT = ''
+			      , ETC = ''
+			      , TARGET_YN = 'N'			      
+			      , MOD_BY = #{empId}
+			      , MOD_DTM = SYSDATE
+			WHERE 1 = 1
+			  AND PK_SEQ IN (SELECT A.PK_SEQ
+							   FROM SC_USB_PORTLOCK_EQUIPMENT A
+							      , SC_USB_PORTLOCK B
+							   WHERE A.PK_SEQ = B.PK_SEQ (+)
+								 AND A.PK_SITE = B.PK_SITE (+)
+								 AND A.DEL_YN = 'N'
+								 AND A.DEPT_ID  in ( SELECT ETC1 FROM CO_CODE_D WHERE USE_YN = 'Y' AND GRP_CD = 'Z050' )
+		]]>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+								 	<choose>
+										<when test='"50078357".equals(searchTargetYn)'>
+											<![CDATA[
+												AND A.DEPT_ID IN ( #{deptId}, '50073649')
+											]]>
+										</when>
+										<otherwise>
+											<![CDATA[
+												AND A.DEPT_ID = #{deptId}
+											]]>
+										</otherwise>
+									</choose>
+								 </if>
+						         <if test="not @org.springframework.util.StringUtils@isEmpty(searchAssetNum)">
+								 	<![CDATA[
+										AND A.ASSET_NUM like '%' || #{searchAssetNum} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+								 	<![CDATA[
+										AND A.DEPT_ID IN ( SELECT DEPT_ID FROM CO_DEPT WHERE DEPT_NM LIKE '%' || #{searchDeptNm} || '%' )
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchEqId)">
+								 	<![CDATA[
+										AND A.EQ_ID like '%' || #{searchEqId} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchBldgNm)">
+								 	<![CDATA[
+										AND A.BLDG_NM like '%' || #{searchBldgNm} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchEqModelNm)">
+								 	<![CDATA[
+										AND A.EQ_MODEL_NM like '%' || #{searchEqModelNm} || '%'
+									]]>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn)">
+								 	<choose>
+										<when test='"1".equals(searchInputYn)'>
+											<![CDATA[
+												AND B.MOD_DTM IS NOT NULL
+											]]>
+										</when>
+										<when test='"2".equals(searchInputYn)'>
+											<![CDATA[
+												AND B.MOD_DTM IS NULL
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchStructType)">
+								 	<if test='!"ALL".equals(searchStructType)'>
+										<![CDATA[
+											AND A.EQ_STRUCT_TYPE = #{searchStructType}
+										]]>
+									</if>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchCheckYn)">
+								 	<if test='!"ALL".equals(searchCheckYn)'>
+										<![CDATA[
+											AND B.CHECK_YN = #{searchCheckYn}
+										]]>
+									</if>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchInputYn1)">
+								 	<choose>
+										<when test='"1".equals(searchInputYn1)'>
+											<![CDATA[
+												AND B.MOD_DTM1 IS NOT NULL
+											]]>
+										</when>
+										<when test='"2".equals(searchInputYn1)'>
+											<![CDATA[
+												AND B.MOD_DTM1 IS NULL
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchSourceSystem)">
+								 	<choose>
+										<when test='"HIMDM".equals(searchSourceSystem)'>
+											<![CDATA[
+												AND A.PK_SITE = 'SEC'
+											]]>
+										</when>
+										<when test='"GIPMS".equals(searchSourceSystem)'>
+											<![CDATA[
+												AND A.PK_SITE = 'SEC_F'
+											]]>
+										</when>
+									</choose>
+								 </if>
+								 <if test="not @org.springframework.util.StringUtils@isEmpty(searchSdpt)">
+								 	<![CDATA[
+										AND A.SDPT like '%' || #{searchSdpt} || '%'
+									]]>
+								 </if>
+				  )	
+	</update>
+	
+	<select id="productionMasterKeyAdminCheck" parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+			/*  SecurityUSBPortLockRepository.productionMasterKeyAdminCheck ("productionMasterKeyAdminCheck") */
+			SELECT COUNT(*) AS adminYn FROM SC_DEPT_SEC WHERE EMP_ID = #{empId} AND DEL_YN = 'N'				
+		]]>
+	</select>
+	
+	<update id="updateScUSBPortLockMastKeyCompBld" parameterType="Map" >
+		<![CDATA[
+			/*  SecurityUSBPortLockRepository."updateScUSBPortLockMastKeyCompBld" ("updateScUSBPortLockMastKeyCompBld") */
+				UPDATE SC_USB_PORTLOCK_MAST_KEY
+				    SET SITE_ID = #{siteId}
+				      , BLDG_ID = #{bldgId}
+				      , MOD_BY = #{empId}
+				      , MOD_DTM = SYSDATE
+				WHERE PK_SEQ = #{pkSeq}
+		]]>												
+	</update>
+	
+</mapper>

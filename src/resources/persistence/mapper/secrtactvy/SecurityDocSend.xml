@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityDocSendRepository">
+
+	<select id="selectSecurityDocSendList" parameterType="Map" resultType="CamelHashMap">
+	/*  SecurityDocSendRepository.selectSecurityDocSendList (dmSecrtDocSend_List_S) */
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY DOC_SENDAPPL_NO DESC) AS ROW_NUM,
+			T.*
+		FROM (
+			SELECT
+				A.DOC_SENDAPPL_NO,
+				A.COMP_ID,
+	            A.DEPT_ID,
+	            FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+	            A.JW_ID,
+	            A.EMP_ID,
+	            FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM,
+	            FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_JW_NM,
+	            A.DOC_SEND_GBN,
+	            A.PUBLIC_PLACE,
+	            A.ANNC_TITLE,
+	            A.ANNC_EMP_ID,
+	            FN_GET_EMP_NM(A.ANNC_EMP_ID) AS OATH_EMP_NM,
+	            FN_GET_EMP_JW_NM(A.ANNC_EMP_ID) AS OATH_EMP_JW_NM,
+	            A.ANNC_DEPT_ID,
+	            A.FILE_PATH1,
+	            A.FILE_PATH2,
+	            A.FILE_PATH3 ,
+	            SUBSTR(A.OATH_DT, 1,4) || '-' || SUBSTR(A.OATH_DT, 5,2) || '-' || SUBSTR(A.OATH_DT, 7,2) AS OATH_DT,
+	            A.OATH_COMP_ID,
+	            A.OATH_DEPT_ID,
+	            A.OATH_EMP_ID,
+	            A.THESIS_IDA2A2_NUMBER,
+	            FN_GET_DEPT_NM(A.OATH_DEPT_ID) AS OATH_DEPT_NM,
+	            AD.DOC_ID,
+	            NVL(AD.APPR_STAT, 'N') AS APPR_STAT,
+	            NVL(AD.APPR_RESULT, 'N') AS APPR_RESULT,
+	            CASE
+	            	WHEN AD.APPR_STAT = '0' THEN '대기'
+	                WHEN AD.APPR_STAT = '10' THEN '진행'
+	                WHEN AD.APPR_STAT = '20' THEN '완료'
+	                WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_STAT_NM,
+				CASE
+	                WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_RESULT_NM,
+				AD.EMP_ID AS APPR_EMP_ID,
+				FN_GET_EMP_NM(AD.EMP_ID) AS APPR_EMP_NM
+	        FROM SC_DOC_SEND A, AP_DOC AD
+	        WHERE AD.DOC_ID = A.DOC_ID
+	        <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+		    	<if test='"N".equals(adminYn)'>
+		    		AND A.EMP_ID = #{searchEmpId}
+		    	</if>
+		    	<if test='"T".equals(adminYn)'>
+		    		AND A.DEPT_ID = #{searchDeptId}
+		    	</if>
+		    </if>
+		    /* 진행상태 */
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	<if test='"10".equals(applStat) or "20".equals(applStat)'>
+		    		/* 검토중 or 처리완료 */
+		    		AND AD.APPR_STAT = #{applStat}
+		    	</if>
+		    	<if test='"1".equals(applStat) or "2".equals(applStat)'>
+		    		/* 승인 or 부결 */
+		    		AND AD.APPR_RESULT = #{applStat}
+		    	</if>
+		    </if>
+		    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	AND NVL(AD.APPR_STAT, 'N') = 'N'
+		    </if>
+		) T
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOathEmpNm)">
+			AND OATH_EMP_NM LIKE '%' || #{searchOathEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprEmpNm)">
+			AND APPR_EMP_NM LIKE '%' || #{searchApprEmpNm} || '%'
+		</if>
+	</select>
+
+	<select id="selectSecurityDocSendListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM (
+			SELECT
+				A.DOC_SENDAPPL_NO,
+				A.COMP_ID,
+	            A.DEPT_ID,
+	            FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+	            A.JW_ID,
+	            A.EMP_ID,
+	            FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM,
+	            FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_JW_NM,
+	            A.DOC_SEND_GBN,
+	            A.PUBLIC_PLACE,
+	            A.ANNC_TITLE,
+	            A.ANNC_EMP_ID,
+	            FN_GET_EMP_NM(A.ANNC_EMP_ID) AS OATH_EMP_NM,
+	            FN_GET_EMP_JW_NM(A.ANNC_EMP_ID) AS OATH_EMP_JW_NM,
+	            A.ANNC_DEPT_ID,
+	            A.FILE_PATH1,
+	            A.FILE_PATH2,
+	            A.FILE_PATH3 ,
+	            SUBSTR(A.OATH_DT, 1,4) || '-' || SUBSTR(A.OATH_DT, 5,2) || '-' || SUBSTR(A.OATH_DT, 7,2) AS OATH_DT,
+	            A.OATH_COMP_ID,
+	            A.OATH_DEPT_ID,
+	            A.OATH_EMP_ID,
+	            A.THESIS_IDA2A2_NUMBER,
+	            FN_GET_DEPT_NM(A.OATH_DEPT_ID) AS OATH_DEPT_NM,
+	            AD.DOC_ID,
+	            NVL(AD.APPR_STAT, 'N') AS APPR_STAT,
+	            NVL(AD.APPR_RESULT, 'N') AS APPR_RESULT,
+	            CASE
+	            	WHEN AD.APPR_STAT = '0' THEN '대기'
+	                WHEN AD.APPR_STAT = '10' THEN '진행'
+	                WHEN AD.APPR_STAT = '20' THEN '완료'
+	                WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_STAT_NM,
+				CASE
+	                WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_RESULT_NM,
+				AD.EMP_ID AS APPR_EMP_ID,
+				FN_GET_EMP_NM(AD.EMP_ID) AS APPR_EMP_NM
+	        FROM SC_DOC_SEND A, AP_DOC AD
+	        WHERE AD.DOC_ID = A.DOC_ID
+	        <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+		    	<if test='"N".equals(adminYn)'>
+		    		AND A.EMP_ID = #{searchEmpId}
+		    	</if>
+		    	<if test='"T".equals(adminYn)'>
+		    		AND A.DEPT_ID = #{searchDeptId}
+		    	</if>
+		    </if>
+		    /* 진행상태 */
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	<if test='"10".equals(applStat) or "20".equals(applStat)'>
+		    		/* 검토중 or 처리완료 */
+		    		AND AD.APPR_STAT = #{applStat}
+		    	</if>
+		    	<if test='"1".equals(applStat) or "2".equals(applStat)'>
+		    		/* 승인 or 부결 */
+		    		AND AD.APPR_RESULT = #{applStat}
+		    	</if>
+		    </if>
+		    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	AND NVL(AD.APPR_STAT, 'N') = 'N'
+		    </if>
+		) T
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOathEmpNm)">
+			AND OATH_EMP_NM LIKE '%' || #{searchOathEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprEmpNm)">
+			AND APPR_EMP_NM LIKE '%' || #{searchApprEmpNm} || '%'
+		</if>
+	</select>
+
+	<select id="selectSecurityDocSend" parameterType="Map" resultType="CamelHashMap">
+	/*  SecurityDocSendRepository.selectSecurityDocSend (dmSecrtDocSend_View_S) */
+		SELECT
+			DOC_SENDAPPL_NO,
+			COMP_ID,
+			COMP_NM,
+			DEPT_ID,
+			DEPT_NM,
+			JW_ID,
+			EMP_ID,
+			EMP_JW_NM,
+			DOC_SEND_GBN,
+			DOC_SEND_GBN_NM,
+			PUBLIC_PLACE,
+			PUBLIC_RSN,
+			ANNC_TITLE,
+			ANNC_EMP_ID,
+			ANNC_DEPT_ID,
+			ANNC_DEPT_NM,
+			ANNC_EMP_JW_NM,
+			OATH_DT,
+			OATH_COMP_ID,
+			OATH_DEPT_ID,
+			OATH_EMP_ID,
+			FILE_PATH1,
+			FILE_PATH2,
+			FILE_PATH3,
+			SUBSTR(FILE_PATH1_ADDR, 1, INSTR(FILE_PATH1_ADDR, #{operateId})-1 ) as FILE_PATH1_ADDR,
+			FILE_PATH1_NM,
+			SUBSTR(FILE_PATH1_TMP_NM, 0, INSTR(FILE_PATH1_TMP_NM, ';')-1) as FILE_PATH1_ID,
+			SUBSTR(FILE_PATH2_ADDR, 1, INSTR(FILE_PATH2_ADDR, #{operateId})-1 ) as FILE_PATH2_ADDR,
+			FILE_PATH2_NM,
+			SUBSTR(FILE_PATH2_TMP_NM, 0, INSTR(FILE_PATH2_TMP_NM, ';')-1) as FILE_PATH2_ID,
+			SUBSTR(FILE_PATH3_ADDR, 1, INSTR(FILE_PATH3_ADDR, #{operateId})-1 ) as FILE_PATH3_ADDR,
+			FILE_PATH3_NM,
+			SUBSTR(FILE_PATH3_TMP_NM, 0, INSTR(FILE_PATH3_TMP_NM, ';')-1) as FILE_PATH3_ID,
+			FILE_ID1,
+			FILE_URL1,
+			FILE_NAME1,
+			FILE_ID2,
+			FILE_URL2,
+			FILE_NAME2,
+			FILE_ID3,
+			FILE_URL3,
+			FILE_NAME3,
+			FILE_EXISTS_YN,
+			DOC_ID,
+			THESIS_IDA2A2_NUMBER,
+			APPR_STAT,
+			APPR_RESULT
+		  FROM (
+		  	SELECT
+		  		A.DOC_SENDAPPL_NO,
+				A.COMP_ID,
+				FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+				A.DEPT_ID,
+				FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+				A.JW_ID,
+				A.EMP_ID,
+				FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_JW_NM,
+				A.DOC_SEND_GBN,
+				FN_GET_CODE('C003', A.DOC_SEND_GBN, '') AS DOC_SEND_GBN_NM,
+				A.PUBLIC_PLACE,
+				A.PUBLIC_RSN,
+				A.ANNC_TITLE,
+				A.ANNC_EMP_ID,
+				FN_GET_EMP_JW_NM(A.ANNC_EMP_ID) AS ANNC_EMP_JW_NM,
+				A.ANNC_DEPT_ID,
+				FN_GET_DEPT_NM(A.ANNC_DEPT_ID) AS ANNC_DEPT_NM,
+				A.FILE_PATH1,
+				A.FILE_PATH2,
+				A.FILE_PATH3,
+				REPLACE(SUBSTR(A.FILE_PATH1, 1, INSTR(A.FILE_PATH1, ';')-1 ),'\', '/') AS FILE_PATH1_ADDR,
+				SUBSTR(A.FILE_PATH1, INSTR(A.FILE_PATH1, #{operateId})) AS FILE_PATH1_TMP_NM,
+				SUBSTR(A.FILE_PATH1, INSTR(A.FILE_PATH1, ';')+1) AS FILE_PATH1_NM,
+				REPLACE(SUBSTR(A.FILE_PATH2, 1, INSTR(A.FILE_PATH2, ';')-1 ),'\', '/') AS FILE_PATH2_ADDR,
+				SUBSTR(A.FILE_PATH2, INSTR(A.FILE_PATH2, #{operateId})) AS FILE_PATH2_TMP_NM,
+				SUBSTR(A.FILE_PATH2, INSTR(A.FILE_PATH2, ';')+1) AS FILE_PATH2_NM,
+				REPLACE(SUBSTR(A.FILE_PATH3, 1, INSTR(A.FILE_PATH3, ';')-1 ),'\', '/') AS FILE_PATH3_ADDR,
+				SUBSTR(A.FILE_PATH3, INSTR(A.FILE_PATH3, #{operateId})) AS FILE_PATH3_TMP_NM,
+				SUBSTR(A.FILE_PATH3, INSTR(A.FILE_PATH3, ';')+1) AS FILE_PATH3_NM,
+				FILE_ID1,
+				FILE_URL1,
+				FILE_NAME1,
+				FILE_ID2,
+				FILE_URL2,
+				FILE_NAME2,
+				FILE_ID3,
+				FILE_URL3,
+				FILE_NAME3,
+				CASE
+				   WHEN A.FILE_PATH1 IS NOT NULL
+				   OR A.FILE_PATH2 IS NOT NULL
+				   OR A.FILE_PATH3 IS NOT NULL
+				   OR A.FILE_ID1 IS NOT NULL
+				   OR A.FILE_ID2 IS NOT NULL
+				   OR A.FILE_ID3 IS NOT NULL THEN 'Y'
+				   ELSE 'N'
+				END AS FILE_EXISTS_YN,
+				A.OATH_DT,
+				A.OATH_COMP_ID,
+				A.OATH_DEPT_ID,
+				A.OATH_EMP_ID,
+				A.THESIS_IDA2A2_NUMBER,
+				AD.DOC_ID,
+				NVL(AD.APPR_STAT, 'N') AS APPR_STAT,
+				NVL(AD.APPR_RESULT, 'N') AS APPR_RESULT,
+				CASE
+				   WHEN AD.APPR_STAT = '0' THEN '대기'
+				   WHEN AD.APPR_STAT = '10' THEN '진행'
+				   WHEN AD.APPR_STAT = '20' THEN '완료'
+				   WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_STAT_NM,
+				CASE
+				   WHEN AD.APPR_RESULT = '0' THEN '검토중'
+				   WHEN AD.APPR_RESULT = '1' THEN '승인'
+				   WHEN AD.APPR_RESULT = '2' THEN '부결'
+				   WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+				END AS APPR_RESULT_NM
+			FROM SC_DOC_SEND A, AP_DOC AD
+			WHERE AD.DOC_ID = A.DOC_ID(+)
+			<if test="not @org.springframework.util.StringUtils@isEmpty(docSendapplNo)">
+				AND A.DOC_SENDAPPL_NO = #{docSendapplNo}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+				AND AD.DOC_ID = #{docId}
+			</if>
+		) T
+	</select>
+
+	<select id="selectDocSendMailList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityDocSendRepository.selectDocSendMailList (dmSecrtDocSend_SendMail_List_S) */
+		SELECT
+			'0' as GUBUN
+		    ,EMP_ID
+		    ,EMP_NM
+		    ,EMAIL
+		FROM
+		    CO_EMP
+		WHERE
+		    EMP_ID = #{empId}
+		UNION ALL
+		SELECT
+			'1' as GUBUN
+		    ,EMP_ID
+		    ,EMP_NM
+		    ,EMAIL
+		FROM
+		    CO_EMP
+		WHERE EMP_ID IN
+		    (SELECT
+		        GBN_VAL
+		    FROM
+		        AP_APPR_DEF
+		    WHERE
+		        USE_YN = 'Y'
+		        AND MENU_ID = #{menuId}
+		        AND COMP_ID = #{compId}
+		        AND GBN_VAL NOT IN
+		                (SELECT
+		                    EMP_ID
+		                FROM
+		                    AP_APPR
+		                WHERE DOC_ID = #{docId}
+		                    AND APPR_DEPT_GBN = '2'
+		                )
+		        )
+		UNION ALL
+		SELECT CASE WHEN (
+		                SELECT EMP_ID
+		                FROM AP_APPR
+		                WHERE DOC_ID      = #{docId}
+		                AND APPR_DEPT_GBN = '2'
+		                AND EMP_ID = '2006244'   /* 허가자가 윤국한 수석일 경우 */
+		            )
+		            = '2006244'  /* 허가자가 윤국한 수석일 경우 김용범 책임에게 메일 보낸다 */
+		        THEN '2'
+		        ELSE 'X'
+		    END AS GUBUN
+		  ,EMP_ID
+		  ,EMP_NM
+		  ,EMAIL
+		FROM CO_EMP
+		WHERE EMP_ID IN ( '2034046' ) /* 김용범 책임에게 외부공개자료 사전승인 신청 메일을 보낸다. */
+	]]>
+	</select>
+
+	<insert id="insertDocSend" parameterType="Map">
+	<![CDATA[
+	/*  SecurityDocSendRepository.insertDocSend (dmSecrtDocSend_I) */
+	INSERT
+		INTO
+	SC_DOC_SEND
+	(
+		DOC_SENDAPPL_NO
+		,COMP_ID
+		,DEPT_ID
+		,JW_ID
+		,EMP_ID
+		,DOC_SEND_GBN
+		,PUBLIC_PLACE
+		,ANNC_TITLE
+		,ANNC_EMP_ID
+		,ANNC_DEPT_ID
+		,PUBLIC_RSN
+		,FILE_PATH1
+		,FILE_PATH2
+		,FILE_PATH3
+		,OATH_DT
+		,OATH_COMP_ID
+		,OATH_DEPT_ID
+		,OATH_EMP_ID
+		,DOC_ID
+		,THESIS_IDA2A2_NUMBER
+		,THESIS_NUMBER
+		,AC_IP
+		,CRT_BY
+		,CRT_DTM
+		,MOD_BY
+		,MOD_DTM
+		,FILE_ID1
+		,FILE_URL1
+		,FILE_NAME1
+		,FILE_ID2
+		,FILE_URL2
+		,FILE_NAME2
+		,FILE_ID3
+		,FILE_URL3
+		,FILE_NAME3
+	) values (
+		#{scDocSendApplNo}
+		,#{compId}
+		,#{deptId}
+		,#{jwId}
+		,#{empId}
+		,#{docSendGbn}
+		,#{publicPlace}
+		,#{anncTitle}
+		,#{anncEmpId}
+		,#{anncDeptId}
+		,#{publicRsn}
+		,#{filePath0}
+		,#{filePath1}
+		,#{filePath2}
+		,TO_CHAR(SYSDATE, 'yyyymmdd')
+		,#{oathCompId}
+		,#{oathDeptId}
+		,#{oathEmpId}
+		,#{docId}
+		,#{thesisIda2a2Number}
+		,#{thesisNumber}
+		,#{acIp}
+		,#{empId}
+		,SYSDATE
+		,#{empId}
+		,SYSDATE
+		,#{fileId1}
+		,#{fileUrl1}
+		,#{fileName1}
+		,#{fileId2}
+		,#{fileUrl2}
+		,#{fileName2}
+		,#{fileId3}
+		,#{fileUrl3}
+		,#{fileName3}
+	)]]>
+	</insert>
+
+
+	<select id="selectDocSendApplView" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityDocSendRepository.selectDocSendApplView (dmDocSendApplView) */
+		SELECT DOC_SENDAPPL_NO,
+		       EMP_ID,
+		       THESIS_IDA2A2_NUMBER,
+		       THESIS_NUMBER
+		FROM SC_DOC_SEND
+		WHERE DOC_SENDAPPL_NO = #{docSendapplNo}
+	]]>
+	</select>
+
+	<select id="selectDocSendSeq" resultType="Integer">
+	<![CDATA[
+	/*  SecurityDocSendRepository.selectDocSendSeq (dmSecrtDocSend_Seq_S) */
+	SELECT
+		SEQ_SC_DOC_SEND_APPL_NO.nextval as SC_DOC_SEND_APPL_NO
+	FROM DUAL
+	]]>
+	</select>
+
+	<select id="selectSecurityDocSendListExcel" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityDocSendRepository.selectSecurityDocSendListExcel (dmSecrtDocSend_List_Excel_S) */
+			SELECT 
+				SUBSTR(OATH_DT, 1,4) || '-' || SUBSTR(OATH_DT, 5,2) || '-' || SUBSTR(OATH_DT, 7,2) AS OATH_DT ,
+				DOC_SEND_GBN_NM ,
+				THESIS_IDA2A2_NUMBER,
+				COMP_NM ,
+				EMP_ID ,
+				DEPT_NM || EMP_JW_NM AS EMP_NM ,
+				ANNC_EMP_ID ,
+				ANNC_DEPT_NM || ANNC_EMP_JW_NM AS ANNC_EMP_NM ,
+				PUBLIC_PLACE ,
+				ANNC_TITLE ,
+				PUBLIC_RSN ,
+				FILE_PATH1_NM ,
+				FILE_PATH2_NM ,
+				FILE_PATH3_NM ,
+				APPR_RESULT_NM ,
+				APPR_EMP_ID ,
+				APPR_EMP_NM  
+			FROM
+  			(
+  				SELECT 
+  					A.DOC_SENDAPPL_NO ,
+					A.COMP_ID ,
+					FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM ,
+					A.DEPT_ID ,
+					FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM ,
+					A.JW_ID ,
+					A.EMP_ID ,
+					FN_GET_EMP_NM(A.EMP_ID)    AS EMP_NM ,
+					FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_JW_NM ,
+					A.DOC_SEND_GBN ,
+					FN_GET_CODE('C003', A.DOC_SEND_GBN, '') AS DOC_SEND_GBN_NM ,
+					A.PUBLIC_PLACE ,
+					REPLACE(A.PUBLIC_RSN,CHR(13)
+					||CHR(10),'<br>') AS PUBLIC_RSN ,
+					A.ANNC_TITLE ,
+					A.ANNC_EMP_ID ,
+					FN_GET_EMP_NM(A.ANNC_EMP_ID)    AS OATH_EMP_NM ,
+					FN_GET_EMP_JW_NM(A.ANNC_EMP_ID) AS ANNC_EMP_JW_NM ,
+					A.ANNC_DEPT_ID ,
+					FN_GET_DEPT_NM(A.ANNC_DEPT_ID) AS ANNC_DEPT_NM ,    
+					SUBSTR(A.FILE_PATH1, INSTR(A.FILE_PATH1, ';')           +1)                       AS FILE_PATH1_NM ,    
+					SUBSTR(A.FILE_PATH2, INSTR(A.FILE_PATH2, ';')           +1)                       AS FILE_PATH2_NM ,    
+					SUBSTR(A.FILE_PATH3, INSTR(A.FILE_PATH3, ';')+1)                                  AS FILE_PATH3_NM ,
+					A.OATH_DT ,
+					A.OATH_COMP_ID ,
+					A.OATH_DEPT_ID ,
+					A.OATH_EMP_ID ,
+					A.THESIS_IDA2A2_NUMBER ,
+					AD.DOC_ID ,
+					NVL(AD.APPR_STAT, 'N')   AS APPR_STAT ,
+					NVL(AD.APPR_RESULT, 'N') AS APPR_RESULT ,
+					CASE
+					  WHEN AD.APPR_STAT = '0'
+					  THEN '대기'
+					  WHEN AD.APPR_STAT = '10'
+					  THEN '진행'
+					  WHEN AD.APPR_STAT = '20'
+					  THEN '완료'
+					  WHEN NVL(AD.APPR_STAT, 'N') = 'N'
+					  THEN '임시보관'
+					END AS APPR_STAT_NM ,
+					CASE
+					  WHEN AD.APPR_RESULT = '0'
+					  THEN '검토중'
+					  WHEN AD.APPR_RESULT = '1'
+					  THEN '승인'
+					  WHEN AD.APPR_RESULT = '2'
+					  THEN '부결'
+					  WHEN NVL(AD.APPR_RESULT, 'N') = 'N'
+					  THEN '임시보관'
+					END AS APPR_RESULT_NM,
+				    AD.EMP_ID AS APPR_EMP_ID ,
+				    FN_GET_EMP_NM(AD.EMP_ID) AS APPR_EMP_NM
+  				FROM SC_DOC_SEND A ,
+					AP_DOC AD
+				WHERE
+					AD.DOC_ID = A.DOC_ID
+            ]]>
+            
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND REPLACE(A.OATH_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+		    	<if test='"N".equals(adminYn)'>
+		    		AND A.EMP_ID = #{searchEmpId}
+		    	</if>
+		    	<if test='"T".equals(adminYn)'>
+		    		AND A.DEPT_ID = #{searchDeptId}
+		    	</if>
+		    </if>
+		    
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	<if test='"10".equals(applStat) or "20".equals(applStat)'>
+		    		/* 검토중 or 처리완료 */
+		    		AND AD.APPR_STAT = #{applStat}
+		    	</if>
+		    	<if test='"1".equals(applStat) or "2".equals(applStat)'>
+		    		/* 승인 or 부결 */
+		    		AND AD.APPR_RESULT = #{applStat}
+		    	</if>
+		    </if>
+		    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+		    	AND NVL(AD.APPR_STAT, 'N') = 'N'
+		    </if>
+		    
+		<![CDATA[			
+				
+        ) WHERE 1=1
+        ]]>
+        
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+        	<![CDATA[
+			AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+			]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOathEmpNm)">
+        	<![CDATA[
+			AND OATH_EMP_NM LIKE '%' || #{searchOathEmpNm} || '%'
+			]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprEmpNm)">
+        	<![CDATA[
+			AND APPR_EMP_NM LIKE '%' || #{searchApprEmpNm} || '%'
+			]]>
+		</if>
+        
+		<![CDATA[
+			ORDER BY OATH_DT DESC
+		]]>
+	</select>
+</mapper>

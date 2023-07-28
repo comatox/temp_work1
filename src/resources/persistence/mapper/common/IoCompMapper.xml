@@ -1,0 +1,746 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.IoCompRepository">
+
+	<select id="selectIoEmpList" parameterType="hashMap" resultType="CamelHashMap">
+		/* ImCompRepository.selectIoEmpList */
+		/* IO: extNet.common.iocompempsearch.DU_IoEmpSearch_dmIoEmpList_2012-08-03T08:47:00(2012-10-02T15:24:38) */
+
+		SELECT ROW_NUM,
+					IO_EMP_ID,
+					IDCARD_ID,
+					IO_EMP_NM,
+					IO_JW_NM,
+					IO_HP_NO,
+					IO_COMP_ID,
+					IO_EMP_JUMIN_NO,
+					IO_EMP_JUMIN_NO2,
+					PASSPORT_NO,
+					IO_EMP_ADDR,
+					COMP_KO_NM,
+					COMP_EN_NM,
+					BOSS_NM,
+					COMP_TEL_NO,
+					COMP_ADDR,
+					COMP_ZIP1,
+					COMP_ZIP2,
+					NATION_NM,
+					CAR_KND,
+					CAR_NO,
+					DENY_YN,
+					DENY_STRT_DT,
+					DENY_END_DT,
+					DENY_STRT_DT || ' ~ ' || DENY_END_DT AS DENY_DT,
+					FILE_PHOTO,
+					PROCESS_COUNT,
+					CASE WHEN PROCESS_COUNT <![CDATA[ > ]]>0 THEN '진행중' ELSE '' END PROCESS_NM,
+					SUBCONT_YN,
+					EMAIL,
+					EDU_YN,
+					NAME_CHK,
+					NVL(ESH_DT,'N') AS ESH_DT,
+					PASS_YN,
+					MOVE_YN,
+					EXPR_YN,
+					CRT_DTM,
+					COMP_AUTH, PASS_STATUS, PASS_STATUS_NM
+		FROM (
+					SELECT
+						 ROW_NUMBER() OVER ( ORDER BY IO_EMP_NM ASC ) AS ROW_NUM,
+						 IO_EMP_ID,IDCARD_ID, IO_EMP_NM, IO_JW_NM, IO_HP_NO, IO_COMP_ID,IO_EMP_JUMIN_NO,
+						 IO_EMP_JUMIN_NO2,  PASSPORT_NO, IO_EMP_ADDR, COMP_KO_NM, COMP_EN_NM, BOSS_NM,
+						 COMP_TEL_NO, COMP_ADDR, COMP_ZIP1, COMP_ZIP2, NATION_NM, CAR_KND, CAR_NO,
+						 DENY_YN, DENY_STRT_DT, DENY_END_DT, FILE_PHOTO, PROCESS_COUNT, SUBCONT_YN, EMAIL, EDU_YN, NAME_CHK, ESH_DT,
+						 PASS_YN, MOVE_YN, EXPR_YN, CRT_DTM, COMP_AUTH, PASS_STATUS, PASS_STATUS_NM
+					FROM (
+						SELECT
+								DISTINCT
+								A.IO_EMP_ID AS IO_EMP_ID,
+								( SELECT SMART_IDCARD
+								FROM VW_IO_PASS_MST2
+								WHERE IO_EMP_ID = A.IO_EMP_ID
+								AND STOP_YN = 'N' AND IO_END_DT <![CDATA[  >= ]]>TO_CHAR(SYSDATE, 'YYYYMMDD') AND ROWNUM=1 )  AS IDCARD_ID  ,
+								A.EMP_NM AS IO_EMP_NM,
+								A.JW_NM AS IO_JW_NM,
+								CASE WHEN #{site}='EXT' THEN RPAD(SUBSTR(A.HP_NO,1,7),12,'*')
+								ELSE A.HP_NO
+								END AS IO_HP_NO,
+								A.IO_COMP_ID AS IO_COMP_ID,
+								CASE WHEN A.NATION = 'Z0011001' THEN SUBSTR(A.JUMIN_NO,1,6)
+								ELSE RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO,
+								A.JUMIN_NO AS IO_EMP_JUMIN_NO2,
+								A.PASSPORT_NO AS PASSPORT_NO,
+								A.ADDR AS IO_EMP_ADDR,
+								B.COMP_KO_NM AS COMP_KO_NM,
+								B.COMP_EN_NM AS COMP_EN_NM,
+								B.BOSS_NM AS BOSS_NM,
+								B.TEL_NO AS COMP_TEL_NO,
+								B.ADDR AS COMP_ADDR,
+								B.ZIP1 AS COMP_ZIP1,
+								B.ZIP2 AS COMP_ZIP2,
+								CASE WHEN A.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', A.NATION, '')
+								ELSE FN_GET_CODE_EN('Z001', A.NATION, '') END AS NATION_NM,
+								A.CAR_KND,
+								A.CAR_NO,
+								CASE WHEN X.DENY_STRT_DT IS NULL THEN 'N'
+								WHEN TO_CHAR(SYSDATE,'YYYY-MM-DD') <![CDATA[ >=]]> X.DENY_STRT_DT AND TO_CHAR(SYSDATE,'YYYY-MM-DD') &lt;= X.DENY_END_DT THEN 'Y'
+								ELSE 'N'
+								END AS DENY_YN,
+								X.DENY_STRT_DT,
+								X.DENY_END_DT,
+								A.FILE_PHOTO AS FILE_PHOTO,
+								CASE WHEN B.SUBCONT_YN = 'Y' THEN '도급'
+								ELSE ''
+								END SUBCONT_YN,
+						(
+								SELECT
+									COUNT(*) AS PROCESS_COUNT
+								FROM IO_PASS C
+								WHERE A.IO_EMP_ID = C.IO_EMP_ID
+								AND  C.APPL_STAT IN ( 'Z0331001', 'Z0331002', 'Z0331005' )
+								<if test="@org.springframework.util.StringUtils@isEmpty(divCd)">
+									AND (  C.STATUS IS NULL OR  C.STATUS IN ( 'A0091001', 'A0091002', 'A0091004' ) )
+								</if>
+								<if test="not @org.springframework.util.StringUtils@isEmpty(divCd)">
+									<if test='"MOVE".equals(divCd)'>
+										AND (  C.STATUS IS NULL OR  C.STATUS IN ( 'A0091001', 'A0091002' ) )
+									</if>
+								</if>
+						) AS PROCESS_COUNT,
+						A.EMAIL,
+						CASE WHEN A.REG_GBN IS NULL THEN 'Y'
+							ELSE CASE WHEN TRUNC(SYSDATE - TO_DATE(A.REG_GBN))<![CDATA[ >=]]> 180 THEN 'Y'
+							ELSE 'N'
+							END
+							END EDU_YN
+						,A.NAME_CHK
+						,NVL(A.ESH_DT, 'N') as ESH_DT
+						,CASE WHEN ( SELECT COUNT(IO_EMP_ID) CNT  FROM IO_PASS
+								WHERE CARD_NO IS NOT NULL
+								AND DEL_YN = 'N'
+								AND ALTEMP_GBN = 'A0071001'
+								AND USE_YN = 'Y'
+								AND IDCARD_ID IS NOT NULL
+								AND APPL_STAT = 'Z0331005'
+								AND NVL(IO_END_DT,EXTN_END_DT)<![CDATA[  >= ]]>TO_CHAR(SYSDATE, 'YYYYMMDD')
+								AND IO_EMP_ID = A.IO_EMP_ID
+								GROUP BY IO_EMP_ID ) > 0 THEN 'Y' ELSE 'N' END AS PASS_YN
+						,CASE WHEN NVL(C.EXPR_YN,'N') = 'N' THEN 'N' ELSE 'Y' END AS EXPR_YN
+						,CASE WHEN ( SELECT COUNT(CMM.IO_EMP_ID) CNT  FROM IO_EMP_COM_MOVE CM, IO_EMP_COM_MOVE_MAN CMM
+										WHERE CM.MOVE_APPL_NO= CMM.MOVE_APPL_NO
+										AND CM.APPL_STAT='Z0331001'
+										AND CMM.IO_EMP_ID=A.IO_EMP_ID
+										AND CMM.MOV_DT IS NULL
+										)<![CDATA[  > ]]>0 THEN 'Y' ELSE 'N' END AS MOVE_YN
+					,A.CRT_DTM
+					,CASE WHEN NVL(B.ADMIN1_EMAIL, 'Y') = 'Y' THEN 'Y' WHEN B.ADMIN1_EMAIL = A.IO_EMP_ID THEN 'Y' ELSE 'N' END AS COMP_AUTH
+					,D.STATUS AS PASS_STATUS
+					,D.STATUS_NM AS PASS_STATUS_NM
+					FROM IO_EMP A, IO_COMP B,
+							(SELECT IP.IO_EMP_ID ,
+									CASE
+									WHEN INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||IPE.STOP_YN_05|| IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||IPE.STOP_YN_09||IPE.STOP_YN_10,'Y') &gt; 0
+									THEN 'Y'
+									ELSE 'N'
+									END AS EXPR_YN
+							FROM IO_PASS IP,
+										IO_PASS_EXPR IPE
+							WHERE IP.IO_EMP_ID = IPE.IO_EMP_ID
+								AND IP.CARD_NO = IPE.CARD_NO
+								AND IP.CARD_NO IS NOT NULL
+								AND IP.DEL_YN = 'N'
+								AND IP.ALTEMP_GBN = 'A0071001'
+								AND IP.USE_YN = 'Y'
+								AND IP.IDCARD_ID IS NOT NULL
+								AND IP.APPL_STAT = 'Z0331005'
+								AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN NVL(IP.EXTN_STRT_DT, IP.IO_STRT_DT) AND NVL(IP.EXTN_END_DT, IP.IO_END_DT)
+							) C,
+							(SELECT
+							  	IO_EMP_ID, PASS_APPL_NO, STATUS, FN_GET_CODE_NM('A009',STATUS) AS STATUS_NM
+							FROM IO_PASS
+							WHERE (IO_EMP_ID, PASS_APPL_NO) IN (
+										SELECT
+										    IO_EMP_ID, max(pass_appl_no) AS PASS_APPL_NO
+										FROM IO_PASS
+										WHERE CARD_NO IS NOT NULL
+										AND DEL_YN = 'N'
+										AND ALTEMP_GBN = 'A0071001'
+										AND USE_YN = 'Y'
+										AND IDCARD_ID IS NOT NULL
+										AND APPL_STAT = 'Z0331005'
+										AND NVL(IO_END_DT,EXTN_END_DT) >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+										GROUP BY IO_EMP_ID )
+							) D,
+						(SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+					WHERE  A.IO_COMP_ID = B.IO_COMP_ID
+						AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+						AND A.IO_EMP_ID = D.IO_EMP_ID(+)
+						AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+						AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP')
+						AND NVL(A.DEL_YN,'N') = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+			AND lower(A.IO_EMP_ID) = lower(#{ioEmpId})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+			AND A.IO_COMP_ID = #{ioCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+		</if>
+		ORDER BY IO_EMP_NM ASC, CRT_DTM DESC
+		)
+		<if test="not @org.springframework.util.StringUtils@isEmpty(passMst2Yn)">
+			<if test='"Y".equals(passMst2Yn)'>
+				WHERE IDCARD_ID IS NOT NULL
+			</if>
+		</if>
+		)
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(pageIndex)">
+			<if test="not @org.springframework.util.StringUtils@isEmpty(pageSize)">
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1
+		AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+			</if>
+		</if>
+
+	</select>
+
+	<select id="selectIoEmpListCnt" resultType="Integer">
+		/* IO: extNet.common.iocompempsearch.DU_IoEmpSearch_dmIoEmpCount_2012-08-03T08:47:00(2012-09-26T19:48:35) */
+		SELECT
+				COUNT(*) AS TOTAL_COUNT FROM
+		(
+		    SELECT
+				A.IO_EMP_ID,A.IO_COMP_ID,A.EMP_NM,
+				( SELECT SMART_IDCARD
+					FROM VW_IO_PASS_MST2
+					WHERE IO_EMP_ID = A.IO_EMP_ID
+					AND STOP_YN = 'N'
+				  AND IO_END_DT <![CDATA[  >= ]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+					AND ROWNUM=1 )  AS IDCARD_ID
+					FROM IO_EMP A, IO_COMP B,
+					(SELECT DISTINCT IP.IO_EMP_ID ,
+							CASE
+								WHEN INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||IPE.STOP_YN_05|| IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||IPE.STOP_YN_09||IPE.STOP_YN_10,'Y') > 0
+								THEN 'Y'
+								ELSE 'N'
+							END AS EXPR_YN
+					FROM IO_PASS IP,
+							IO_PASS_EXPR IPE
+					WHERE IP.IO_EMP_ID = IPE.IO_EMP_ID
+					AND IP.CARD_NO = IPE.CARD_NO
+					AND IP.CARD_NO IS NOT NULL
+					AND IP.DEL_YN = 'N'
+					AND IP.ALTEMP_GBN = 'A0071001'
+					AND IP.USE_YN = 'Y'
+					AND IP.IDCARD_ID IS NOT NULL
+					AND IP.APPL_STAT = 'Z0331005'
+					AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN NVL(IP.EXTN_STRT_DT, IP.IO_STRT_DT) AND NVL(IP.EXTN_END_DT, IP.IO_END_DT)
+					) C,
+				(
+				SELECT	X.*	FROM (
+												SELECT
+														ROW_NUMBER() OVER ( PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC ) AS ROW_NUM
+														,X.*
+												FROM  IO_EMP_DENY X
+												WHERE NVL(DEL_YN,'N') = 'N'
+												) X
+				WHERE X.ROW_NUM = 1
+				) X
+				WHERE  A.IO_COMP_ID = B.IO_COMP_ID
+				AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+				AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+				AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP')
+				AND NVL(A.DEL_YN,'N') = 'N'
+				)
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+			AND lower(IO_EMP_ID) = lower(#{ioEmpId})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+			AND IO_COMP_ID = #{ioCompId}
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+			AND FN_GET_IO_COMP_KO_NM(IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(passMst2Yn)">
+			<if test='"Y".equals(passMst2Yn)'>
+				WHERE IDCARD_ID IS NOT NULL
+			</if>
+		</if>
+
+	</select>
+
+	<select id="selectIoEmp" parameterType="String" resultType="IoEmpDTO">
+		SELECT
+		    A.IO_EMP_ID,
+		    A.EMP_NM,
+		    A.JW_NM,
+		    RPAD(SUBSTR(A.HP_NO, 1, 7), 12, '*') AS HP_NO,
+		    A.HP_NO AS ORI_HP_NO,
+		    SUBSTR(A.JUMIN_NO, 1 ,6) AS JUMIN_NO,
+	        RPAD(SUBSTR(A.PASSPORT_NO, 1, 7), 9,'*') AS PASSPORT_NO,
+		    A.ADDR,
+	        A.NATION AS NATION,
+	        FN_GET_CODE('Z001', A.NATION, '') AS NATION_NM,
+	        A.CAR_KND,
+	        A.CAR_NO,
+	        A.FILE_PHOTO,
+	        A.EMAIL_ADDR,
+		    A.IO_COMP_ID,
+	        B.COMP_KO_NM,
+	        B.COMP_EN_NM,
+	        B.BOSS_NM,
+	        B.TEL_NO,
+	        B.ADDR AS COMP_ADDR,
+	        B.ZIP1 AS COMP_ZIP1,
+	        B.ZIP2 AS COMP_ZIP2,
+	        NVL(B.SUBCONT_YN, 'N') AS SUBCONT_YN
+		FROM
+		    IO_EMP A
+		    LEFT OUTER JOIN IO_COMP B
+		    ON A.IO_COMP_ID = B.IO_COMP_ID
+		WHERE A.IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<select id="selectIoCompList" parameterType="IoCompSearchDTO" resultType="IoCompDTO">
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY COMP_KO_NM ASC ) AS RNUM,
+				IO_COMP_ID,
+				CASE LENGTH(IO_COMP_ID)
+					WHEN 10 THEN SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+					ELSE SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+				END AS S_IO_COMP_ID,
+				COMP_KO_NM,
+				COMP_EN_NM,
+				LEGAL_NO,
+				BOSS_NM,
+				TEL_NO,
+				FAX_NO,
+				ADDR || ' ' || ADDR2 AS ADDR,
+				ZIP1 || '-' || ZIP2 AS ZIP,
+				SUBCONT_YN
+			FROM IO_COMP
+			WHERE DEL_YN = 'N'
+			AND REST_YN = 'N'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+			  AND ((COMP_KO_NM like '%' || #{compKoNm} || '%') OR (UPPER(COMP_EN_NM) like '%' || UPPER(#{compKoNm}) || '%'))
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			  AND IO_COMP_ID LIKE '%'||#{compId}||'%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compType)">
+				<if test='compType.equals("1")'>
+					AND COMP_DIV = 'C'
+				</if>
+				<if test='compType.equals("2")'>
+					AND COMP_DIV = 'P'
+				</if>
+				<if test='compType.equals("3")'>
+					AND COMP_DIV = 'G'
+				</if>
+				<if test='compType.equals("4")'>
+					AND COMP_DIV IN ('C', 'G')
+				</if>
+			</if>
+			<if test='not @org.springframework.util.StringUtils@isEmpty(subcontYn) and subcontYn.equals("Y")'>
+			  AND SUBCONT_YN = 'Y'
+			</if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectIoCompListCnt" parameterType="IoCompSearchDTO" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_COMP
+		WHERE DEL_YN = 'N'
+		AND REST_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+		  AND ((COMP_KO_NM like '%' || #{compKoNm} || '%') OR (UPPER(COMP_EN_NM) like '%' || UPPER(#{compKoNm}) || '%'))
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		  AND IO_COMP_ID LIKE '%'||#{compId}||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compType)">
+			<if test='compType.equals("1")'>
+				AND COMP_DIV = 'C'
+			</if>
+			<if test='compType.equals("2")'>
+				AND COMP_DIV = 'P'
+			</if>
+			<if test='compType.equals("3")'>
+				AND COMP_DIV = 'G'
+			</if>
+			<if test='compType.equals("4")'>
+				AND COMP_DIV IN ('C', 'G')
+			</if>
+		</if>
+		<if test='not @org.springframework.util.StringUtils@isEmpty(subcontYn) and subcontYn.equals("Y")'>
+		  AND SUBCONT_YN = 'Y'
+		</if>
+	</select>
+
+	<select id="selectIoComp" parameterType="IoCompSearchDTO" resultType="IoCompDTO">
+		SELECT
+			IO_COMP_ID,
+			CASE LENGTH(IO_COMP_ID)
+				WHEN 10 THEN SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+				ELSE SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+			END AS S_IO_COMP_ID,
+			COMP_KO_NM,
+			COMP_EN_NM,
+			LEGAL_NO,
+			BOSS_NM,
+			TEL_NO,
+			FAX_NO,
+			ADDR || ' ' || ADDR2 AS ADDR,
+			ZIP1 || '-' || ZIP2 AS ZIP,
+			SUBCONT_YN
+		FROM IO_COMP
+		WHERE IO_COMP_ID = #{ioCompId}
+	</select>
+
+	<select id="selectIoEmpCarInfoViewList" parameterType="IoEmpCarInfoViewSearchDTO" resultType="IoEmpCarInfoViewDTO">
+		SELECT ROW_NUM,
+			IO_EMP_ID,
+	        IO_EMP_NM,
+	        IO_EMP_NM as IO_EMP_NM_HTML,
+	        IO_JW_NM,
+	        IO_HP_NO,
+	        IO_COMP_ID,
+	        IO_EMP_JUMIN_NO,
+	        IO_EMP_JUMIN_NO2,
+	        PASSPORT_NO,
+	        IO_EMP_ADDR,
+	        COMP_KO_NM,
+	        COMP_EN_NM,
+	        BOSS_NM,
+	        COMP_TEL_NO,
+	        COMP_ADDR,
+	        COMP_ZIP1,
+	        COMP_ZIP2,
+	        NATION_NM,
+	        CAR_KND,
+	        CAR_NO,
+	        DENY_YN,
+			DENY_STRT_DT,
+	        DENY_END_DT,
+	        DENY_STRT_DT || ' ~ ' || DENY_END_DT AS DENY_DT,
+	        FILE_PHOTO,
+	        PROCESS_COUNT,
+	        CASE WHEN PROCESS_COUNT <![CDATA[ > ]]> 0 THEN '진행중' ELSE '' END PROCESS_NM,
+	        SUBCONT_YN,
+	        NVL(ESH_DT,'N') AS ESH_DT, NAME_CHK, /* CLEAN_DT : ESH_DT 청정도 서약서 추가 20151217*/
+	        EMAIL_ADDR, PASS_YN, MOVE_YN, EXPR_YN, FN_GET_IDCARD_ID(IO_EMP_ID) IDCARD_ID, IO_EMP_LOC_INFO_AGREE
+		FROM (
+			SELECT ROW_NUM, IO_EMP_ID, IO_EMP_NM, IO_JW_NM, IO_HP_NO, IO_COMP_ID,IO_EMP_JUMIN_NO,
+			       IO_EMP_JUMIN_NO2,  PASSPORT_NO, IO_EMP_ADDR, COMP_KO_NM, COMP_EN_NM, BOSS_NM,
+			       COMP_TEL_NO, COMP_ADDR, COMP_ZIP1, COMP_ZIP2, NATION_NM, CAR_KND, CAR_NO,
+			       DENY_YN, DENY_STRT_DT, DENY_END_DT, FILE_PHOTO, PROCESS_COUNT, SUBCONT_YN,
+			       ESH_DT, NAME_CHK, EMAIL_ADDR, PASS_YN, MOVE_YN, EXPR_YN, IO_EMP_LOC_INFO_AGREE
+	          FROM (
+				SELECT
+					ROW_NUMBER() OVER ( ORDER BY A.IO_EMP_ID ASC ) AS ROW_NUM,
+			        A.IO_EMP_ID AS IO_EMP_ID,
+			        A.EMP_NM AS IO_EMP_NM,
+			        A.JW_NM AS IO_JW_NM,
+			        CASE WHEN #{site}='EXT' THEN RPAD(SUBSTR(A.HP_NO,1,7),12,'*')
+			             ELSE A.HP_NO
+			         END AS IO_HP_NO,
+			        A.IO_COMP_ID AS IO_COMP_ID,
+			        CASE WHEN A.NATION = 'Z0011001' THEN SUBSTR(A.JUMIN_NO,1,6)
+	        			 ELSE RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO,
+			        A.JUMIN_NO AS IO_EMP_JUMIN_NO2,
+			        A.PASSPORT_NO AS PASSPORT_NO,
+			        A.ADDR AS IO_EMP_ADDR,
+			        B.COMP_KO_NM AS COMP_KO_NM,
+			        B.COMP_EN_NM AS COMP_EN_NM,
+			        B.BOSS_NM AS BOSS_NM,
+			        B.TEL_NO AS COMP_TEL_NO,
+			        B.ADDR AS COMP_ADDR,
+			        B.ZIP1 AS COMP_ZIP1,
+			        B.ZIP2 AS COMP_ZIP2,
+			        CASE WHEN A.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', A.NATION, '')
+			         	 ELSE FN_GET_CODE_EN('Z001', A.NATION, '') END AS NATION_NM,
+			        A.CAR_KND,
+			        A.CAR_NO,
+	        		CASE WHEN X.DENY_STRT_DT IS NULL THEN 'N'
+						 WHEN TO_CHAR(SYSDATE,'YYYY-MM-DD') <![CDATA[ >= ]]> X.DENY_STRT_DT AND TO_CHAR(SYSDATE,'YYYY-MM-DD') <![CDATA[ <= ]]> X.DENY_END_DT THEN 'Y'
+			             ELSE 'N'
+			        END AS DENY_YN,
+			        X.DENY_STRT_DT,
+					X.DENY_END_DT,
+	        		A.FILE_PHOTO AS FILE_PHOTO,
+	        		CASE WHEN B.SUBCONT_YN = 'Y' THEN '도급'
+	        		     ELSE ''
+	        		 END SUBCONT_YN,
+	        		(
+	        			SELECT
+							COUNT(*) AS PROCESS_COUNT
+						FROM IO_PASS C
+						WHERE A.IO_EMP_ID = C.IO_EMP_ID
+						AND  C.APPL_STAT IN ( 'Z0331001', 'Z0331002', 'Z0331005' )
+						AND (  C.STATUS IS NULL OR  C.STATUS IN ( 'A0091001', 'A0091002', 'A0091003', 'A0091004' )
+						AND C.PASS_APPL_NO = (SELECT MAX(AA.PASS_APPL_NO ) FROM IO_PASS AA WHERE AA.IO_EMP_ID = A.IO_EMP_ID AND AA.DEL_YN ='N' AND AA.USE_YN ='Y') )
+	       			) AS PROCESS_COUNT,
+	       			NVL(A.CLEAN_DT,'N') as ESH_DT, NAME_CHK,
+       			<if	test='"HS".equals(siteType)'>
+					A.EMAIL AS EMAIL_ADDR,
+				</if>
+				<if	test='not "HS".equals(siteType)'>
+					A.EMAIL_ADDR,
+				</if>
+	       			CASE WHEN ( SELECT COUNT(IO_EMP_ID) CNT  FROM IO_PASS
+					             WHERE CARD_NO IS NOT NULL
+					               AND DEL_YN = 'N'
+					               AND ALTEMP_GBN = 'A0071001'
+					               AND USE_YN = 'Y'
+					               AND IDCARD_ID IS NOT NULL
+					               AND APPL_STAT = 'Z0331005'
+					               AND NVL(IO_END_DT,EXTN_END_DT) <![CDATA[ >= ]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+					               AND IO_EMP_ID = A.IO_EMP_ID
+					             GROUP BY IO_EMP_ID ) <![CDATA[ >= ]]> 0 THEN 'Y' ELSE 'N' END AS PASS_YN,
+	                CASE WHEN NVL(C.EXPR_YN,'N') = 'N' THEN 'N' ELSE 'Y' END AS EXPR_YN,
+					CASE WHEN ( SELECT COUNT(CMM.IO_EMP_ID) CNT  FROM IO_EMP_COM_MOVE CM, IO_EMP_COM_MOVE_MAN CMM
+	                             WHERE CM.MOVE_APPL_NO= CMM.MOVE_APPL_NO
+	                               AND CM.APPL_STAT='Z0331001'
+	                               AND CMM.IO_EMP_ID=A.IO_EMP_ID
+	                               AND CMM.MOV_DT IS NULL
+	                          ) <![CDATA[ > ]]> 0 THEN 'Y' ELSE 'N' END AS MOVE_YN,
+	                NVL(D.UNPERMITTED_LOC_AGREE_YN, 'N') AS IO_EMP_LOC_INFO_AGREE
+				FROM IO_EMP A, IO_COMP B,
+					(
+						SELECT IO_EMP_ID, PERMITTED_LOC_AGREE_YN, UNPERMITTED_LOC_AGREE_YN
+							    FROM IO_EMP_LOC_INFO_AGREE
+							    WHERE CRT_DTM =
+							      ( SELECT MAX(CRT_DTM) FROM IO_EMP_LOC_INFO_AGREE WHERE UPPER(IO_EMP_ID) = #{searchIoEmpId})
+							      AND UPPER(IO_EMP_ID) = #{searchIoEmpId}
+					) D,
+					 ( SELECT IP.IO_EMP_ID ,
+				              CASE
+				                  WHEN INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||IPE.STOP_YN_05|| IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||IPE.STOP_YN_09||IPE.STOP_YN_10||IPE.STOP_YN_11,'Y') <![CDATA[ >= ]]> 0
+				                  THEN 'Y'
+				                  ELSE 'N'
+				              END AS EXPR_YN
+				         FROM IO_PASS IP,
+				              IO_PASS_EXPR IPE
+				        WHERE IP.IO_EMP_ID = IPE.IO_EMP_ID
+				              AND IP.CARD_NO = IPE.CARD_NO
+				              AND IP.CARD_NO IS NOT NULL
+				              AND IP.DEL_YN = 'N'
+				              AND IP.ALTEMP_GBN = 'A0071001'
+				              AND IP.USE_YN = 'Y'
+				              AND IP.IDCARD_ID IS NOT NULL
+				              AND IP.APPL_STAT = 'Z0331005'
+				              /* 정지 출입증에 대한 정보에 대한 최종 출입증 정보를 가지고 판단해야함.*/
+				              AND IP.PASS_APPL_NO = (SELECT MAX(AA.PASS_APPL_NO) FROM IO_PASS AA WHERE AA.STATUS in ('A0091005','A0091004') AND AA.IO_EMP_ID = IP.IO_EMP_ID AND NVL(AA.IO_END_DT,AA.EXTN_END_DT) <![CDATA[ >= ]]> TO_CHAR(SYSDATE, 'YYYYMMDD'))
+	      		              AND NVL(IP.IO_END_DT,IP.EXTN_END_DT) <![CDATA[ >= ]]> TO_CHAR(SYSDATE, 'YYYYMMDD')
+				       ) C,
+						(
+							 SELECT	X.*	FROM (
+									SELECT
+										 ROW_NUMBER() OVER ( PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC ) AS ROW_NUM
+										,X.*
+									FROM  IO_EMP_DENY X
+									WHERE NVL(DEL_YN,'N') = 'N'
+							 ) X
+							 WHERE X.ROW_NUM = 1
+						) X
+				WHERE
+					A.IO_COMP_ID = B.IO_COMP_ID
+				  AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+				  AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+				  AND A.IO_EMP_ID = D.IO_EMP_ID(+)
+				  AND NVL(A.DEL_YN,'N') = 'N'
+				<if	test='searchDeliveryYn == null'>
+				  AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS', 'DELIVERY')
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchDeliveryYn)'>
+					<if	test='"Y".equals(searchDeliveryYn)'>
+						AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+					</if>
+					<if	test='not "Y".equals(searchDeliveryYn)'>
+						AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS', 'DELIVERY')
+					</if>
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchIoEmpId)'>
+					AND UPPER(A.IO_EMP_ID) = UPPER(#{searchIoEmpId})
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)'>
+					AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{searchIoEmpNm}) || '%'
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchIoCompId)'>
+					AND A.IO_COMP_ID = #{searchIoCompId}
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchIoCompNm)'>
+					AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{searchIoCompNm}) || '%'
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(passYnList) and "Y".equals(passYnList)'>
+					/* 외부인검색시 현재 사용중인 출입증 소지자만 검색되도록 개선함(청주 차량 관제 정신환 요청). 20180404 HSK */
+	                AND EXISTS( SELECT CARD_NO, IO_EMP_ID
+	                            FROM IO_PASS P
+	                            WHERE P.IO_EMP_ID = A.IO_EMP_ID
+	                              AND (IO_EMP_ID,PASS_APPL_NO) IN ( SELECT IO_EMP_ID, MAX(A.PASS_APPL_NO)
+	                                                                    FROM IO_PASS A
+	                                                                   WHERE CARD_NO IS NOT NULL
+	                                                                     AND NVL(DEL_YN, 'N') = 'N'
+	                                                                     AND A.ALTEMP_GBN = 'A0071001'
+	                                                                     AND A.STATUS IN ('A0091004'
+	                                                                                    , 'A0091005'
+	                                                                                    , 'A0091009'
+	                                                                                    , 'A0091010')
+	                                                                     AND A.IDCARD_ID IS NOT NULL
+	                                                                     AND A.TAG_GBN != '2'
+	                                                                   GROUP BY A.IO_EMP_ID)
+	                                AND NOT EXISTS(
+	                                    SELECT *
+	                                      FROM IO_PASS_EXPR IPE
+	                                     WHERE IPE.IO_EMP_ID = P.IO_EMP_ID
+	                                       AND IPE.CARD_NO = P.CARD_NO
+	                                       AND INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||
+	                                                            IPE.STOP_YN_05||IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||
+	                                                            IPE.STOP_YN_09||IPE.STOP_YN_10||IPE.STOP_YN_11,'Y') <![CDATA[ >= ]]> 0  )
+	                           )
+				</if>
+				)
+				ORDER BY IO_EMP_NM
+			)
+		ORDER BY ROW_NUM
+	</select>
+
+	<select id="selectIoEmpSubcontList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT Z.ROW_NUM,
+					Z.IO_EMP_ID,
+					(SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = Z.IO_EMP_ID) AS IDCARD_ID,
+					Z.IO_EMP_NM,
+					Z.IO_EMP_NM as IO_EMP_NM_HTML,
+					Z.IO_JW_NM,
+					Z.IO_HP_NO,
+					Z.IO_COMP_ID,
+					Z.IO_EMP_JUMIN_NO,
+					Z.IO_EMP_JUMIN_NO2,
+					Z.PASSPORT_NO,
+					Z.IO_EMP_ADDR,
+					Z.COMP_KO_NM,
+					Z.COMP_EN_NM,
+					Z.BOSS_NM,
+					Z.COMP_TEL_NO,
+					Z.COMP_ADDR,
+					Z.COMP_ZIP1,
+					Z.COMP_ZIP2,
+					Z.NATION_NM,
+					Z.CAR_KND,
+					Z.CAR_NO,
+					Z.DENY_YN,
+					'' AS DENY_DT,
+					Z.FILE_PHOTO,
+					Z.PROCESS_COUNT,
+					CASE WHEN Z.PROCESS_COUNT > 0 THEN '진행중' ELSE '' END PROCESS_NM,
+					Z.SUBCONT_YN,
+					NVL(Z.ESH_DT,'N') AS ESH_DT, Z.NAME_CHK, /* CLEAN_DT : ESH_DT 청정도 서약서 추가 20151217*/
+					Z.EMAIL, Z.PASS_YN, Z.MOVE_YN, Z.EXPR_YN,
+				(SELECT CARDKEY_GBN FROM IO_COMP IOCOMP ,CO_COMP COCOMP  WHERE IOCOMP.COMP_ID = COCOMP.COMP_ID AND IOCOMP.IO_COMP_ID= Z.IO_COMP_ID AND ROWNUM=1 )  AS CARDKEY_GBN
+				 FROM (
+							SELECT
+							ROW_NUMBER() OVER ( ORDER BY A.IO_EMP_ID ASC ) AS ROW_NUM,
+							A.IO_EMP_ID AS IO_EMP_ID,
+							A.EMP_NM AS IO_EMP_NM,
+							A.JW_NM AS IO_JW_NM,
+							A.HP_NO AS IO_HP_NO,
+							A.IO_COMP_ID AS IO_COMP_ID,
+							CASE WHEN A.NATION = 'Z0011001' THEN SUBSTR(A.JUMIN_NO,1,6)
+							ELSE RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO,
+							A.JUMIN_NO AS IO_EMP_JUMIN_NO2,
+							A.PASSPORT_NO AS PASSPORT_NO,
+							A.ADDR AS IO_EMP_ADDR,
+							B.COMP_KO_NM AS COMP_KO_NM,
+							B.COMP_EN_NM AS COMP_EN_NM,
+							B.BOSS_NM AS BOSS_NM,
+							B.TEL_NO AS COMP_TEL_NO,
+							B.ADDR AS COMP_ADDR,
+							B.ZIP1 AS COMP_ZIP1,
+							B.ZIP2 AS COMP_ZIP2,
+							CASE WHEN A.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', A.NATION, '')
+							ELSE FN_GET_CODE_EN('Z001', A.NATION, '') END AS NATION_NM,
+							A.CAR_KND,
+							A.CAR_NO,
+							'N' AS DENY_YN,
+							A.FILE_PHOTO AS FILE_PHOTO,
+							CASE WHEN B.SUBCONT_YN = 'Y' THEN '도급'
+							ELSE ''
+							END SUBCONT_YN,
+							0 AS PROCESS_COUNT,
+							'' as ESH_DT, NAME_CHK, A.EMAIL,
+							'Y' AS PASS_YN,
+							'N' AS EXPR_YN,
+							'N' AS MOVE_YN
+							FROM IO_EMP A, IO_COMP B
+							WHERE A.IO_COMP_ID = B.IO_COMP_ID
+							AND NVL(B.SUBCONT_YN,'N') = 'Y'
+							AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+							AND NVL(A.DEL_YN,'N') = 'N'
+
+							<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+								AND lower(A.IO_EMP_ID) = lower(#{ioEmpId})
+							</if>
+							<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+								AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+							</if>
+							<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+								AND A.IO_COMP_ID = #{ioCompId}
+							</if>
+							<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+								AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+							</if>
+						) Z
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(pageIndex)">
+			<if test="not @org.springframework.util.StringUtils@isEmpty(pageSize)">
+				WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1
+				AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+			</if>
+		</if>
+	</select>
+
+	<select id="selectIoEmpSubcontListCnt" parameterType="hashMap" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND NVL(B.SUBCONT_YN,'N') = 'Y'
+		AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+		AND NVL(A.DEL_YN,'N') = 'N'
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+			AND UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)'>
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(ioCompId)'>
+			AND A.IO_COMP_ID = #{ioCompId}
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(ioCompNm)'>
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+		</if>
+	</select>
+
+</mapper>
+
+

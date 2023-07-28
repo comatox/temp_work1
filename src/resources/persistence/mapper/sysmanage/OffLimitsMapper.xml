@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.OffLimitsRepository">
+
+<select id="selectOffLimitsList" parameterType="Map" resultType="CamelHashMap">
+		/* OffLimitsRepository.selectOffLimitsList (DU_OffLimits_dmOffLimits_List) */
+	WITH T AS
+
+	(
+	SELECT
+	CCC.*
+	FROM (
+	SELECT
+	                ROWNUM AS ROW_NUM,
+	                T1.*
+	            FROM (
+			        SELECT
+			                    B.COMP_KO_NM AS COMP_KO_NM,
+			                    A.EMP_NM AS EMP_NM,
+			                    A.IO_EMP_ID AS IO_EMP_ID,
+			                    A.JW_NM AS JW_NM,
+			                    A.NATION,
+			                    A.JUMIN_NO,
+			                    (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) AS SMART_IDCARD,
+			                    A.PASSPORT_NO,
+			                    A.HP_NO AS HP_NO,
+			                    A.DEL_YN AS DEL_YN,
+			                    X.DENY_STRT_DT AS DENY_STRT_DT,
+			                    X.DENY_END_DT AS DENY_END_DT,
+			                    A.SLEEP_YN,
+			                    A.NAME_CHK_CI,
+			                    C.CERTI_YN,
+			                    A.LOGIN_DTM,
+			                    A.CRT_DTM,
+			                    A.WITHDRAW_DTM,
+			                    C.CERTI_DTM
+			        FROM IO_EMP A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+			        WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			        AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+			        AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+			        AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+			<if test='"Y".equals(limitsYn)'>
+				AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			</if>
+			<if test='"N".equals(limitsYn)'>
+				AND (
+				X.DENY_STRT_DT IS NULL
+				OR
+				(
+				X.DENY_STRT_DT <![CDATA[>]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				)
+				)
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+			AND B.COMP_KO_NM LIKE '%' || #{COMP_KO_NM} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+			<if test='"N".equals(limitsYn)'>
+				AND A.SLEEP_YN = 'N'
+				AND A.DEL_YN = #{USER_DEL_YN} 			</if>
+			<if test='"S".equals(limitsYn)'>
+				AND A.SLEEP_YN = 'Y'
+			</if>
+			<if test='"Y".equals(limitsYn) or "H".equals(limitsYn)'>
+				AND A.DEL_YN = #{USER_DEL_YN} 			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+			AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+			AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+			AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+			AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+			AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+			AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+			AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+		</if>
+
+					UNION ALL
+			        SELECT
+			                    B.COMP_KO_NM AS COMP_KO_NM,
+			                    A.EMP_NM AS EMP_NM,
+			                    A.IO_EMP_ID AS IO_EMP_ID,
+			                    A.JW_NM AS JW_NM,
+			                    A.NATION,
+			                    A.JUMIN_NO,
+			                    (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) AS SMART_IDCARD,
+                                A.PASSPORT_NO,
+                                A.HP_NO AS HP_NO,
+                                A.DEL_YN AS DEL_YN,
+                                X.DENY_STRT_DT AS DENY_STRT_DT,
+                                X.DENY_END_DT AS DENY_END_DT,
+                                A.SLEEP_YN,
+                                A.NAME_CHK_CI,
+                                C.CERTI_YN,
+                                A.LOGIN_DTM,
+                                A.CRT_DTM,
+                                A.WITHDRAW_DTM,
+                                C.CERTI_DTM
+			        FROM IO_EMP_DEL A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+			        WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			        AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+			        AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+			        AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+						<if test='"Y".equals(limitsYn)'>
+							AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+							AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+						</if>
+						<if test='"N".equals(limitsYn)'>
+							AND (
+							X.DENY_STRT_DT IS NULL
+							OR
+							(
+							X.DENY_STRT_DT > TO_CHAR(SYSDATE,'YYYY-MM-DD')
+							OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+							)
+							)
+						</if>
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+						AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+						<if test='"N".equals(userDelYn)'>
+							AND A.SLEEP_YN = 'N'
+							AND A.DEL_YN = #{userDelYn} 						</if>
+						<if test='"S".equals(userDelYn)'>
+							AND A.SLEEP_YN = 'Y'
+						</if>
+						<if test='"Y".equals(userDelYn) or "H".equals(userDelYn)'>
+							AND A.DEL_YN = #{userDelYn} 						</if>
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+						AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+						AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DEL_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+						AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+						AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+						AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+						AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+						AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+						AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+					</if>
+					) T1
+				]]
+	      	WHERE ROWNUM <![CDATA[<=]]> ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize} 			    ) CCC
+	      WHERE ROW_NUM >= ( (#{pageIndex} - 1) * #{pageSize}) + 1
+
+)
+SELECT
+            ROW_NUM,
+            COMP_KO_NM,
+            CASE WHEN DEL_YN = 'Y' THEN '탈퇴자' ELSE EMP_NM END AS EMP_NM,
+            IO_EMP_ID,
+            JW_NM,
+            FN_GET_CODE( 'Z001', NATION, 'DETL_CD') AS NATION_NM,
+            CASE WHEN DEL_YN = 'Y' THEN '000000' ELSE JUMIN_NO END as JUMIN_NO,
+            SMART_IDCARD,
+            PASSPORT_NO,
+            HP_NO,
+            DEL_YN,
+            DENY_STRT_DT,
+            DENY_END_DT,
+            (
+                SELECT
+									/*+ INDEX_DESC(B PK_IO_EMP_DENY) */
+									FN_GET_EMP_JW_NM(CRT_BY) ||'('||CRT_BY||')'
+                FROM IO_EMP_DENY B
+                WHERE IO_EMP_ID = T.IO_EMP_ID
+                AND ROWNUM = 1
+            ) AS CRT_BY,
+            SLEEP_YN,
+            TO_CHAR(LOGIN_DTM, 'YYYY-MM-DD') AS LOGIN_DTM,
+            TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+            TO_CHAR(WITHDRAW_DTM, 'YYYY-MM-DD') AS WITHDRAW_DTM,
+            CASE WHEN NAME_CHK_CI IS NOT NULL AND NVL(CERTI_YN, 'N') = 'N'
+                 THEN To_char(crt_dtm, 'YYYY-MM-DD') || ' (본인인증)'
+                 WHEN NAME_CHK_CI IS NULL AND NVL(CERTI_YN, 'N') = 'Y'
+                 THEN To_char(CERTI_DTM, 'YYYY-MM-DD') || ' (구성원인증)'
+                 WHEN NAME_CHK_CI IS NOT NULL AND NVL(CERTI_YN, 'N') = 'Y'
+                 THEN '2018-11-01 (본인인증)'
+                 WHEN NAME_CHK_CI IS NULL AND NVL(CERTI_YN, 'N') = 'N'
+                 THEN '미인증'
+            END AS CERTI_DT
+FROM T
+	</select>
+
+	<select id="selectOffLimitsCount" parameterType="Map" resultType="CamelHashMap">
+	SELECT
+	SUM(TOTAL_COUNT) AS TOTAL_COUNT
+	FROM(
+	SELECT COUNT(*) AS TOTAL_COUNT
+	FROM IO_EMP A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+	WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+	AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+	AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+		<if test='"Y".equals(limitsYn)'>
+			AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		</if>
+		<if test='"N".equals(limitsYn)'>
+			AND (
+			X.DENY_STRT_DT IS NULL
+			OR
+			(
+			X.DENY_STRT_DT <![CDATA[>]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			)
+			)
+		</if>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+		AND B.COMP_KO_NM LIKE '%' || #{COMP_KO_NM} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+		<if test='"N".equals(limitsYn)'>
+			AND A.SLEEP_YN = 'N'
+			AND A.DEL_YN = #{USER_DEL_YN} 			</if>
+		<if test='"S".equals(limitsYn)'>
+			AND A.SLEEP_YN = 'Y'
+		</if>
+		<if test='"Y".equals(limitsYn) or "H".equals(limitsYn)'>
+			AND A.DEL_YN = #{USER_DEL_YN} 			</if>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+		AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+		AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+		AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+		AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+		AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+	</if>
+
+	UNION ALL
+	SELECT COUNT(*) AS TOTAL_COUNT
+	FROM IO_EMP_DEL A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+	WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+	AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+	AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+	<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+		<if test='"Y".equals(limitsYn)'>
+			AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		</if>
+		<if test='"N".equals(limitsYn)'>
+			AND (
+			X.DENY_STRT_DT IS NULL
+			OR
+			(
+			X.DENY_STRT_DT > TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+			)
+			)
+		</if>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+		AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+		<if test='"N".equals(userDelYn)'>
+			AND A.SLEEP_YN = 'N'
+			AND A.DEL_YN = #{userDelYn} 			</if>
+		<if test='"S".equals(userDelYn)'>
+			AND A.SLEEP_YN = 'Y'
+		</if>
+		<if test='"Y".equals(userDelYn) or "H".equals(userDelYn)'>
+			AND A.DEL_YN = #{userDelYn} 			</if>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+		AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DEL_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+		AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+		AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+		AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+		AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+	</if>
+	)
+</select>
+
+	<select id="selectOffLimitsListOld" parameterType="Map" resultType="CamelHashMap">
+		/* OffLimitsRepository.selectOffLimitsListOld (DU_OffLimits_dmOffLimits_List) */
+	WITH PAGE AS  (
+		     SELECT /*+ INDEX(A IDX_IO_EMP_DEL_YN) */ *
+		     FROM IO_EMP A
+		     WHERE A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+			<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+				<if test='"Y".equals(limitsYn)'><![CDATA[
+		       		 AND EXISTS (SELECT * 
+		                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+		                                        ,X1.*       
+		                                   FROM IO_EMP_DENY X1  
+		                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+		                          WHERE X2.ROW_NUM = 1
+		                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+		                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+		        ]]></if>
+				<if test='"N".equals(limitsYn)'><![CDATA[
+		       		 AND NOT EXISTS (SELECT * 
+		                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+		                                        ,X1.*       
+		                                   FROM IO_EMP_DENY X1  
+		                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+		                          WHERE X2.ROW_NUM = 1
+		                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+		                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+		        ]]></if>
+			</if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+		    	<if test='"S".equals(userDelYn)'>
+		    		AND A.DEL_YN = 'N' AND A.SLEEP_YN = 'Y'
+		    	</if>
+				<if test='!"S".equals(userDelYn)'>
+		    		AND A.DEL_YN = #{userDelYn}
+		    	</if>
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+                    AND A.IO_COMP_ID = (SELECT B.IO_COMP_ID
+                                          FROM IO_COMP B
+                                         WHERE B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+                                         AND A.IO_COMP_ID = B.IO_COMP_ID)
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+				AND A.BIRTH_DT LIKE #{juminNo} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchHpNo)">
+				AND A.HP_NO LIKE REPLACE(#{searchHpNo}, '-', '') || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+				AND A.PASSPORT_NO LIKE #{passportNo} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(passNoList)">
+				AND A.IO_EMP_ID IN (
+						              SELECT IO_EMP_ID
+						                FROM VW_IO_PASS_MST2
+						               WHERE SMART_IDCARD IN
+				                	<foreach item="item" index="index" collection="passNoList" open="(" separator="," close=")">
+							       			#{item}
+						       		</foreach>
+						            )
+			</if>
+
+			UNION ALL
+
+		     SELECT  /*+ INDEX(A IDX_IO_EMP_DEL_DEL_YN) */ *
+		     FROM IO_EMP_DEL A
+		     WHERE A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+			<if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+				<if test='"Y".equals(limitsYn)'><![CDATA[
+		       		 AND EXISTS (SELECT * 
+		                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+		                                        ,X1.*       
+		                                   FROM IO_EMP_DENY X1  
+		                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+		                          WHERE X2.ROW_NUM = 1
+		                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+		                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+		        ]]></if>
+				<if test='"N".equals(limitsYn)'><![CDATA[
+		       		 AND NOT EXISTS (SELECT * 
+		                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+		                                        ,X1.*       
+		                                   FROM IO_EMP_DENY X1  
+		                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+		                          WHERE X2.ROW_NUM = 1
+		                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+		                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+		        ]]></if>
+			</if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+		    	<if test='"S".equals(userDelYn)'>
+		    		AND A.DEL_YN = 'N' AND A.SLEEP_YN = 'Y'
+		    	</if>
+				<if test='!"S".equals(userDelYn)'>
+		    		AND A.DEL_YN = #{userDelYn}
+		    	</if>
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+                    AND A.IO_COMP_ID = (SELECT B.IO_COMP_ID
+                                          FROM IO_COMP B
+                                         WHERE B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+                                         AND A.IO_COMP_ID = B.IO_COMP_ID)
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+				AND A.BIRTH_DT LIKE #{juminNo} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchHpNo)">
+				AND A.HP_NO LIKE REPLACE(#{searchHpNo}, '-', '') || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+				AND A.PASSPORT_NO LIKE #{passportNo} || '%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(passNoList)">
+				AND A.IO_EMP_ID IN (
+						              SELECT IO_EMP_ID
+						                FROM VW_IO_PASS_MST2
+						               WHERE SMART_IDCARD IN
+				                	<foreach item="item" index="index" collection="passNoList" open="(" separator="," close=")">
+							       			#{item}
+						       		</foreach>
+						            )
+			</if><![CDATA[
+	)
+	 SELECT       
+	     CO.COMP_KO_NM,         
+	     T.EMP_NM,         
+	     T.IO_EMP_ID,     
+	     T.JW_NM,
+	     FN_GET_CODE( 'Z001', T.NATION, 'DETL_CD') AS NATION_NM,       
+		 DECODE(T.NATION, 'Z0011001', T.JUMIN_NO , RPAD(SUBSTR(T.PASSPORT_NO,1,5),9,'*')) AS JUMIN_NO,   
+	     T.HP_NO,       
+	     T.DEL_YN,     
+	     X.DENY_STRT_DT AS DENY_STRT_DT,      
+	     X.DENY_END_DT AS DENY_END_DT,
+	     FN_GET_EMP_JW_NM(X.CRT_BY) ||'('||X.CRT_BY||')' AS CRT_BY,  
+	     FN_GET_IO_EMP_NM(CO.ADMIN1_EMAIL) ADM_NM,
+	     CASE WHEN EXISTS (SELECT IO_EMP_ID 
+	                         FROM IO_EMP EM 
+	                        WHERE EM.IO_EMP_ID=T.IO_EMP_ID) THEN 'IO_EMP'
+	           ELSE 'IO_EMP_DEL'
+	      END AS TABLE_NM,
+	      X.DENY_NO,
+	      X.HS_DENY_NO,
+	      X.SI_DENY_NO,
+	      T.SLEEP_YN,
+	      CO.IO_COMP_ID,
+	      (SELECT NVL(MAX(SMART_IDCARD),'----------') FROM VW_IO_PASS_MST2 A WHERE A.IO_EMP_ID = T.IO_EMP_ID) AS IDCARD_ID,
+	      (SELECT MAX(CARD_NO)  FROM VW_IO_PASS_MST2 A WHERE A.IO_EMP_ID = T.IO_EMP_ID) AS CARD_NO
+	  FROM PAGE T
+	      ,(SELECT X2.* 
+	         FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+	                    ,X1.*       
+	               FROM IO_EMP_DENY X1  
+	              WHERE NVL(X1.DEL_YN,'N') = 'N'
+	                AND X1.IO_EMP_ID IN (SELECT IO_EMP_ID from PAGE)) X2  
+	        WHERE X2.ROW_NUM = 1) X
+	      ,IO_COMP CO
+	 WHERE T.IO_EMP_ID = X.IO_EMP_ID(+)
+	   AND T.IO_COMP_ID = CO.IO_COMP_ID(+)
+	]]></select>
+
+	<select id="selectOffLimitsVisitInfoView" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+	/* OffLimitsRepository.selectOffLimitsVisitInfoView (DU_OffLimits_dmVisitDataInfoView) */
+	SELECT
+	       A.IO_EMP_ID         AS IO_EMP_ID,
+	       A.IO_COMP_ID         AS IO_COMP_ID,
+	       A.EMP_NM             AS IO_EMP_NM,
+	       B.COMP_KO_NM          AS COMP_KO_NM,
+	       B.ADMIN1_EMAIL,
+           A.JW_NM             AS JW_NM,
+           A.HP_NO             AS HP_NO,
+           A.NATION             AS NATION,
+           FN_GET_CODE( 'Z001', A.NATION, 'DETL_CD') AS NATION_NM,
+           DECODE(A.NATION, 'Z0011001', A.JUMIN_NO , RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*')) AS JUMIN_NO,
+           X.DENY_STRT_DT         AS DENY_STRT_DT,
+           X.DENY_END_DT         AS DENY_END_DT,
+           X.DENY_YN             AS DENY_YN,
+           A.CRT_BY             AS CRT_BY,
+	        TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+	           A.MOD_BY             AS MOD_BY,
+	           TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+	           A.FILE_PHOTO,
+	           A.DEL_YN,
+	           SUBSTR(A.FILE_PHOTO, 1,INSTR(A.FILE_PHOTO, ';')-1) as FILE_PHOTO_ADDR,
+	           REPLACE(SUBSTR(FILE_PHOTO, 1,INSTR(FILE_PHOTO, ';')-1),'\','/') as WEB_PHOTO_ADDR,
+	           C.IDCARD_ID,
+	        C.CARD_NO,
+	        A.EMAIL_ADDR,
+	        A.JUMIN_NO AS REAL_JUMIN_NO,
+	        A.PASSPORT_NO,
+	        D.HIST_RSN,
+	        TO_CHAR(TO_DATE(A.NAME_CHK_DT,'YYYYMMDD'), 'YYYY-MM-DD') AS NAME_CHK_DT
+	  FROM ${tableNm} A,
+	      IO_COMP B,
+	     ( SELECT IDCARD_ID, CARD_NO, IO_EMP_ID
+	         FROM IO_PASS
+	        WHERE PASS_APPL_NO =
+	               (SELECT MAX(PASS_APPL_NO) AS PASS_APPL_NO
+	                   FROM IO_PASS
+	                 WHERE IDCARD_ID is not NULL
+	                     AND IO_EMP_ID = #{ioEmpId}
+	                     )
+	      )C,
+	      ( SELECT HIST_RSN
+	             , IO_EMP_ID
+	          FROM IO_EMP_HIST
+	         WHERE HIST_NO = (
+	                              SELECT MAX(HIST_NO)
+	                                FROM IO_EMP_HIST
+	                               WHERE IO_EMP_ID = #{ioEmpId}
+	                          )
+	      )D,
+	      (
+			 SELECT	X.*, CASE WHEN TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') <= SYSDATE AND TO_DATE(DENY_END_DT, 'YYYY-MM-DD') >= SYSDATE THEN 'Y' ELSE 'N' END AS DENY_YN	FROM (
+					SELECT
+						 ROW_NUMBER() OVER ( PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC ) AS ROW_NUM
+						,X.*
+					FROM  IO_EMP_DENY X
+					WHERE NVL(DEL_YN,'N') = 'N'
+			 ) X
+			 WHERE X.ROW_NUM = 1
+		  ) X
+	WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+	AND A.IO_EMP_ID = D.IO_EMP_ID(+)
+	AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+	AND A.IO_EMP_ID =  #{ioEmpId}
+	]]></select>
+
+	<select id="selectOffLimitsView" parameterType="Map" resultType="CamelHashMap">
+		/* OffLimitsRepository.selectOffLimitsView (dmOffLimits_View) */
+	SELECT
+	    T1.*
+	    ,SUBSTR(T1.FILE_REVIEW_PATH, 1, INSTR(T1.FILE_REVIEW_PATH, #{operateId})-1 ) as FILE_REVIEW_ADDR
+	    ,SUBSTR(T1.FILE_REVIEW_TMP_NM, 0, INSTR(T1.FILE_REVIEW_TMP_NM, ';')-1) as FILE_REVIEW_ID
+	FROM (
+		SELECT NAC_APPL_NO
+		     , A.COMP_ID
+			 , FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+		     , A.DEPT_ID
+		     , C.DEPT_NM
+		     , A.JW_ID
+		     , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		     , A.EMP_ID
+		     , B.EMP_NM
+		     , A.INNO
+		     , A.DOC_ID
+		     , A.APPL_STAT
+		     , A.APPL_COMP_ID
+		     , DECODE(A.APPL_COMP_ID, '1101000001', '이천', '1102000001', '청주', '') AS APPL_COMP_NM
+		     , A.FILE_REVIEW
+		     , REPLACE(SUBSTR(A.FILE_REVIEW, 1, INSTR(A.FILE_REVIEW, ';')-1 ),'\', '/') as FILE_REVIEW_PATH
+		     , SUBSTR(A.FILE_REVIEW, INSTR(A.FILE_REVIEW, #{operateId})) as FILE_REVIEW_TMP_NM
+		     , SUBSTR(A.FILE_REVIEW, INSTR(A.FILE_REVIEW, ';')+1) as FILE_REVIEW_NM
+		     , A.FILE_URL
+		     , A.FILE_NAME
+		  FROM SV_CO_NAC A
+		     , CO_EMP    B
+		     , CO_DEPT   C
+		 WHERE A.EMP_ID  = B.EMP_ID
+		   AND A.DEPT_ID = C.DEPT_ID
+				AND A.NAC_APPL_NO = #{nacApplNo}
+		) T1
+
+	</select>
+
+	<select id="selectOffLimitsVisitInfoHistoryList" parameterType="Map" resultType="CamelHashMap">
+	/* OffLimitsRepository.selectOffLimitsVisitInfoHistoryList (dmVisitDataInfoHistoryList) */
+	SELECT HIST_NO
+	     , IO_EMP_ID
+		 , TO_CHAR(TO_DATE(HIST_DT, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD') HIST_DT
+	   	 , HIST_RSN
+	   	 , AC_IP
+	   	 , FN_GET_EMP_JW_NM(CRT_BY) AS CRT_BY
+	   	 , TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+	   	 , FN_GET_EMP_JW_NM(MOD_BY) AS MOD_BY
+	   	 , TO_CHAR(MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+	FROM IO_EMP_HIST
+	WHERE IO_EMP_ID = #{ioEmpId}
+	ORDER BY HIST_NO DESC
+	</select>
+
+
+
+</mapper>

@@ -1,0 +1,1432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.EmpCardRepository">
+
+	<insert id="insertEmpCard" parameterType="Map">
+		<selectKey keyProperty="empcardApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMPCARD.NEXTVAL AS EMPCARD_APPL_NO FROM DUAL
+	    </selectKey>
+		INSERT INTO IO_EMPCARD (
+			EMPCARD_APPL_NO
+			, EMP_ID
+			, EMP_NM
+			, COMP_ID
+			, COMP_NM
+			, DEPT_DIV_ID
+			, DEPT_DIV_NM
+			, DEPT_ID
+			, DEPT_NM
+			, JW_ID
+			, JW_NM
+			, JC_ID
+			, JC_NM
+			<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+			, JUMIN_NO
+			</if>
+			, JOIN_DT
+			, APPLY_DT
+			, EN_NM
+			, CN_NM
+			, OFF_TEL_NO
+			, HP_NO
+			, REISS_GBN
+			, RSN
+			, EXEM_GBN
+			, PHOTO_ROOT
+			, PHOTO_FILE
+			, STATUS
+			, AC_IP
+			, CRT_BY
+			, CRT_DTM
+			, APPLY_GBN
+			, RCV_COMP_ID
+			, GATE
+			<if test="applyGbn.equals('A0061001')">
+			, TAG_GBN
+			</if>
+			<if test="applyGbn.equals('A0061002')">
+			, TAG_GBN
+			, LOSS_DMG_DTM
+			, LOSS_DMG_LOC
+			, SM_TAG_END_ID
+			</if>
+		) VALUES (
+			#{empcardApplNo}
+			, TRIM(#{empId})
+			, #{empNm}
+			, TRIM(#{compId})
+			, FN_GET_COMP_NM(#{compId})
+			, #{deptDivId}
+			, #{deptDivNm}
+			, #{deptId}
+			, #{deptNm}
+			, #{jwId}
+			, #{jwNm}
+			, #{jcId}
+			, #{jcNm}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+			, REPLACE(#{juminNo}, '-', '')
+			</if>
+			, #{joinDt}
+			, TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+			, #{enNm}
+			, #{cnNm}
+			, #{offTelNo}
+			, #{hpNo}
+			, #{reissGbn}
+			, #{rsn}
+			, #{exemGbn}
+			, #{photoRoot}
+			, #{photoFile}
+			, #{status}
+			, #{acIp}
+			, #{crtBy}
+			, SYSDATE
+			, #{applyGbn}
+			, #{rcvCompId}
+			, #{rcvGateId}
+			<if test="applyGbn.equals('A0061001')">
+			, '3'
+			</if>
+			<if test="applyGbn.equals('A0061002')">
+			, #{tagGbn}
+			, #{lossDmgDtm}
+			, #{lossDmgLoc}
+			, #{smTagEndId}
+			</if>
+		)
+	</insert>
+
+	<update id="updateEmpCard" parameterType="Map">
+		UPDATE IO_EMPCARD SET
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+				EMP_ID          = TRIM(#{empId}),
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				EMP_NM          = #{empNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+				COMP_ID         = TRIM(#{compId}),
+				COMP_NM         = FN_GET_COMP_NM(TRIM(#{compId})),
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptDivId)">
+				DEPT_DIV_ID     = #{deptDivId},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptDivNm)">
+				DEPT_DIV_NM     = #{deptDivNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+				DEPT_ID         = #{deptId},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+				DEPT_NM         = #{deptNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(jwId)">
+				JW_ID           = #{jwId},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(jwNm)">
+				JW_NM           = #{jwNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(jcId)">
+				JC_ID           = #{jcId},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(jcNm)">
+				JC_NM           = #{jcNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+				JUMIN_NO        = REPLACE(#{juminNo}, '-', ''),
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(joinDt)">
+				JOIN_DT         = #{joinDt},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(enNm)">
+				EN_NM           = #{enNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(cnNm)">
+				CN_NM           = #{cnNm},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(offTelNo)">
+				OFF_TEL_NO      = #{offTelNo},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+				HP_NO           = #{hpNo},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(reissGbn)">
+				REISS_GBN       = #{reissGbn},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(rsn)">
+				RSN             = #{rsn},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(exemGbn)">
+				EXEM_GBN        = #{exemGbn},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(photoRoot)">
+				PHOTO_ROOT   = #{photoRoot},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(photoFile)">
+				PHOTO_FILE   = #{photoFile},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+				STATUS          = #{status},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(acIp)">
+				AC_IP           = #{acIp},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+				APPLY_GBN       = #{applyGbn},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(rcvCompId)">
+				RCV_COMP_ID		= #{rcvCompId},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(gate)">
+				GATE	        = #{gate},
+			</if>
+			MOD_BY          = #{modBy},
+			MOD_DTM         = SYSDATE
+		WHERE EMPCARD_APPL_NO = #{empcardApplNo}
+	</update>
+
+	<select id="selectEmpCardList" parameterType="Map" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.EMPCARD_APPL_NO DESC, A.STATUS ASC) AS RNUM,
+				A.EMPCARD_APPL_NO,
+				A.EMP_ID,
+				A.DEPT_ID,
+				A.DEPT_NM AS INPUT_DEPT_NM,
+				FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+				A.DOC_ID,
+				A.EMP_NM AS INPUT_EMP_NM,
+				A.EMP_NM || ' ' || FN_GET_CONAME('', A.JW_ID, A.COMP_ID) AS EMP_NM,
+				A.OFF_TEL_NO AS TEL_NO2,
+				A.HP_NO,
+				A.APPLY_DT,
+				A.STATUS,
+				FN_GET_CODE('A009', A.STATUS, 'DETL_CD') AS STATUS_NM,
+				FN_GET_IO_EMP_NM(A.CRT_BY) AS CRT_BY_NM,
+				A.REISS_GBN,
+				NVL(FN_GET_CODE('A004', A.REISS_GBN, 'DETL_CD'), '해당사항없음') AS REISS_GBN_NM,
+				A.JW_ID,
+				A.JW_NM,
+				A.COMP_ID,
+				A.CARD_NO,
+				A.APPLY_GBN,
+				FN_GET_CODE('A006', A.APPLY_GBN, 'DETL_CD') AS APPLY_GBN_NM
+			FROM IO_EMPCARD A
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		    	AND A.COMP_ID = #{compId}
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		    	AND A.EMP_ID = #{empId}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+		    	AND A.EMP_ID LIKE '%'|| #{searchEmpId} ||'%'
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+		    	AND A.STATUS = #{status}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+		    	AND A.APPLY_GBN = #{applyGbn}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(joinDt)">
+		    	AND A.JOIN_DT = #{joinDt}
+		    </if>
+		    <if test='not @org.springframework.util.StringUtils@isEmpty(tagGbn) and !tagGbn.equals("0")'>
+		    	AND A.TAG_GBN = #{tagGbn}
+		    </if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectEmpCardListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_EMPCARD A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+	    	AND A.COMP_ID = #{compId}
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+	    	AND A.EMP_ID = #{empId}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+	    	AND A.EMP_ID LIKE '%'|| #{searchEmpId} ||'%'
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+	    	AND A.STATUS = #{status}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+	    	AND A.APPLY_GBN = #{applyGbn}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(joinDt)">
+	    	AND A.JOIN_DT = #{joinDt}
+	    </if>
+	    <if test='not @org.springframework.util.StringUtils@isEmpty(tagGbn) and !tagGbn.equals("0")'>
+	    	AND A.TAG_GBN = #{tagGbn}
+	    </if>
+	</select>
+
+	<select id="selectEmpCard" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+		        COMP_NM,
+		        COMP_ID,
+		        DEPT_NM,
+		        FN_GET_DIV_NM(COMP_ID) AS DIV_NM,
+		        EMP_ID,
+		        EMP_NM,
+		        JW_NM,
+		        JC_NM,
+		        EN_NM,
+		        CN_NM,
+		        OFF_TEL_NO,
+		        HP_NO,
+		        PHOTO_ROOT,
+		        PHOTO_FILE,
+		        NVL(REISS_GBN, '해당사항없음') AS REISS_GBN,
+		        NVL(FN_GET_CODE( 'A004', REISS_GBN, 'DETL_CD'), '해당사항없음') AS REISS_GBN_NM,
+		        NVL(RSN, '해당사항없음') AS RSN,
+		        RPAD(SUBSTR(JUMIN_NO,1,6) || '-' || SUBSTR(JUMIN_NO,7,2),14,'*') AS JUMIN_NO,
+		        JUMIN_NO AS JUMIN_NO2,
+		        JOIN_DT,
+		        EXEM_GBN,
+		        FN_GET_CODE( 'A026', EXEM_GBN, 'DETL_CD') AS EXEM_GBN_NM,
+		        CASE
+		            WHEN COMP_ID = '1102000001' THEN GATE
+		            WHEN COMP_ID = '1105000001' THEN GATE
+		            WHEN COMP_ID = '1106000001' THEN GATE
+		            ELSE COMP_ID
+		           END AS AREA_CODE,
+		        CASE
+		            WHEN COMP_ID = '1102000001' THEN FN_GET_CODE_RCV_GATE_NM(GATE)
+		            WHEN COMP_ID = '1105000001' THEN FN_GET_CODE_RCV_GATE_NM(GATE)
+		            WHEN COMP_ID = '1106000001' THEN FN_GET_CODE_RCV_GATE_NM(GATE)
+		            ELSE COMP_NM
+		           END AS AREA_NAME,
+				RCV_COMP_ID, /* 수령사업장 */
+		        TAG_GBN,
+		        NVL(FN_GET_CODE_RCV_GATE_NM(GATE),'해당사항없음') AS RCV_COMP_NM, /*수령게이트 */
+		        DECODE(LOSS_DMG_DTM,NULL,NULL,substr(LOSS_DMG_DTM,0,4)||'년'|| ' ' || substr(LOSS_DMG_DTM,5,2)||'월'|| ' ' ||substr(LOSS_DMG_DTM,7,2)||'일'|| ' ' ||substr(LOSS_DMG_DTM,9,2)||'시'|| ' ' ||substr(LOSS_DMG_DTM,11,2)||'분' ) AS LOSS_DMG_DTM,
+		        LOSS_DMG_LOC,
+		        SM_TAG_END_ID
+		FROM IO_EMPCARD
+		WHERE EMPCARD_APPL_NO = #{empcardApplNo}
+	</select>
+
+	<select id="selectNewEmpCardList" parameterType="Map" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+			SELECT
+					ROW_NUMBER() OVER ( ORDER BY A.EMPCARD_APPL_NO DESC ) AS RNUM,
+					A.EMPCARD_APPL_NO,
+					A.EMP_ID,
+					A.DOC_ID,
+					A.DEPT_NM,
+					A.EMP_NM,
+					A.OFF_TEL_NO,
+					A.HP_NO,
+					A.APPLY_DT,
+					A.STATUS,
+					FN_GET_CODE('A009', A.STATUS, 'DETL_CD') AS STATUS_NM,
+					A.REISS_GBN,
+					FN_GET_CODE('A004', A.REISS_GBN, 'DETL_CD') AS REISS_GBN_NM,
+					A.CRT_BY,
+					FN_GET_IO_EMP_NM(A.CRT_BY) AS CRT_BY_NM,
+					TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+			FROM IO_EMPCARD A
+			WHERE A.REISS_GBN IS NULL
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		    	AND A.CRT_BY = #{empId}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+		    	AND A.EMP_ID LIKE '%'|| #{searchEmpId} ||'%'
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+		    	AND A.STATUS = #{status}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+		    	AND A.APPLY_GBN = #{applyGbn}
+		    </if>
+	    ) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectNewEmpCardListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_EMPCARD A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+	    	AND A.CRT_BY = #{empId}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+	    	AND A.STATUS = #{status}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+	    	AND A.APPLY_GBN = #{applyGbn}
+	    </if>
+	</select>
+
+	<select id="selectEmpInfoViewForIDCardIF" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			A.EMPCARD_APPL_NO AS ES_SN,
+			CASE
+				WHEN A.TAG_GBN != '4' THEN '재발급'
+				ELSE '포토뷰'
+			END AS ISSUE_TYPE,
+			FN_GET_CODE_IDCARD( 'A004', A.REISS_GBN ) AS REISSUE_TYPE,
+			A.RSN AS REISSUE_NOTE,
+			FN_GET_CODE_IDCARD( 'A026', A.EXEM_GBN ) AS CAUSE_TYPE,
+			'Z00' AS COMPANY_CODE,
+			'SK하이닉스' AS COMPANY_NAME,
+			A.JW_ID AS RANK_CODE,
+			A.JW_NM AS RANK_NAME,
+			A.DEPT_DIV_ID AS DIV_CODE,
+			A.DEPT_DIV_NM AS DIV_NAME,
+			NVL(A.EMP_NM, '') AS NAME_KOR,
+			NVL(A.EN_NM, '') AS NAME_ENG,
+			NVL(A.CN_NM, '') AS NAME_HAN,
+			A.EMP_ID AS EMP_ID,
+			A.JOIN_DT AS ENTER_DATE,
+			A.HP_NO AS TEL1_NO,
+			A.OFF_TEL_NO AS TEL2_NO,
+			SUBSTR(A.JUMIN_NO, 1, 6)||'-'||SUBSTR(A.JUMIN_NO, 7, 13) AS PERSONAL_NO,
+			A.PHOTO_FILE AS ATTACH1_NAME,
+			A.EMP_ID AS REG_ID,
+			A.EMP_NM AS REG_NAME,
+			A.DEPT_DIV_ID AS REG_DIV_CODE,
+			A.DEPT_DIV_NM AS REG_DIV_NAME,
+			A.JW_ID AS REG_RANK_CODE,
+			A.JW_NM AS REG_RANK_NAME,
+			'10' AS PROCESS_STATUS,
+			FN_GET_CODE_IDCARD('A003', PHOTO_ROOT) AS ATTACH_METHOD,
+			TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS REG_DATE,
+			TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS PROCESS_DATE,
+			A.DEPT_ID AS AC_CODE,
+			A.DEPT_NM AS AC_NAME,
+			CASE
+	            WHEN GATE = '1102000003' THEN '1102000001'
+	            WHEN GATE = '1105000003' THEN '1105000001'
+	            WHEN GATE = '1106000003' THEN '1106000001'
+	            WHEN GATE = '1109000003' THEN '1109000001'
+	            WHEN GATE = '1102000001' THEN '1102000001'
+	            WHEN GATE = '1105000001' THEN '1105000001'
+	            WHEN GATE = '1106000001' THEN '1106000001'
+	            WHEN GATE = '1109000001' THEN '1109000001'
+	            ELSE RCV_COMP_ID
+			END AS AREA_CODE,
+			CASE
+                WHEN GATE = '1102000003' THEN '[청주] 청주1캠퍼스'
+                WHEN GATE = '1105000003' THEN '[청주] 청주2캠퍼스'
+                WHEN GATE = '1106000003' THEN '[청주] 청주3캠퍼스'
+                WHEN GATE = '1109000003' THEN '[청주] 청주4캠퍼스'
+                WHEN GATE = '1102000001' THEN '[청주] 청주1캠퍼스'
+                WHEN GATE = '1105000001' THEN '[청주] 청주2캠퍼스'
+                WHEN GATE = '1106000001' THEN '[청주] 청주3캠퍼스'
+                WHEN GATE = '1109000001' THEN '[청주] 청주4캠퍼스'
+                ELSE FN_GET_COMP_NM(RCV_COMP_ID)
+			END AS AREA_NAME,
+			A.GATE AS RCV_GATE,
+			A.RCV_COMP_ID,
+			TAG_GBN,
+			SM_TAG_ID,
+			SM_TAG_END_ID,
+			FN_GET_EMP_CARDNO(A.EMP_ID) AS CARD_NO
+      FROM IO_EMPCARD A
+      WHERE A.EMPCARD_APPL_NO = #{empcardApplNo}
+	</select>
+
+	<select id="selectEmpInfoViewForIDCardIFNew" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+            A.EMPCARD_APPL_NO AS ES_SN,
+            '신규' AS ISSUE_TYPE,
+            '' AS REISSUE_TYPE,
+            '' AS REISSUE_NOTE,
+            '0' AS CAUSE_TYPE,
+            'Z00' AS COMPANY_CODE,
+            'SK하이닉스' AS COMPANY_NAME,
+            A.JW_ID AS RANK_CODE,
+            A.JW_NM AS RANK_NAME,
+            A.DEPT_DIV_ID AS DIV_CODE,
+            A.DEPT_DIV_NM AS DIV_NAME,
+            NVL(A.EMP_NM, '') AS NAME_KOR,
+            NVL(A.EN_NM, '') AS NAME_ENG,
+            NVL(A.CN_NM, '') AS NAME_HAN,
+            A.EMP_ID AS EMP_ID,
+            A.JOIN_DT AS ENTER_DATE,
+            A.HP_NO AS TEL1_NO,
+            A.OFF_TEL_NO AS TEL2_NO,
+            SUBSTR(A.JUMIN_NO, 1, 6)||'-'||SUBSTR(A.JUMIN_NO, 7, 13) AS PERSONAL_NO,
+            A.PHOTO_FILE AS ATTACH1_NAME,
+            B.EMP_ID AS REG_ID,
+            B.EMP_NM AS REG_NAME,
+            (
+            	SELECT
+            			DEPT_DIV_ID
+            	FROM CO_DEPT F, CO_EMP G, IO_CARQUOTA H
+            	WHERE F.COMP_ID = G.COMP_ID
+            	AND   F.DEPT_ID = G.DEPT_ID
+            	AND   F.COMP_ID = H.COMP_ID
+            	AND   F.DEPT_DIV_CD = H.DEPT_DIV_ID
+            	AND   G.EMP_ID = A.CRT_BY
+            ) AS REG_DIV_CODE,
+            (
+            	SELECT
+            			DEPT_DIV_NM
+            	FROM CO_DEPT F, CO_EMP G, IO_CARQUOTA H
+            	WHERE F.COMP_ID = G.COMP_ID
+            	AND   F.DEPT_ID = G.DEPT_ID
+            	AND   F.COMP_ID = H.COMP_ID
+            	AND   F.DEPT_DIV_CD = H.DEPT_DIV_ID
+            	AND   G.EMP_ID = A.CRT_BY
+            ) AS REG_DIV_NAME,
+            B.JW_ID AS REG_RANK_CODE,
+            FN_GET_JW_NM(B.JW_ID) AS REG_RANK_NAME,
+            '10' AS PROCESS_STATUS,
+            '1' AS ATTACH_METHOD,
+            TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS REG_DATE,
+            TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS PROCESS_DATE,
+            A.DEPT_ID AS AC_CODE,
+            A.DEPT_NM AS AC_NAME,
+            CASE
+                WHEN A.COMP_ID = '1102000001' THEN A.GATE
+                WHEN A.COMP_ID = '1105000001' THEN A.GATE
+                WHEN A.COMP_ID = '1106000001' THEN A.GATE
+                ELSE A.COMP_ID
+               END  AS AREA_CODE,
+            CASE
+                WHEN A.COMP_ID = '1102000001' THEN FN_GET_CODE_RCV_GATE_NM(A.GATE)
+                WHEN A.COMP_ID = '1105000001' THEN FN_GET_CODE_RCV_GATE_NM(A.GATE)
+                WHEN A.COMP_ID = '1106000001' THEN FN_GET_CODE_RCV_GATE_NM(A.GATE)
+                ELSE A.COMP_NM
+               END  AS AREA_NAME,
+			A.RCV_COMP_ID AS RCV_GATE,
+            A.TAG_GBN,
+            FN_GET_EMP_CARDNO(A.CRT_BY) AS CARD_NO,
+            NVL(FN_GET_CODE_RCV_GATE_NM(A.GATE),'이천-사원증발급실') AS RCV_COMP_NM
+		FROM IO_EMPCARD A, CO_EMP B
+		WHERE A.CRT_BY = B.EMP_ID
+		AND A.EMPCARD_APPL_NO = #{empcardApplNo}
+	</select>
+
+
+	<insert id="insertAccessory" parameterType="Map">
+		<selectKey keyProperty="empaccApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMP_ACCESSORY.NEXTVAL AS EMPACC_APPL_NO FROM DUAL
+	    </selectKey>
+
+		INSERT INTO IO_EMPACC (
+			EMPACC_APPL_NO,
+			APPL_RSN,
+			APPLY_DT,
+			RECV_AREA,
+			COMP_ID,
+			EMP_ID,
+			ITEM_NM,
+			QTY,
+			STATUS,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM
+		) VALUES (
+			#{empaccApplNo},
+			#{applRsn},
+			TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+			#{receiveArea},
+			#{compId},
+			#{empId},
+			#{itemNm},
+			'1',
+			#{status},
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<select id="selectAccessoryViewForIDCardIF" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			B.EMPACC_APPL_NO AS ES_SN,
+			B.ITEM_NM AS ITEM_NAME,
+			'1' AS ITEM_QUANTITY,
+			'EA' AS ITEM_UNIT,
+			A.EMP_ID AS MGR_ID,
+			A.EMP_NM AS MGR_NAME,
+			C.DEPT_ID AS MGR_DIV_CODE,
+			C.DEPT_NM AS MGR_DIV_NAME,
+			TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS MGR_DATE,
+			'10' AS BASE_CODE,
+			'비품교체' AS BASE_DESC,
+			B.APPL_RSN AS REASON,
+			'CO' AS INOUT_TYPE,
+			B.COMP_ID,
+	    	B.RECV_AREA
+		FROM CO_EMP A, IO_EMPACC B, CO_DEPT C
+		WHERE A.EMP_ID  = B.EMP_ID
+		AND A.DEPT_ID = C.DEPT_ID
+		AND A.EMP_ID = #{empId}
+		AND B.EMPACC_APPL_NO = #{empaccApplNo}
+	</select>
+
+	<select id="selectAccessoryList" parameterType="Map" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER( ORDER BY A.EMPACC_APPL_NO DESC ) AS ROW_NUM,
+				A.EMPACC_APPL_NO,
+				A.APPL_RSN,
+				DECODE(A.APPL_RSN, '1', '분실', '2', '파손', '기타') AS APPL_RSN_NM,
+				A.APPLY_DT,
+		   		A.EMP_ID,
+		   		A.ITEM_NM,
+		   		A.QTY,
+		   		A.RECV_DT,
+		   		A.RECV_NM,
+		   		A.STATUS,
+		   		FN_GET_CODE('A009', A.STATUS, 'DETL_CD') AS STATUS_NM,
+		   		A.DEL_YN,
+		   		A.AC_IP,
+		   		A.CRT_BY,
+		   		TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		   		A.MOD_BY,
+		   		TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+		   		COMP_ID
+			FROM IO_EMPACC A
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		    	AND A.EMP_ID = #{empId}
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(itemNm)">
+		    	AND A.ITEM_NM LIKE '%' || #{itemNm} || '%'
+		    </if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectAccessoryListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_EMPACC A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+	    	AND A.EMP_ID = #{empId}
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(itemNm)">
+	    	AND A.ITEM_NM LIKE '%' || #{itemNm} || '%'
+	    </if>
+	</select>
+
+	<select id="selectAdmAccessoryList" parameterType="Map" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER( ORDER BY EMPACC_APPL_NO DESC ) AS RNUM,
+				A.EMPACC_APPL_NO,
+				A.APPL_RSN,
+				DECODE(A.APPL_RSN, '1', '분실', '2', '파손', '4', '교체', '기타') AS APPL_RSN_NM,
+				A.APPLY_DT,
+				A.EMP_ID,
+				A.ITEM_NM,
+				A.QTY,
+				A.RECV_DT,
+				A.RECV_NM,
+				A.STATUS,
+				A.COMP_ID,
+				B.EMP_NM || ' ' || FN_GET_JW_NM(B.JW_ID) AS EMP_NM,
+				FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM,
+				A.DEL_YN,
+				A.AC_IP,
+				A.CRT_BY,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				A.MOD_BY,
+				TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+			FROM IO_EMPACC A, CO_EMP B
+			WHERE A.EMP_ID = B.EMP_ID
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+				AND B.COMP_ID = #{compId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+				AND A.STATUS = #{status}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(itemNm)">
+				AND A.ITEM_NM LIKE '%' || #{itemNm} || '%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND B.EMP_NM LIKE '%'|| #{empNm} || '%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    </if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectAdmAccessoryListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_EMPACC A, CO_EMP B
+		WHERE A.EMP_ID = B.EMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			AND B.COMP_ID = #{compId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(status)">
+			AND A.STATUS = #{status}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(itemNm)">
+			AND A.ITEM_NM LIKE '%' || #{itemNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND B.EMP_NM LIKE '%'|| #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+	    	AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+	    </if>
+	</select>
+
+	<update id="updateAdmAccessoryStatus" parameterType="Map">
+		UPDATE IO_EMPACC SET
+			RECV_DT = CASE WHEN #{status} = 'A0091005' THEN TO_CHAR(SYSDATE, 'YYYY-MM-DD') ELSE NULL END,
+			STATUS = #{status},
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE EMPACC_APPL_NO = #{empaccApplNo}
+	</update>
+
+	<select id="selectAdmOnedayCardList" parameterType="Map" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER( ORDER BY T.EMPCARD_APPL_NO DESC ) AS RNUM,
+				T.EMPCARD_APPL_NO,
+				T.APPLY_DT,
+				T.EMP_GBN,
+				T.MP_EMP_NM,
+				T.MP_EMP_ID,
+				(
+					SELECT
+						SMART_IDCARD
+					FROM VW_IO_PASS_MST2
+					WHERE IO_EMP_ID = T.MP_EMP_ID
+				) AS IDCARD_ID,
+				T.MP_COMP_NM,
+				T.MP_TEL_NO,
+				T.CARD_NO,
+				DECODE(T.EMP_GBN, 'M', '구성원', '도급사') AS EMP_GBN_NM,
+				T.STATUS,
+				T.RETURN_DTM,
+				T.CRT_BY
+			FROM (
+				SELECT
+					A.EMPCARD_APPL_NO,
+					TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+					A.EMP_GBN,
+					A.EMP_NM AS MP_EMP_NM,
+					A.EMP_ID AS MP_EMP_ID,
+					A.DEPT_NM AS MP_COMP_NM,
+					CE.TEL_NO1 AS MP_TEL_NO,
+					A.CARD_NO,
+					A.STATUS,
+					TO_CHAR(A.MOD_DTM,'YYYY-MM-DD HH24:MI:SS') AS RETURN_DTM,
+					FN_GET_EMP_NM(A.CRT_BY) AS CRT_BY
+				FROM IO_EMPCARD_ONEDAY A
+				JOIN CO_EMP CE
+				ON CE.EMP_ID = A.EMP_ID
+				WHERE A.EMP_GBN = 'M'
+					<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+						AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+						AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+					</if>
+			    <if test='not @org.springframework.util.StringUtils@isEmpty(empGbn) and empGbn.equals("P")'>
+			    	AND 1 = 0
+			    </if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+						AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+						AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+						AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+					</if>
+
+				UNION
+
+				SELECT
+					A.EMPCARD_APPL_NO,
+					TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+					A.EMP_GBN,
+					A.IO_EMP_NM AS MP_EMP_NM,
+					A.IO_EMP_ID AS MP_EMP_ID,
+					A.IO_COMP_NM AS MP_COMP_NM,
+					IE.HP_NO AS MP_TEL_NO,
+					A.CARD_NO,
+					A.STATUS,
+					TO_CHAR(A.MOD_DTM,'YYYY-MM-DD HH24:MI:SS') AS RETURN_DTM,
+					FN_GET_EMP_NM(A.CRT_BY) AS CRT_BY
+				FROM IO_EMPCARD_ONEDAY A
+				JOIN IO_EMP IE
+				ON IE.IO_EMP_ID = A.IO_EMP_ID
+				WHERE A.EMP_GBN = 'P'
+					<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+						AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+						AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+					</if>
+			    <if test='not @org.springframework.util.StringUtils@isEmpty(empGbn) and empGbn.equals("M")'>
+			    	AND 1 = 0
+			    </if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+						AND UPPER(A.IO_EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+						AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+						AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+					</if>
+			) T
+		) ALL_LIST
+		WHERE 1 = 1
+			AND ALL_LIST.RNUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+		#{pageSize}) + #{pageSize}
+		ORDER BY APPLY_DT DESC
+	</select>
+
+	<select id="selectAdmOnedayCardListCnt" parameterType="Map" resultType="Integer">
+		SELECT
+			COUNT(*)
+		FROM (
+			SELECT
+				A.EMPCARD_APPL_NO
+			FROM IO_EMPCARD_ONEDAY A
+			JOIN CO_EMP CE
+			ON CE.EMP_ID = A.EMP_ID
+			WHERE A.EMP_GBN = 'M'
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+					AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+					AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+				</if>
+		    <if test='not @org.springframework.util.StringUtils@isEmpty(empGbn) and empGbn.equals("P")'>
+		    	AND 1 = 0
+		    </if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+					AND UPPER(A.EMP_NM) LIKE  '%' || UPPER(#{empNm}) || '%'
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+					AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+					AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+				</if>
+
+			UNION
+
+			SELECT
+				A.EMPCARD_APPL_NO
+			FROM IO_EMPCARD_ONEDAY A
+			JOIN IO_EMP IE
+			ON IE.IO_EMP_ID = A.IO_EMP_ID
+			WHERE A.EMP_GBN = 'P'
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+					AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+					AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+				</if>
+		    <if test='not @org.springframework.util.StringUtils@isEmpty(empGbn) and empGbn.equals("M")'>
+		    	AND 1 = 0
+		    </if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+					AND UPPER(A.IO_EMP_NM) LIKE  '%' || UPPER(#{empNm}) || '%'
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+					AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+					AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+				</if>
+		) T
+	</select>
+
+	<update id="updateOnedayEmpCardReturn" parameterType="Map">
+		UPDATE IO_EMPCARD_ONEDAY SET
+			STATUS = 'R',
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE EMPCARD_APPL_NO = #{empcardApplNo}
+	</update>
+
+	<select id="selectAdmOnedayCard" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			TO_CHAR(TO_DATE(A.APPLY_DT, 'YYYYMMDD'), 'YYYY-MM-DD') AS APPLY_DT,
+			A.EMP_GBN,
+			DECODE(A.EMP_GBN, 'M', '구성원', '도급사') AS EMP_GBN_NM,
+			DECODE(A.EMP_GBN, 'M', A.EMP_NM, A.IO_EMP_NM) AS MP_EMP_NM,
+			DECODE(A.EMP_GBN, 'M', A.EMP_ID, A.IO_EMP_ID) AS MP_EMP_ID,
+			DECODE(A.EMP_GBN, 'M', A.DEPT_NM, A.IO_COMP_NM) AS MP_COMP_NM,
+			FN_GET_CODE_NM('A051', A.APPLY_GBN) AS APPLY_GBN_NM,
+			A.CARD_NO,
+			A.EMPCARD_APPL_NO,
+			A.STATUS,
+			DECODE(A.RCV_COMP_ID, '1101000001', '이천', '1102000001', '청주', '분당') AS RCV_COMP_NM
+		FROM IO_EMPCARD_ONEDAY A
+		WHERE A.EMPCARD_APPL_NO = #{empcardApplNo}
+	</select>
+
+	<select id="selectOnedayEmpCardDupCheck" parameterType="String" resultType="String">
+		SELECT
+			NVL(MAX(A.DUP_YN),'N') AS DUP_YN
+		FROM (
+			SELECT
+				'Y' AS DUP_YN
+			FROM DUAL
+			WHERE EXISTS (
+				SELECT 1 FROM IO_EMPCARD_ONEDAY
+				WHERE CARD_NO = #{cardNo}
+				AND STATUS = 'I'
+			)
+		) A
+	</select>
+
+	<select id="selectOnedayEmpCardIdCardCheck" parameterType="Map" resultType="String">
+		SELECT
+			NVL(MAX(A.IDCARD_YN),'N') AS IDCARD_YN
+		FROM (
+			SELECT
+				'Y' AS IDCARD_YN
+			FROM DUAL
+			WHERE EXISTS (
+				SELECT 1 FROM VW_IO_PASS_MST2
+				WHERE IO_EMP_ID = #{empNum}
+				<if test='not @org.springframework.util.StringUtils@isEmpty(empGbn)'>
+					<if test='empGbn.equals("M")'>
+						/* 구성원 */
+						AND MP_GBN = 'M'
+					</if>
+					<if test='empGbn.equals("P")'>
+						/* 외부인 */
+						AND MP_GBN = 'P'
+					</if>
+				</if>
+			)
+		) A
+	</select>
+
+	<select id="selectSecCoEmpViolationExcptCnt" parameterType="String" resultType="CamelHashMap">
+		WITH T AS (
+			SELECT
+				TO_CHAR(TRUNC(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT,
+				TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+			FROM DUAL
+		)
+		SELECT
+			NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0531011', 1, 0)),0) AS CNT1,
+			NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0531010', 1, 0)),0) AS CNT2
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.DEL_YN = 'N'
+	</select>
+
+	<insert id="insertOnedayEmpCardScOfend" parameterType="Map">
+		<selectKey keyProperty="scDocNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_SC_OFFEND_ID.NEXTVAL AS SC_DOC_NO FROM DUAL
+	    </selectKey>
+
+		INSERT INTO SC_OFEND (
+			SC_DOC_NO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			OFEND_COMP_ID,
+			OFEND_DEPT_ID,
+			OFEND_JW_ID,
+			OFEND_EMP_ID,
+			OFEND_TEL_NO,
+			OFEND_DT,
+			OFEND_TM,
+			OFEND_GBN,
+			OFEND_DETAIL_GBN,
+			CORR_PLAN_SEND_YN,
+			DOC_ID,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			DEL_YN,
+			ETC_RSN,
+			FILE_PATH,
+			OLD_YN,
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				ACT_DO,
+				ACT_BY,
+				ACT_DTM,
+			</if>
+			ACT_COMP_ID,
+			RMRK,
+			DEL_RSN,
+			OFEND_SUB_GBN,
+			MOBILE_FORENSICS_GBN,
+			ACT_BLDG,
+			ACT_LOCATE,
+			SEC_MAN_NM,
+			ACT_GATE
+		)
+		SELECT
+		  	#{scDocNo},
+			A.COMP_ID,
+			A.DEPT_ID,
+			A.JW_ID,
+			A.EMP_ID,
+			B.COMP_ID,
+			B.DEPT_ID,
+			B.JW_ID,
+			B.EMP_ID,
+			B.TEL_NO1,
+			TO_CHAR(SYSDATE, 'YYYYMMDD'),
+			TO_CHAR(SYSDATE, 'HH24MI'),
+			'C0511001',
+			'C0531011',
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				<if test='defaultActYn.equals("N")'>
+					'',
+				</if>
+				<if test='defaultActYn.equals("Y")'>
+					'C0101003',
+				</if>
+			</if>
+			'',
+			#{acIp},
+			A.EMP_ID,
+			SYSDATE,
+			A.EMP_ID,
+			SYSDATE,
+			'N',
+			'일일사원증 발급',
+			'',
+			'N',
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				#{actDo},
+				#{loginId},
+				SYSDATE,
+			</if>
+			#{rcvCompId},
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			''
+		FROM CO_EMP A, CO_EMP B
+		WHERE A.EMP_ID = #{loginId}
+		AND B.EMP_ID = #{empNum}
+	</insert>
+
+	<insert id="insertOnedayEmpCardCoEmp" parameterType="Map">
+		<selectKey keyProperty="empcardApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_IO_EMPCARD_ONEDAY.NEXTVAL AS EMPCARD_APPL_NO FROM DUAL
+	    </selectKey>
+
+		INSERT INTO IO_EMPCARD_ONEDAY (
+			EMPCARD_APPL_NO,
+			EMP_GBN,
+			EMP_ID,
+			EMP_NM,
+			COMP_ID,
+			COMP_NM,
+			DEPT_ID,
+			DEPT_NM,
+			JW_ID,
+			JW_NM,
+			JC_ID,
+			JC_NM,
+			RCV_COMP_ID,
+			APPLY_DT,
+			APPLY_GBN,
+			STATUS,
+			CARD_NO,
+			IDCARD_ID,
+			DEL_YN,
+			SC_IO_DOC_NO,
+			SC_DOC_NO,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		)
+		SELECT
+			#{empcardApplNo},
+			'M',
+			A.EMP_ID,
+			A.EMP_NM,
+			A.COMP_ID,
+			B.COMP_NM,
+			A.DEPT_ID,
+			FN_GET_DEPT_NM(A.DEPT_ID),
+			A.JW_ID,
+			FN_GET_JW_NM(A.JW_ID),
+			A.JC_CD,
+			FN_GET_JC_NM(A.JC_CD),
+			#{rcvCompId},
+			TO_CHAR(SYSDATE, 'yyyyMMdd'),
+			#{applyGbn},
+			'I',
+			#{cardNo},
+			(SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = #{empNum}),
+			'N',
+			'',
+			DECODE(#{applyGbn}, 'A0510002', '', #{scDocNo}),
+			#{acIp},
+			#{loginId},
+			SYSDATE,
+			#{loginId},
+			SYSDATE
+		FROM CO_EMP A, CO_COMP B
+		WHERE A.EMP_ID = #{empNum}
+		AND A.COMP_ID = B.COMP_ID
+	</insert>
+
+	<select id="selectSecIoEmpViolationExcptCnt" parameterType="String" resultType="CamelHashMap">
+		WITH T AS (
+			SELECT
+				TO_CHAR(TRUNC(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT,
+				TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(TO_CHAR(SYSDATE,'YYYYMMDD'),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+			FROM DUAL
+		)
+		SELECT
+			NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0581015', 1, 0)),0) AS CNT1
+		FROM
+		SC_IO_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.DEL_YN = 'N'
+	</select>
+
+	<insert id="insertOnedayEmpCardScIoOfend" parameterType="Map">
+		<selectKey keyProperty="scIoOfendDocNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_SC_IO_OFEND_DOC_NO.NEXTVAL AS SC_IO_OFEND_DOC_NO FROM DUAL
+	    </selectKey>
+
+		INSERT INTO SC_IO_OFEND (
+			SC_IO_DOC_NO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			OFEND_COMP_ID,
+			OFEND_EMP_ID,
+			OFEND_TEL_NO,
+			OFEND_DT,
+			OFEND_TM,
+			OFEND_GBN,
+			OFEND_DETAIL_GBN,
+			CORR_PLAN_SEND_YN,
+			DOC_ID,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			DEL_YN,
+			OLD_YN,
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				ACT_DO,
+				ACT_BY,
+				ACT_DTM,
+			</if>
+		   ACT_COMP_ID,
+		   RMRK,
+		   DEL_RSN,
+		   OFEND_SUB_GBN,
+		   MOBILE_FORENSICS_GBN,
+		   ETC_RSN,
+		   FILE_PATH,
+		   DENY_STRT_DT,
+		   DENY_END_DT,
+		   ACT_BLDG,
+		   ACT_LOCATE,
+		   SEC_MAN_NM,
+		   ACT_GATE
+		)
+		SELECT
+			#{scIoOfendDocNo},
+		 	A.COMP_ID,
+			A.DEPT_ID,
+			A.JW_ID,
+			A.EMP_ID,
+			B.IO_COMP_ID,
+			B.IO_EMP_ID,
+			B.HP_NO,
+			TO_CHAR(SYSDATE, 'YYYYMMDD'),
+			TO_CHAR(SYSDATE, 'HH24MI'),
+			'C0521001',
+			'C0581015',
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				<if test='defaultActYn.equals("N")'>
+					'',
+				</if>
+				<if test='defaultActYn.equals("Y")'>
+					'C0101003',
+				</if>
+			</if>
+			'',
+			#{acIp},
+			A.EMP_ID,
+			SYSDATE,
+			A.EMP_ID,
+			SYSDATE,
+			'N',
+			'N',
+			<if test='not @org.springframework.util.StringUtils@isEmpty(defaultActYn)'>
+				#{actDo},
+				#{loginId},
+				SYSDATE,
+			</if>
+			#{rcvCompId},
+			'',
+			'',
+			'',
+			'',
+			'일일사원증 발급',
+			'',
+			'',
+			'',
+			'',
+			'',
+			'',
+			''
+		FROM CO_EMP A, IO_EMP B
+		WHERE A.EMP_ID = #{loginId}
+		AND B.IO_EMP_ID = #{empNum}
+	</insert>
+
+	<insert id="insertOnedayEmpCardIoEmp" parameterType="Map">
+		<selectKey keyColumn="SC_IO_OFEND_DOC_NO,EMPCARD_APPL_NO" keyProperty="scIoOfendDocNo,empcardApplNo" resultType="HashMap" order="BEFORE">
+			SELECT
+			    SEQ_SC_IO_OFEND_DOC_NO.NEXTVAL AS SC_IO_OFEND_DOC_NO,
+					SEQ_IO_EMPCARD_ONEDAY.NEXTVAL AS EMPCARD_APPL_NO
+			FROM DUAL
+	  </selectKey>
+
+		INSERT INTO IO_EMPCARD_ONEDAY (
+			EMPCARD_APPL_NO,
+			EMP_GBN,
+			IO_EMP_ID,
+			IO_EMP_NM,
+			IO_COMP_ID,
+			IO_COMP_NM,
+			RCV_COMP_ID,
+			APPLY_DT,
+			APPLY_GBN,
+			STATUS,
+			CARD_NO,
+			IDCARD_ID,
+			DEL_YN,
+			SC_IO_DOC_NO,
+			SC_DOC_NO,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		)
+		SELECT
+			#{empcardApplNo},
+			'P',
+			A.IO_EMP_ID,
+			A.EMP_NM,
+			A.IO_COMP_ID,
+			B.COMP_KO_NM,
+			#{rcvCompId},
+			TO_CHAR(SYSDATE, 'yyyyMMdd'),
+			#{applyGbn},
+			'I',
+			#{cardNo},
+			(SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = #{empNum}),
+			'N',
+			DECODE(#{applyGbn}, 'A0510002', '', #{scIoOfendDocNo}),
+			'',
+			#{acIp},
+			#{loginId},
+			SYSDATE,
+			#{loginId},
+			SYSDATE
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_EMP_ID = #{empNum}
+		AND A.IO_COMP_ID = B.IO_COMP_ID
+	</insert>
+
+	<select id="selectAdmOnedayCardListExcel" parameterType="HashMap" resultType="CamelHashMap">
+		SELECT ALL_LIST.*
+		FROM (
+		SELECT
+		ROW_NUMBER() OVER( ORDER BY T.EMPCARD_APPL_NO DESC ) AS RNUM,
+		T.EMPCARD_APPL_NO,
+		T.APPLY_DT,
+		T.EMP_GBN,
+		T.MP_EMP_NM,
+		T.MP_EMP_ID,
+		(
+		SELECT
+		SMART_IDCARD
+		FROM VW_IO_PASS_MST2
+		WHERE IO_EMP_ID = T.MP_EMP_ID
+		) AS IDCARD_ID,
+		T.MP_COMP_NM,
+		T.MP_TEL_NO,
+		T.CARD_NO,
+		DECODE(T.EMP_GBN, 'M', '구성원', '도급사') AS EMP_GBN_NM,
+		T.STATUS,
+		T.RETURN_DTM,
+		T.CRT_BY
+		FROM (
+		SELECT
+		A.EMPCARD_APPL_NO,
+		TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+		A.EMP_GBN,
+		A.EMP_NM AS MP_EMP_NM,
+		A.EMP_ID AS MP_EMP_ID,
+		A.DEPT_NM AS MP_COMP_NM,
+		CE.TEL_NO1 AS MP_TEL_NO,
+		A.CARD_NO,
+		A.STATUS,
+		TO_CHAR(A.MOD_DTM,'YYYY-MM-DD HH24:MI:SS') AS RETURN_DTM,
+		FN_GET_EMP_NM(A.CRT_BY) AS CRT_BY
+		FROM IO_EMPCARD_ONEDAY A
+		JOIN CO_EMP CE
+		ON CE.EMP_ID = A.EMP_ID
+		WHERE A.EMP_GBN = 'M'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+			AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+			AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+			AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+		</if>
+
+		UNION
+
+		SELECT
+		A.EMPCARD_APPL_NO,
+		TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+		A.EMP_GBN,
+		A.IO_EMP_NM AS MP_EMP_NM,
+		A.IO_EMP_ID AS MP_EMP_ID,
+		A.IO_COMP_NM AS MP_COMP_NM,
+		IE.HP_NO AS MP_TEL_NO,
+		A.CARD_NO,
+		A.STATUS,
+		TO_CHAR(A.MOD_DTM,'YYYY-MM-DD HH24:MI:SS') AS RETURN_DTM,
+		FN_GET_EMP_NM(A.CRT_BY) AS CRT_BY
+		FROM IO_EMPCARD_ONEDAY A
+		JOIN IO_EMP IE
+		ON IE.IO_EMP_ID = A.IO_EMP_ID
+		WHERE A.EMP_GBN = 'P'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyStrtDt)">
+			AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ >= ]]> TO_DATE(#{applyStrtDt}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyEndDt)">
+			AND TO_DATE(A.APPLY_DT, 'YYYY-MM-DD') <![CDATA[ <= ]]> TO_DATE(#{applyEndDt}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.IO_EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+			AND UPPER(A.CARD_NO) LIKE '%' || UPPER(#{cardNo}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			AND UPPER(A.COMP_ID) LIKE '%' || UPPER(#{compId}) || '%'
+		</if>
+		) T
+		) ALL_LIST
+	</select>
+</mapper>

@@ -1,0 +1,284 @@
+<!-- REPORTHEADER-SATRT -->
+<!-- PRINTORIENTATION[PORTRAIT]PRINTORIENTATION -->
+<!-- LEFTMARGINE[-1]LEFTMARGINE -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<title>&lt;사진촬영 허가 신청서&gt;</title>
+<link rel="stylesheet" href="/eSecurity/common/report/reportstyle.css">
+<style type="text/css">
+.t_font {font-family: 굴림;font-size: 13px;}
+.t_appfont {font-family: 굴림;font-size: 11px;}
+.t_tophead {border-top: none;}
+.t_padding {padding:5px 5px;}
+</style>
+</head>
+<body bgcolor="white" text="black" link="blue" vlink="purple" alink="red" topmargin="1" marginheight="1" class="PaperA4SERO">
+<!-- REPORTHEADER-END -->
+<!-- REPORTPAGEHEADER-START -->
+<!-- REPORTPAGEHEADER-HEIGHT[105]REPORTPAGEHEADER-HEIGHT -->
+<table border="0" cellspacing="0" cellpadding="0" width="690" style="boder-style:solid;margin-top:20px;" bordercolordark="white" bordercolorlight="black" align="center" >
+	<tr>
+		<td width="200" style="border-right:none;">			
+			<div style="float: left;">
+				<img src='/eSecurity/common/report/images/logo.gif' width='140' height='40' border='0'>
+			</div>	
+		</td>
+		<td align="center" valign="middle" style="border-right:none;">
+			<u><h2 style="margin-top:5px;margin-bottom: 5px;">사진촬영 허가 신청서</h2></u>
+		</td>
+		<td width="200">&nbsp;</td>
+	</tr>
+</table>
+<table border="1" cellspacing="0" cellpadding="0" width="690" style="boder-style:solid;margin-top:10px;" bordercolordark="white" bordercolorlight="black" align="center">
+	<tr>
+		<th class="t_font" width="100" colspan="2">
+			신청자
+		</th>
+		<td class="t_font t_padding">
+			<div>
+				<div style="margin-bottom: 15px;">
+					소속 : {{co_dept_nm}}
+				</div>
+				<div style="margin-bottom: 15px;">
+					<span style="width:90px;">직위 : {{co_jw_nm}}</span>
+					<span style="width:140px;">사번 : {{co_emp_id}}</span>
+				</div>
+				<div>
+					<span style="width:90px;">성명 : {{co_emp_nm}}</span>
+					<span style="width:140px;">전화 : {{co_inno}}</span>
+				</div>			
+			</div>
+		</td>
+		<th class="t_font" width="100">
+			촬영자
+		</th>
+		<td class="t_font t_padding">
+			<div>
+				<div style="margin-bottom: 15px;">
+					소속 : {{io_comp_nm}}
+				</div>
+				<div style="margin-bottom: 15px;">
+					<span style="">성명 : {{io_emp_nm}}</span>					
+				</div>	
+				<div>					
+					<span style="width:210px;">전화 : {{io_hp_no}}</span>
+				</div>		
+			</div>
+		</td>		
+	</tr>
+	<tr>
+		<th rowspan="3" class="t_font">촬<br /><br /><br /><br />영</th>
+		<th class="t_font t_padding">일시</th>
+		<td class="t_font t_padding">{{pic_dt}}</td>
+		<th class="t_font t_padding">장소</th>
+		<td class="t_font t_padding">{{pic_place}}</td>
+	</tr>
+	<tr>
+		<th class="t_font t_padding">목적</th>
+		<td colspan="4" class="t_font t_padding">{{pic_obj}}</td>
+	</tr>
+	<tr>
+		<td class="t_font t_padding" colspan="5" height="120">			
+			<div style="line-height: 20px;">
+				º 촬영장비 : {{pic_eqmt}}
+			</div>
+			<div style="padding-top:10px;">
+				º 촬영내용			
+				<div style="line-height: 20px;">
+					{{pic_content}}
+				</div>
+			</div>			
+		</td>
+	</tr>
+	<tr>
+		<td class="t_font t_padding" colspan="5" height="120" align="center">
+			<div style="text-align:left;line-height: 20px;width:600px;">
+				상기 목적 및 장소에 한하여 촬영이 진행될 수 있도록 촬영자 교육 등의 관리 및 통제하겠으며, 불법적인 자료 반출 등으로 발생하는 일체의 책임은<b> "신청자에게 있음을 동의" </b>합니다.	
+			</div>
+			<div style="text-align: center;margin-top:20px;">
+				<span style="text-align: right;padding-right:5px;"> {{crt_yyyy}} </span>년
+				<span style="text-align: right;padding-right:5px;margin-left:5px;"> {{crt_mm}} </span>월
+				<span style="text-align: right;padding-right:5px;margin-left:5px;"> {{crt_dd}} </span>일
+			</div>
+			<div style="text-align: center;margin-top:15px;">
+				촬영신청인 :
+				<span style="margin-left:5px;"> {{io_emp_nm}}</span>
+				<span style="margin-left:5px;">(인)</span> 
+			</div>
+		</td>
+	</tr>
+	<!-- REPORTPAGEHEADER-END -->
+	<!-- 기존 버전과의 호완성을 위해 유지함.(START) -->
+	<!-- REPORTDETAIL-START -->
+	<!-- REPORTDETAIL-HEIGHT[42]REPORTDETAIL-HEIGHT -->
+	<!-- REPORTDETAIL-END -->
+	<!-- 기존 버전과의 호완성을 위해 유지함.(END) -->
+	<!-- TABLEHEADER1-START -->
+	<!-- TABLEHEADER1-HEIGHT[25]TABLEHEADER1-HEIGHT -->
+	<tr>
+		<td colspan="5">
+			<table border="1" cellspacing="0" cellpadding="0" width="100%" style="boder-style:solid;margin-top:0px;" bordercolordark="white" bordercolorlight="black" align="center">
+				<tr>
+					<th class="t_appfont t_padding" width="30">부서</th>
+					<th class="t_appfont t_padding" colspan="3">요청부서</th>					
+					<th class="t_appfont t_padding" width="30">부서</th>
+					<th class="t_appfont t_padding" colspan="3">허가부서</th>					
+				</tr>
+	<!-- TABLEHEADER1-END -->
+	<!-- TABLEDETAIL1-START -->
+	<!-- TABLEDETAIL1-HEIGHT[25]TABLEDETAIL1-HEIGHT -->				
+				{{appr_list}}
+	<!-- TABLEDETAIL1-END -->
+	<!-- TABLEFOOTER1-START -->				
+			</table>
+		</td>
+	</tr>	
+</table>
+	<!-- TABLEFOOTER1-END -->
+	<!-- TABLEHEADER2-START -->
+	<!-- TABLEHEADER2-HEIGHT[60]TABLEHEADER2-HEIGHT -->
+<table border="1" cellspacing="0" cellpadding="0" width="690" style="boder-style:solid;margin-top:1px;" bordercolordark="white" bordercolorlight="black" align="center">
+	<tr>
+		<td class="t_font t_padding" height="90">
+			<div style="text-align: center;">
+				상기 내용에 한하여 사진 촬영을 허가함.
+			</div>
+	<!-- TABLEHEADER2-END -->
+	<!-- TABLEDETAIL2-START -->
+	<!-- TABLEDETAIL2-HEIGHT[25]TABLEDETAIL2-HEIGHT -->			
+			<div style="text-align: center;margin-top:20px;">
+				<span style="text-align: right;padding-right:5px;"> {{sys_yyyy}} </span>년
+				<span style="text-align: right;padding-right:5px;margin-left:5px;"> {{sys_mm}} </span>월
+				<span style="text-align: right;padding-right:5px;margin-left:5px;"> {{sys_dd}} </span>일
+			</div>	
+			<div style="text-align: center;margin-top:15px;">
+				<table border="0">
+					<tr>
+						<td class="t_font t_padding" valign="middle">에스케이하이닉스 주식회사 산업보안팀장
+						</td>
+						<td><img src='/eSecurity/common/report/images/signOfSecurityTeam.jpg' width='42' height='50' border='0'></td>
+					</tr>
+				</table>
+				<!--<span style="vertical-align:middle;">에스케이하이닉스 주식회사 산업보안팀장</span>
+				<span style="margin-left:5px;"><img src='/eSecurity/common/report/images/signOfSecurityTeam.jpg' width='42' height='50' border='0'></span> -->
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td class="t_font t_padding" height="90" align="center" style="border-top: 1px dotted black;">
+			<div style="text-align:left; color:blue;">
+				※ 반출 절차
+			</div>
+			<div style="text-align:left;margin-top:5px;line-height: 20px;width:590px;">
+				상기 촬영자의 촬영 장비를 사외 반출함에 있어서 회사의 업무자료가 유출되지 않도록 촬영내용을 점검하는 등의 철저한 보안조치를 이행하며, 회사 영업비밀 등의 자료에 대한 불법 유출시에는 책임질 것을 서약합니다.
+			</div>
+	<!-- TABLEDETAIL2-END -->
+	<!-- TABLEFOOTER2-START -->
+	<!-- TABLEFOOTER2-END -->
+	<!-- TABLEHEADER3-START -->
+	<!-- TABLEHEADER3-HEIGHT[25]TABLEHEADER3-HEIGHT -->		
+	<!-- TABLEHEADER3-END -->
+	<!-- TABLEDETAIL3-START -->
+	<!-- TABLEDETAIL3-HEIGHT[0]TABLEDETAIL3-HEIGHT -->	
+			<div style="margin-top:20px;">
+				&lt;신청 부서 확인&gt;
+				소속 :
+				<span style="padding-left:5px;width:200;text-align: left;"> {{app_dept}} </span>
+				직위 : 
+				<span style="padding-left:5px;width:100;text-align: left;"> {{app_jw_nm}} </span>
+				성명 : 
+				<span style="padding-left:5px;width:80;text-align: left;"> {{app_emp_nm}} </span>
+				<span style="margin-left:5px;">(서명)</span> 				
+			</div>
+	<!-- TABLEDETAIL3-END -->
+	<!-- TABLEFOOTER3-START -->		
+	<!-- TABLEFOOTER3-END -->
+	<!-- TABLEHEADER4-START -->
+	<!-- TABLEHEADER4-HEIGHT[25]TABLEHEADER4-HEIGHT -->
+	<tr>
+		<td colspan="1">
+			<table border="1" cellspacing="0" cellpadding="0" width="100%" style="boder-style:solid;margin-top:0px;" bordercolordark="white" bordercolorlight="black" align="center">
+				<tr>
+					<th class="t_appfont t_padding" >
+						<span style="margin-left:30px;">결</span>
+						<span style="margin-left:40px;">재</span>
+						<span style="margin-left:40px;">자</span>
+						<span style="margin-left:60px;">정</span>
+						<span style="margin-left:40px;">보</span>					
+					</th>			
+				</tr>	
+	<!-- TABLEHEADER4-END -->
+	<!-- TABLEDETAIL4-START -->
+	<!-- TABLEDETAIL4-HEIGHT[0]TABLEDETAIL4-HEIGHT -->
+	{{appr_list1}}
+	<!-- TABLEDETAIL4-END -->
+	<!-- TABLEFOOTER4-START -->
+	</table>
+		</td>
+		</tr>
+	<!-- TABLEFOOTER4-END -->
+	<!-- 구성되지 않은 테이블도 정의해 두어야 한다.(필수) -->
+	<!-- TABLEHEADER5-START -->
+	<!-- TABLEHEADER5-HEIGHT[0]TABLEHEADER5-HEIGHT -->
+	
+	<!-- TABLEHEADER5-END -->
+	<!-- TABLEDETAIL5-START -->
+	<!-- TABLEDETAIL5-HEIGHT[25]TABLEDETAIL5-HEIGHT -->
+		
+	<!-- TABLEDETAIL5-END -->
+	<!-- TABLEFOOTER5-START -->
+			
+	<!-- TABLEFOOTER5-END -->
+	<!-- TABLEHEADER6-START -->
+	<!-- TABLEHEADER6-HEIGHT[0]TABLEHEADER6-HEIGHT -->
+	<!-- TABLEHEADER6-END -->
+	<!-- TABLEDETAIL6-START -->
+	<!-- TABLEDETAIL6-HEIGHT[0]TABLEDETAIL6-HEIGHT -->
+	<!-- TABLEDETAIL6-END -->
+	<!-- TABLEFOOTER6-START -->
+	<!-- TABLEFOOTER6-END -->
+	<!-- TABLEHEADER7-START -->
+	<!-- TABLEHEADER7-HEIGHT[0]TABLEHEADER7-HEIGHT -->
+	<!-- TABLEHEADER7-END -->
+	<!-- TABLEDETAIL7-START -->
+	<!-- TABLEDETAIL7-HEIGHT[0]TABLEDETAIL7-HEIGHT -->
+	<!-- TABLEDETAIL7-END -->
+	<!-- TABLEFOOTER7-START -->
+	<!-- TABLEFOOTER7-END -->
+	<!-- TABLEHEADER8-START -->
+	<!-- TABLEHEADER8-HEIGHT[0]TABLEHEADER8-HEIGHT -->
+	<!-- TABLEHEADER8-END -->
+	<!-- TABLEDETAIL8-START -->
+	<!-- TABLEDETAIL8-HEIGHT[0]TABLEDETAIL8-HEIGHT -->
+	<!-- TABLEDETAIL8-END -->
+	<!-- TABLEFOOTER8-START -->
+	<!-- TABLEFOOTER8-END -->
+	<!-- TABLEHEADER9-START -->
+	<!-- TABLEHEADER9-HEIGHT[0]TABLEHEADER9-HEIGHT -->
+	<!-- TABLEHEADER9-END -->
+	<!-- TABLEDETAIL9-START -->
+	<!-- TABLEDETAIL9-HEIGHT[0]TABLEDETAIL9-HEIGHT -->
+	<!-- TABLEDETAIL9-END -->
+	<!-- TABLEFOOTER9-START -->
+	<!-- TABLEFOOTER9-END -->
+	<!-- TABLEHEADER10-START -->
+	<!-- TABLEHEADER10-HEIGHT[0]TABLEHEADER10-HEIGHT -->
+	<!-- TABLEHEADER10-END -->
+	<!-- TABLEDETAIL10-START -->
+	<!-- TABLEDETAIL10-HEIGHT[0]TABLEDETAIL10-HEIGHT -->
+	<!-- TABLEDETAIL10-END -->
+	<!-- TABLEFOOTER10-START -->
+	<!-- TABLEFOOTER10-END -->
+	<!-- REPORTPAGEFOOTER-START -->
+	<!-- REPORTPAGEFOOTER-END -->
+	<!-- REPORTFOOTER-START --> 
+		</td>
+		<!--  추가 20140410 -->
+	</tr>	
+	
+		
+</table>
+</body>
+</html>
+<!-- REPORTFOOTER-END -->

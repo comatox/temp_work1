@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityDailyLifeRepository">
+
+	
+	
+	<select id="licenseManageAdminManageList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageAdminManageList (dmLicenseManage_AdminManage_List_S) */
+		SELECT
+		    TB.*
+		     ,CASE EMP_SEX
+		        WHEN 'M'  THEN '남'
+		        WHEN 'F'  THEN '여'
+		    END as EMP_SEX_NM
+		FROM (
+		    SELECT
+		        ROW_NUMBER() OVER(ORDER BY EMP_ID ASC) as ROW_NUM
+		        ,T.*
+		    FROM (   
+		            SELECT 
+		                A.EMP_ID
+		                , A.LICENSE_CNT
+		                , A.EMP_NM
+		                ,C.JW_NM
+		                ,B.DEPT_NM
+		                ,A.EMP_SEX
+		              FROM (
+		                    SELECT 
+		                        X.EMP_ID
+		                        ,Y.EMP_NM
+		                        , Y.DEPT_ID
+		                        , Y.JW_ID
+		                        , COUNT(LICENSE_ID) AS LICENSE_CNT
+		                        , K.SEX_CLSS as EMP_SEX 
+		                      FROM  
+		                        SC_EMP_LICENSE X,
+		                        CO_EMP Y,
+		                        MDM_IF_PA K
+		                     WHERE 
+		                        X.EMP_ID = Y.EMP_ID
+		                       AND X.DEL_YN = 'N'
+		                       AND Y.EMP_ID = K.EMP_NUM
+		                     GROUP BY X.EMP_ID,Y.EMP_NM, Y.DEPT_ID, Y.JW_ID, Y.JUMIN_NO, K.SEX_CLSS
+		                    ) A,
+		                    CO_DEPT B,
+		                    CO_JW C
+		                WHERE A.DEPT_ID = B.DEPT_ID
+		                      AND A.JW_ID = C.JW_ID
+		]]>
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+						<![CDATA[
+							AND A.EMP_ID like '%' || #{searchEmpId} || '%'
+						]]>
+						</if>
+						
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+						<![CDATA[
+							AND A.EMP_NM like '%' || #{searchEmpNm} || '%'
+						]]>
+						</if>
+						
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchJwNm)">
+						<![CDATA[
+							AND C.JW_NM = #{searchJwNm}
+						]]>
+						</if>
+						
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+						<![CDATA[
+							AND B.DEPT_NM like '%' || #{searchDeptNm} || '%'
+						]]>
+						</if>
+						
+						<if test="not @org.springframework.util.StringUtils@isEmpty(empSex)">
+						<![CDATA[
+							AND A.EMP_SEX = #{empSex}
+						]]>
+						</if>
+		<![CDATA[
+		            ) T
+		     ) TB
+		]]>
+	</select>
+
+	<select id="licenseManageAdminManageEmpList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageAdminManageEmpList (dmLicenseManage_CoEmpLicense_List_S) */
+		SELECT
+		    TB.*
+		FROM (
+		    SELECT
+		        ROW_NUMBER() OVER(ORDER BY SEQ ASC) as ROW_NUM
+		        ,T.*
+		    FROM(        
+		        SELECT
+		            A.EMP_ID
+		            ,FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM
+		            ,A.SEQ
+		            ,A.LICENSE_ID
+		            ,A.COMMENTS
+		            ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+		            ,B.LICENSE_CTG
+		            ,B.LICENSE_NM
+		            ,B.LICENSE_CD
+		            ,B.LICENSE_JOB
+		        FROM
+		            SC_EMP_LICENSE A
+		            ,SC_LICENSE B
+		        WHERE 
+		            B.LICENSE_ID = A.LICENSE_ID
+		            AND A.EMP_ID = #{empId}
+		            AND NVL(A.DEL_YN, 'N') = 'N'
+		]]>
+		            
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+				<![CDATA[
+					AND B.LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+				]]>
+			</if>
+				
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+				<![CDATA[
+					AND B.LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+				]]>
+			</if>
+				
+			 <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+				<![CDATA[
+					AND B.LICENSE_CD like '%' || #{searchCode} || '%'
+				]]>
+			</if>
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+				<![CDATA[
+					AND B.LICENSE like '%' || #{searchLicenseJob} || '%'
+				]]>
+			</if>
+	<![CDATA[
+		        ) T
+		    )TB
+		    WHERE ROW_NUM
+			BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+	]]>
+	</select>
+	
+	<select id="licenseManageAdminManageEmpListCnt" parameterType="Map" resultType="int">
+	<![CDATA[
+	/*  SecurityDailyLifeRepository.licenseManageAdminManageEmpListCnt (dmLicenseManage_CoEmpLicense_List_Count_S) */
+	SELECT
+	    NVL(MAX(ROW_NUM), 0) as TOT_CNT
+	FROM (
+	    SELECT
+	        ROW_NUMBER() OVER(ORDER BY SEQ ASC) as ROW_NUM
+	        ,T.*
+	    FROM(        
+	        SELECT
+	            A.EMP_ID
+	            ,A.SEQ
+	            ,A.LICENSE_ID
+	            ,A.COMMENTS
+	            ,B.LICENSE_CTG
+	            ,B.LICENSE_NM
+	            ,B.LICENSE_CD
+	            ,B.LICENSE_JOB
+	        FROM
+	            SC_EMP_LICENSE A
+	            ,SC_LICENSE B
+	        WHERE 
+	            B.LICENSE_ID = A.LICENSE_ID
+	            AND A.EMP_ID = #{empId}
+	            AND NVL(A.DEL_YN, 'N') = 'N'
+		]]>
+		            
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+				<![CDATA[
+					AND B.LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+				]]>
+			</if>
+				
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+				<![CDATA[
+					AND B.LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+				]]>
+			</if>
+				
+			 <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+				<![CDATA[
+					AND B.LICENSE_CD like '%' || #{searchCode} || '%'
+				]]>
+			</if>
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+				<![CDATA[
+					AND B.LICENSE like '%' || #{searchLicenseJob} || '%'
+				]]>
+			</if>
+	<![CDATA[
+	        ) T
+	    )TB
+	]]>
+	</select>
+	
+	<update id="licenseManageAdminManageEmpDelete" parameterType="Map">
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageAdminManageEmpDelete (dmLicenseManage_CoEmpLicense_D) */
+		UPDATE
+			SC_EMP_LICENSE
+		SET
+			DEL_YN = 'Y'
+			,MOD_BY = #{modId}
+			,MOD_DTM = SYSDATE
+		WHERE 
+			EMP_ID = #{empId}
+			AND LICENSE_ID = #{licenseId}
+	]]>
+	</update>
+	
+	<select id="licenseManageAdminEmpList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageAdminEmpList (dmLicenseManage_AdminManage_Emp_List_S) */
+		SELECT
+		    TB.*
+		FROM
+		    (SELECT
+		            ROW_NUMBER() OVER(ORDER BY EMP_ID ASC) AS ROW_NUM
+		            ,T.*
+		    FROM (
+	                SELECT
+	                        A.EMP_ID
+	                        ,A.EMP_NM
+	                        ,A.DEPT_ID
+	                        ,A.JW_ID
+	                        ,FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM
+	                        ,B.LICENSE_ID
+	                        ,C.LICENSE_CTG
+	                        ,C.LICENSE_CD
+	                        ,C.LICENSE_NM
+	                        ,C.LICENSE_JOB
+	                        ,TO_CHAR(B.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+	                FROM
+	                    CO_EMP A
+	                    ,SC_EMP_LICENSE B
+	                    ,SC_LICENSE C
+	                WHERE 1=1
+	                    AND NVL(B.DEL_YN, 'N') = 'N'
+	                    AND NVL(C.DEL_YN, 'N') = 'N'
+	                    AND B.EMP_ID = A.EMP_ID
+	                    AND B.LICENSE_ID = C.LICENSE_ID
+	]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+					<![CDATA[
+						AND LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+					]]>
+				</if>
+					
+	            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+					<![CDATA[
+						AND LICENSE_CD like '%' || #{searchCode} || '%'
+					]]>
+				</if>
+					
+				 <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+					<![CDATA[
+						AND LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+					]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+					<![CDATA[
+						AND LICENSE like '%' || #{searchLicenseJob} || '%'
+					]]>
+				</if>
+	<![CDATA[
+		            ) T
+		    ) TB
+	]]>
+	</select>
+	
+	<select id="licenseManageAdminEmpListExcel" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageAdminEmpListExcel (dmLicenseManage_AdminManage_List_Excel) */
+		SELECT
+		    TB.*
+		FROM
+		    (SELECT
+		            ROW_NUMBER() OVER(ORDER BY EMP_ID ASC) AS ROW_NUM
+		            ,T.*
+		    FROM (
+                SELECT
+                        A.EMP_ID
+                        ,A.EMP_NM
+                        ,A.DEPT_ID
+                        ,A.JW_ID
+                        ,FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM
+                        ,B.LICENSE_ID
+                        ,C.LICENSE_CTG
+                        ,C.LICENSE_CD
+                        ,C.LICENSE_NM
+                        ,C.LICENSE_JOB
+                        ,TO_CHAR(B.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+                FROM
+                    CO_EMP A
+                    ,SC_EMP_LICENSE B
+                    ,SC_LICENSE C
+                WHERE 1=1
+                    AND NVL(B.DEL_YN, 'N') = 'N'
+                    AND NVL(C.DEL_YN, 'N') = 'N'
+                    AND B.EMP_ID = A.EMP_ID
+                    AND B.LICENSE_ID = C.LICENSE_ID
+		]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+					<![CDATA[
+						AND LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+					]]>
+				</if>
+					
+	            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+					<![CDATA[
+						AND LICENSE_CD like '%' || #{searchCode} || '%'
+					]]>
+				</if>
+					
+				 <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+					<![CDATA[
+						AND LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+					]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+					<![CDATA[
+						AND LICENSE like '%' || #{searchLicenseJob} || '%'
+					]]>
+				</if>
+	<![CDATA[
+            ) T
+    	) TB 
+    ]]>
+	</select>
+	
+	<select id="licenseManageList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageList (dmLicenseManageAdmin_List_S) */
+		SELECT
+			TB.*
+		FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY LICENSE_ID ASC) as ROW_NUM
+					,T.*
+			FROM (
+				SELECT
+						LICENSE_ID
+						,LICENSE_CTG
+						,LICENSE_NM
+						,LICENSE_CD
+						,LICENSE_JOB
+						,CRT_BY
+						,MOD_BY
+						,DEL_YN
+				FROM
+					SC_LICENSE
+				WHERE 1=1
+		]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+					<![CDATA[
+						AND LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+					]]>
+				</if>
+					
+	            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+					<![CDATA[
+						AND LICENSE_CD like '%' || #{searchCode} || '%'
+					]]>
+				</if>
+					
+				 <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+					<![CDATA[
+						AND LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+					]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+					<![CDATA[
+						AND LICENSE like '%' || #{searchLicenseJob} || '%'
+					]]>
+				</if>
+		<![CDATA[
+					AND NVL(DEL_YN, 'Y') = 'N'
+				) T
+			) TB
+		WHERE ROW_NUM
+			BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+		]]>
+	</select>
+	
+	<select id="licenseManageListCnt" parameterType="Map" resultType="int">
+	<![CDATA[
+	/*  SecurityDailyLifeRepository.licenseManageListCnt (dmLicenseManageAdmin_List_Count_S) */
+	SELECT
+		NVL(MAX(ROW_NUM), 0) as TOT_CNT
+	FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY LICENSE_ID ASC) as ROW_NUM
+					,T.*
+			FROM (
+					SELECT
+							LICENSE_ID
+							,LICENSE_CTG
+							,LICENSE_NM
+							,LICENSE_CD
+							,LICENSE_JOB
+							,CRT_BY
+							,MOD_BY
+							,DEL_YN
+					FROM
+						SC_LICENSE
+					WHERE 1=1
+	]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCtgNm)">
+					<![CDATA[
+						AND LICENSE_CTG like '%' || #{searchCtgNm} || '%'
+					]]>
+				</if>
+					
+	            <if test="not @org.springframework.util.StringUtils@isEmpty(searchCode)">
+					<![CDATA[
+						AND LICENSE_CD like '%' || #{searchCode} || '%'
+					]]>
+				</if>
+					
+				 <if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseNm)">
+					<![CDATA[
+						AND LICENSE_NM like '%' || #{searchLicenseNm} || '%'
+					]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchLicenseJob)">
+					<![CDATA[
+						AND LICENSE like '%' || #{searchLicenseJob} || '%'
+					]]>
+				</if>
+	<![CDATA[
+						AND NVL(DEL_YN, 'Y') = 'N'
+				) T
+		) TB
+	]]>
+	</select>
+	
+	<update id="licenseManageRemove" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageRemove (dmLicenseManage_Admin_D) */
+		UPDATE
+			SC_LICENSE
+		SET
+			DEL_YN = 'Y'
+			,AC_IP = #{acIp}
+			,MOD_BY = #{empId}
+			,MOD_DTM = SYSDATE
+		WHERE
+			LICENSE_ID = #{licenseId}
+	]]>
+	</update>
+	
+	<select id="dmLicenseManage_LicenseSeq_S" resultType="Integer">
+	<![CDATA[
+		/*  SecurityDailyLifeRepository.dmLicenseManage_LicenseSeq_S (dmLicenseManage_LicenseSeq_S) */
+		SELECT
+			SEQ_SC_LICENSE_ID.NEXTVAL as SC_LICENSE_ID
+		FROM DUAL
+	]]>
+	</select>
+	
+	<insert id="licenseManageInsert" parameterType="Map">
+		<![CDATA[
+		/*  SecurityDailyLifeRepository.licenseManageInsert (dmLicenseManage_LicenseInfoReg) */
+		INSERT INTO SC_LICENSE
+		    (
+		        LICENSE_ID          
+		        ,LICENSE_CTG            
+		        ,LICENSE_NM
+		        ,LICENSE_CD            
+		        ,LICENSE
+		        ,AC_IP            
+		        ,CRT_BY            
+		        ,CRT_DTM            
+		        ,MOD_BY            
+		        ,MOD_DTM            
+		        ,DEL_YN            
+		    ) values (
+		        #{scLicenseId}
+		        ,#{licenseCtg}
+		        ,#{licenseNm}
+		        ,#{licenseCd}
+		        ,#{licenseJob}
+		        ,#{acIp}
+		        ,#{empId}
+		        ,SYSDATE           
+		        ,#{empId}
+		        ,SYSDATE            
+		        ,'N'
+		    )
+		]]>
+	</insert>
+	
+</mapper>

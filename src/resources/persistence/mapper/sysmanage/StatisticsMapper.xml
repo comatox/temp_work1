@@ -1,0 +1,917 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.StatisticsRepository">
+
+	<select id="selectSecDeptsCombo" parameterType="String" resultType="CamelHashMap">
+	<![CDATA[
+		SELECT 'ALL' AS VALUE
+		  , '전체'     AS TEXT
+		FROM DUAL
+		UNION ALL
+		SELECT B.DEPT_ID AS VALUE
+		  , B.DEPT_NM    AS TEXT
+		FROM SC_DEPT_SEC_EMP A
+		  , CO_DEPT B
+		WHERE A.ENA_DEPT_ID = B.DEPT_ID
+		AND DEL_YN          = 'N'
+		AND SEC_EMP_ID      = #{secEmpId}
+	]]>
+	</select>
+
+	<select id="selectCoEmpViolationExcel" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		/* 부서통계 > 보안 위규 > 구성원 보안위규 엑셀 다운로드 */
+		SELECT A.SC_DOC_NO
+		  ,B.SC_CORR_PLAN_NO
+		  ,A.COMP_ID
+		  ,A.DEPT_ID
+		  ,A.JW_ID
+		  ,A.EMP_ID
+		  ,FN_GET_EMP_NM(A.EMP_ID) AS REG_EMP_NM
+		  , A.OFEND_COMP_ID
+		  ,A.OFEND_DEPT_ID
+		  ,A.OFEND_JW_ID
+		  ,A.OFEND_EMP_ID
+		  ,A.OFEND_TEL_NO
+		  ,AD.DOC_ID
+		  , FN_GET_COMP_NM(A.OFEND_COMP_ID)  AS OFEND_COMP_NM
+		  , FN_GET_DEPT_NM(A.OFEND_DEPT_ID)  AS OFEND_DEPT_NM
+		  , FN_GET_EMP_NM(A.OFEND_EMP_ID)    AS OFEND_EMP_NM
+		  , FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) AS OFEND_EMP_JW_NM
+		  , FN_GET_JW_NM(A.OFEND_JW_ID)      AS OFEND_JW_NM
+		  , CASE
+		        WHEN A.ACT_COMP_ID = '1101000001'
+		        THEN '이천'
+		        WHEN A.ACT_COMP_ID = '1102000001'
+		        THEN '청주'
+		        WHEN A.ACT_COMP_ID = '1108000001'
+		        THEN '분당'
+		        WHEN A.ACT_COMP_ID = '1103000001'
+		        THEN '영동'
+		        ELSE ''
+		    END                                                                                           AS ACT_COMP_NM
+		  , SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT
+		  , CASE
+		        WHEN LENGTH(A.OFEND_TM) = 4
+		        THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+		        ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+		    END OFEND_TM
+		  , A.OFEND_GBN
+		  , A.ETC_RSN
+		  , (
+		        SELECT E.DETL_NM
+		        FROM CO_CODE_D E
+		        WHERE E.DETL_CD = A.OFEND_GBN
+		    ) AS OFEND_GBN_NM
+		  , A.OFEND_DETAIL_GBN
+		  , (
+		        SELECT F.DETL_NM
+		        FROM CO_CODE_D F
+		        WHERE F.DETL_CD = A.OFEND_DETAIL_GBN
+		    ) AS OFEND_DETAIL_GBN_NM
+		  , A.OFEND_SUB_GBN
+		  , (
+		        SELECT F.DETL_NM
+		        FROM CO_CODE_D F
+		        WHERE F.DETL_CD = A.OFEND_SUB_GBN
+		    ) AS OFEND_SUB_GBN_NM
+		  , A.CORR_PLAN_SEND_YN
+		  , FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') AS CORR_PLAN_SEND_YN_NM
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '1003'
+		        ELSE NVL(AD.APPR_STAT, '99')
+		    END AS APPR_STAT
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '1003'
+		        ELSE NVL(AD.APPR_RESULT, '99')
+		    END AS APPR_RESULT
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		         OR A.CORR_PLAN_SEND_YN IS NULL
+		        THEN '해당없음'
+		        ELSE
+		            CASE
+		                WHEN AD.APPR_STAT = '0'
+		                THEN '대기'
+		                WHEN AD.APPR_STAT = '10'
+		                THEN '진행'
+		                WHEN AD.APPR_STAT = '20'
+		                THEN '완료'
+		                WHEN NVL(AD.APPR_STAT, 'N') = 'N'
+		                THEN '미작성'
+		            END
+		    END AS APPR_STAT_NM
+		  , CASE
+		        WHEN NVL(A.ACT_DO, '*') = '*'
+		        THEN ''
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		         OR A.CORR_PLAN_SEND_YN IS NULL
+		        THEN '해당없음'
+		        ELSE
+		            CASE
+		                WHEN AD.APPR_RESULT = '0'
+		                THEN '검토중'
+		                WHEN AD.APPR_RESULT = '1'
+		                THEN '승인'
+		                WHEN AD.APPR_RESULT = '2'
+		                THEN '부결'
+		                WHEN NVL(AD.APPR_RESULT, 'N') = 'N'
+		                THEN '미작성'
+		            END
+		    END AS APPR_RESULT_NM
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN    = 'C0101003'
+		         OR NVL(AD.APPR_RESULT, 'N')='N'
+		        THEN ''
+		        ELSE TO_CHAR(AD.CRT_DTM,'YYYY-MM-DD')
+		    END WRITEDATE
+		  , CE.EMP_NM                       AS SC_EMP_NM
+		  , TO_CHAR(A.ACT_DTM,'YYYY-MM-DD') AS ACT_DAY
+		  , TO_CHAR(A.ACT_DTM,'HH24:MI')    AS ACT_TTMM
+		  , CASE
+		        WHEN A.ACT_DTM IS NULL
+		        THEN ''
+		        ELSE
+		            CASE
+		                WHEN A.ACT_DO           = 'C0280002'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		                THEN '시정계획서 제출'
+		                WHEN A.ACT_DO           = 'C0280002'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		                THEN '시정계획서 미제출'
+		                WHEN A.ACT_DO           = 'C0280003'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		                THEN '개선계획서 제출'
+		                WHEN A.ACT_DO           = 'C0280003'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		                THEN '개선계획서 미제출'
+		                ELSE '해당없음'
+		            END
+		    END                                                                    AS CORR_PLAN_YN
+		  , FN_GET_CODE('C028', A.ACT_DO, '')                                      AS ACT_DO_NM
+		  , DECODE(A.ACT_DO, 'C0280001', '해당없음', TO_CHAR(B.SEND_DTM,'yyyy-MM-dd')) AS SEND_DTM
+		  , CASE
+		        WHEN NVL(A.ACT_DO, '*') = '*'
+		        THEN ''
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NOT NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN TO_CHAR((B.SEND_DTM-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999')||'일 경과'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN TO_CHAR((SYSDATE-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN TO_CHAR(B.SEND_DTM-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN TO_CHAR(SYSDATE-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        ELSE '해당없음'
+		    END AS PASS_DATE
+		    /* 20151109 전자결재및 보안위규 신규 서비스 시점 */
+		  , CASE
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NOT NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR((B.SEND_DTM-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR((SYSDATE-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR(B.SEND_DTM-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR(SYSDATE-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        ELSE '해당없음'
+		    END AS OVER_14_YN
+		    /* 14일 초과 여부 */
+		  ,A.ACT_GATE
+		  ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당없음') AS MOBILE_FORENSICS_GBN_NM
+		  ,A.SEC_MAN_NM
+		  ,(
+		        SELECT DETL_NM
+		        FROM CO_CODE_D
+		        WHERE DETL_CD = A.ACT_BLDG
+		        AND ETC4      = A.ACT_COMP_ID
+		        AND GRP_CD    = 'C063'
+		    ) AS ACT_BLDG_NM
+		  ,(
+		        SELECT DETL_NM
+		        FROM CO_CODE_D
+		        WHERE DETL_CD = A.ACT_LOCATE
+		        AND ETC4      = A.ACT_BLDG
+		        AND GRP_CD    = 'C064'
+		    ) AS ACT_LOCATE_NM
+		  ,CD.DEPT_LV2
+		  ,CD.DEPT_LV3
+		  ,CD.DEPT_LV4
+		  ,CD.DEPT_LV5
+		  ,CD.DEPT_LV6
+		  ,CD.DEPT_LV7
+		FROM SC_OFEND A
+		LEFT JOIN
+		    (
+		        SELECT DECODE(A.CORR_PLAN_SEND_YN,'C0101001',B.MOD_DTM,'') AS SEND_DTM
+		          , B.*
+		        FROM SC_CORR_PLAN B
+		          , SC_OFEND A
+		        WHERE A.SC_DOC_NO = B.SC_DOC_NO
+		    )
+		    B
+		ON  B.SC_DOC_NO = A.SC_DOC_NO
+		AND B.DEL_YN    = 'N'
+		LEFT JOIN
+		    (
+		        SELECT DOC_ID
+		          , APPR_RESULT
+		          , APPR_STAT
+		          , CRT_DTM
+		        FROM AP_DOC
+		    )
+		    AD
+		ON  AD.DOC_ID = B.DOC_ID
+		JOIN SC_DETL_EMP SC
+		ON  SC.COMP_ID =
+		    CASE
+		        WHEN A.ACT_COMP_ID = '1105000001'
+		         OR A.ACT_COMP_ID  = '1106000001'
+		         OR A.ACT_COMP_ID  = '1109000001'
+		        THEN '1102000001'
+		        WHEN A.ACT_COMP_ID = '1107000001'
+		        THEN '1108000001'
+		        ELSE NVL(A.ACT_COMP_ID, '1101000001')
+		    END
+		AND SC.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+		LEFT JOIN CO_EMP CE
+		ON  CE.EMP_ID = SC.EMP_ID
+		LEFT JOIN CO_DEPT CD
+		ON  CD.DEPT_ID    = A.OFEND_DEPT_ID
+		WHERE NVL(A.DEL_YN, 'N') = 'N'
+		AND A.OFEND_DT LIKE #{search_year} || '%'
+		AND A.OFEND_DT >= '20160901'
+		and a.act_do <> 'C0280001'			/* 구성원 확인은 제외 */
+		AND A.OFEND_DEPT_ID in 
+		(
+		  SELECT B.DEPT_ID 
+		  FROM SC_DEPT_SEC_EMP A
+		     , CO_DEPT B
+		  WHERE A.ENA_DEPT_ID = B.DEPT_ID
+		    AND DEL_YN          = 'N'
+			AND SEC_EMP_ID      = #{search_sec_emp_id}
+			and b.dept_fpath_id like '%' || decode(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+		)
+	]]>
+	</select>
+	
+	<select id="selectVioCorrNotSubmitExcel" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		/* 부서통계 > 보안 위규 > 시정계획서/개선계획서 미제출 건수 */
+		SELECT A.SC_DOC_NO
+		  ,B.SC_CORR_PLAN_NO
+		  ,A.COMP_ID
+		  ,A.DEPT_ID
+		  ,A.JW_ID
+		  ,A.EMP_ID
+		  ,FN_GET_EMP_NM(A.EMP_ID) AS REG_EMP_NM
+		  , A.OFEND_COMP_ID
+		  ,A.OFEND_DEPT_ID
+		  ,A.OFEND_JW_ID
+		  ,A.OFEND_EMP_ID
+		  ,A.OFEND_TEL_NO
+		  ,AD.DOC_ID
+		  , FN_GET_COMP_NM(A.OFEND_COMP_ID)  AS OFEND_COMP_NM
+		  , FN_GET_DEPT_NM(A.OFEND_DEPT_ID)  AS OFEND_DEPT_NM
+		  , FN_GET_EMP_NM(A.OFEND_EMP_ID)    AS OFEND_EMP_NM
+		  , FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) AS OFEND_EMP_JW_NM
+		  , FN_GET_JW_NM(A.OFEND_JW_ID)      AS OFEND_JW_NM
+		  , CASE
+		        WHEN A.ACT_COMP_ID = '1101000001'
+		        THEN '이천'
+		        WHEN A.ACT_COMP_ID = '1102000001'
+		        THEN '청주'
+		        WHEN A.ACT_COMP_ID = '1108000001'
+		        THEN '분당'
+		        WHEN A.ACT_COMP_ID = '1103000001'
+		        THEN '영동'
+		        ELSE ''
+		    END                                                                                           AS ACT_COMP_NM
+		  , SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT
+		  , CASE
+		        WHEN LENGTH(A.OFEND_TM) = 4
+		        THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+		        ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+		    END OFEND_TM
+		  , A.OFEND_GBN
+		  , A.ETC_RSN
+		  , (
+		        SELECT E.DETL_NM
+		        FROM CO_CODE_D E
+		        WHERE E.DETL_CD = A.OFEND_GBN
+		    ) AS OFEND_GBN_NM
+		  , A.OFEND_DETAIL_GBN
+		  , (
+		        SELECT F.DETL_NM
+		        FROM CO_CODE_D F
+		        WHERE F.DETL_CD = A.OFEND_DETAIL_GBN
+		    ) AS OFEND_DETAIL_GBN_NM
+		  , A.OFEND_SUB_GBN
+		  , (
+		        SELECT F.DETL_NM
+		        FROM CO_CODE_D F
+		        WHERE F.DETL_CD = A.OFEND_SUB_GBN
+		    ) AS OFEND_SUB_GBN_NM
+		  , A.CORR_PLAN_SEND_YN
+		  , FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') AS CORR_PLAN_SEND_YN_NM
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '1003'
+		        ELSE NVL(AD.APPR_STAT, '99')
+		    END AS APPR_STAT
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '1003'
+		        ELSE NVL(AD.APPR_RESULT, '99')
+		    END AS APPR_RESULT
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		         OR A.CORR_PLAN_SEND_YN IS NULL
+		        THEN '해당없음'
+		        ELSE
+		            CASE
+		                WHEN AD.APPR_STAT = '0'
+		                THEN '대기'
+		                WHEN AD.APPR_STAT = '10'
+		                THEN '진행'
+		                WHEN AD.APPR_STAT = '20'
+		                THEN '완료'
+		                WHEN NVL(AD.APPR_STAT, 'N') = 'N'
+		                THEN '미작성'
+		            END
+		    END AS APPR_STAT_NM
+		  , CASE
+		        WHEN NVL(A.ACT_DO, '*') = '*'
+		        THEN ''
+		        WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+		         OR A.CORR_PLAN_SEND_YN IS NULL
+		        THEN '해당없음'
+		        ELSE
+		            CASE
+		                WHEN AD.APPR_RESULT = '0'
+		                THEN '검토중'
+		                WHEN AD.APPR_RESULT = '1'
+		                THEN '승인'
+		                WHEN AD.APPR_RESULT = '2'
+		                THEN '부결'
+		                WHEN NVL(AD.APPR_RESULT, 'N') = 'N'
+		                THEN '미작성'
+		            END
+		    END AS APPR_RESULT_NM
+		  , CASE
+		        WHEN A.CORR_PLAN_SEND_YN    = 'C0101003'
+		         OR NVL(AD.APPR_RESULT, 'N')='N'
+		        THEN ''
+		        ELSE TO_CHAR(AD.CRT_DTM,'YYYY-MM-DD')
+		    END WRITEDATE
+		  , CE.EMP_NM                       AS SC_EMP_NM
+		  , TO_CHAR(A.ACT_DTM,'YYYY-MM-DD') AS ACT_DAY
+		  , TO_CHAR(A.ACT_DTM,'HH24:MI')    AS ACT_TTMM
+		  , CASE
+		        WHEN A.ACT_DTM IS NULL
+		        THEN ''
+		        ELSE
+		            CASE
+		                WHEN A.ACT_DO           = 'C0280002'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		                THEN '시정계획서 제출'
+		                WHEN A.ACT_DO           = 'C0280002'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		                THEN '시정계획서 미제출'
+		                WHEN A.ACT_DO           = 'C0280003'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		                THEN '개선계획서 제출'
+		                WHEN A.ACT_DO           = 'C0280003'
+		                AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		                THEN '개선계획서 미제출'
+		                ELSE '해당없음'
+		            END
+		    END                                                                    AS CORR_PLAN_YN
+		  , FN_GET_CODE('C028', A.ACT_DO, '')                                      AS ACT_DO_NM
+		  , DECODE(A.ACT_DO, 'C0280001', '해당없음', TO_CHAR(B.SEND_DTM,'yyyy-MM-dd')) AS SEND_DTM
+		  , CASE
+		        WHEN NVL(A.ACT_DO, '*') = '*'
+		        THEN ''
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NOT NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN TO_CHAR((B.SEND_DTM-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999')||'일 경과'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN TO_CHAR((SYSDATE-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN TO_CHAR(B.SEND_DTM-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN TO_CHAR(SYSDATE-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999')||'일 경과'
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        ELSE '해당없음'
+		    END AS PASS_DATE
+		    /* 20151109 전자결재및 보안위규 신규 서비스 시점 */
+		  , CASE
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NOT NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR((B.SEND_DTM-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT         >'20151109'
+		        AND B.SEND_DTM         IS NULL
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR((SYSDATE-DECODE(AD.APPR_RESULT, '2', B.MOD_DTM, A.ACT_DTM)),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101001'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR(B.SEND_DTM-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		        THEN
+		            CASE
+		                WHEN TO_CHAR(SYSDATE-TO_DATE(A.OFEND_DT,'YYYY-MM-DD'),'9999') > 14
+		                THEN '초과'
+		                ELSE '미초과'
+		            END
+		        WHEN A.OFEND_DT        <= '20151109'
+		        AND A.CORR_PLAN_SEND_YN = 'C0101003'
+		        THEN '해당없음'
+		        ELSE '해당없음'
+		    END AS OVER_14_YN
+		    /* 14일 초과 여부 */
+		  ,A.ACT_GATE
+		  ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당없음') AS MOBILE_FORENSICS_GBN_NM
+		  ,A.SEC_MAN_NM
+		  ,(
+		        SELECT DETL_NM
+		        FROM CO_CODE_D
+		        WHERE DETL_CD = A.ACT_BLDG
+		        AND ETC4      = A.ACT_COMP_ID
+		        AND GRP_CD    = 'C063'
+		    ) AS ACT_BLDG_NM
+		  ,(
+		        SELECT DETL_NM
+		        FROM CO_CODE_D
+		        WHERE DETL_CD = A.ACT_LOCATE
+		        AND ETC4      = A.ACT_BLDG
+		        AND GRP_CD    = 'C064'
+		    ) AS ACT_LOCATE_NM
+		  ,CD.DEPT_LV2
+		  ,CD.DEPT_LV3
+		  ,CD.DEPT_LV4
+		  ,CD.DEPT_LV5
+		  ,CD.DEPT_LV6
+		  ,CD.DEPT_LV7
+		FROM SC_OFEND A
+		LEFT JOIN
+		    (
+		        SELECT DECODE(A.CORR_PLAN_SEND_YN,'C0101001',B.MOD_DTM,'') AS SEND_DTM
+		          , B.*
+		        FROM SC_CORR_PLAN B
+		          , SC_OFEND A
+		        WHERE A.SC_DOC_NO = B.SC_DOC_NO
+		    )
+		    B
+		ON  B.SC_DOC_NO = A.SC_DOC_NO
+		AND B.DEL_YN    = 'N'
+		LEFT JOIN
+		    (
+		        SELECT DOC_ID
+		          , APPR_RESULT
+		          , APPR_STAT
+		          , CRT_DTM
+		        FROM AP_DOC
+		    )
+		    AD
+		ON  AD.DOC_ID = B.DOC_ID
+		JOIN SC_DETL_EMP SC
+		ON  SC.COMP_ID =
+		    CASE
+		        WHEN A.ACT_COMP_ID = '1105000001'
+		         OR A.ACT_COMP_ID  = '1106000001'
+		        THEN '1102000001'
+		        WHEN A.ACT_COMP_ID = '1107000001'
+		        THEN '1108000001'
+		        ELSE NVL(A.ACT_COMP_ID, '1101000001')
+		    END
+		AND SC.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+		LEFT JOIN CO_EMP CE
+		ON  CE.EMP_ID = SC.EMP_ID
+		LEFT JOIN CO_DEPT CD
+		ON  CD.DEPT_ID    = A.OFEND_DEPT_ID
+		WHERE A.DEL_YN    = 'N'
+		AND A.OFEND_DT LIKE #{search_year} || '%'
+		AND A.OFEND_DT >= '20160901'
+		AND A.CORR_PLAN_SEND_YN = 'C0101002'
+		AND A.ACT_DO             IN ( 'C0280002', 'C0280003' )
+		AND A.OFEND_DEPT_ID in 
+		(
+		  SELECT B.DEPT_ID 
+		  FROM SC_DEPT_SEC_EMP A
+		     , CO_DEPT B
+		  WHERE A.ENA_DEPT_ID = B.DEPT_ID
+		    AND DEL_YN          = 'N'
+			AND SEC_EMP_ID      = #{search_sec_emp_id}
+			and b.dept_fpath_id like '%' || decode(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+		)
+	]]>
+	</select>
+	
+	<select id="selectSecCoEmpTeamViolationExcel" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		/* 생활보안 자체점검 지적 건수 엑셀 다운로드 */
+		SELECT
+		             A.SC_DOC_NO
+		            ,A.COMP_ID
+		            ,A.DEPT_ID
+		            ,FN_GET_DEPT_NM(A.DEPT_ID) || ' ' || FN_GET_EMP_JW_NM(A.EMP_ID) AS REG_EMP_FULL_NM
+		            ,A.JW_ID
+		            ,A.EMP_ID
+		            ,A.OFEND_COMP_ID
+		            ,A.OFEND_DEPT_ID
+		            ,A.OFEND_JW_ID
+		            ,A.OFEND_EMP_ID
+		            ,A.OFEND_TEL_NO
+		            ,DECODE(A.OFEND_GBN, 'ALL','없음', FN_GET_COMP_NM(A.OFEND_COMP_ID)) as OFEND_COMP_NM
+		            ,DECODE(A.OFEND_GBN, 'ALL','없음', FN_GET_DEPT_NM(A.OFEND_DEPT_ID)) || ' ' || DECODE(A.OFEND_GBN, 'ALL','', FN_GET_EMP_JW_NM(A.OFEND_EMP_ID)) AS OFEND_EMP_FULL_NM
+		            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT
+		            ,CASE
+		                WHEN LENGTH(A.OFEND_TM) = 4
+		                THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+		                ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+		            END OFEND_TM            
+		            ,A.OFEND_GBN
+		            ,DECODE(A.OFEND_GBN,'ALL','팀내 생활보안점검',(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN)) AS OFEND_GBN_NM
+		            ,A.OFEND_DETAIL_GBN
+		            ,DECODE(A.OFEND_GBN,'ALL','지적사항 없음',(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN)) AS OFEND_DETAIL_GBN_NM
+		            ,A.CORR_PLAN_SEND_YN
+		            ,DECODE( A.CORR_PLAN_SEND_YN,'ALL','해당없음',FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '')) as CORR_PLAN_SEND_YN_NM
+		            ,A.DOC_ID
+		            , DECODE(A.OFEND_GBN, 'ALL','없음',B.DEPT_LV2) AS DEPT_LV2
+		            , DECODE(A.OFEND_GBN, 'ALL','없음',B.DEPT_LV3) AS DEPT_LV3
+		            , DECODE(A.OFEND_GBN, 'ALL','없음',B.DEPT_LV4) AS DEPT_LV4
+		            , DECODE(A.OFEND_GBN, 'ALL','없음',B.DEPT_LV5) AS DEPT_LV5
+		FROM SC_OFEND_TEAM A, co_dept b
+		WHERE NVL(A.OFEND_DEPT_ID, A.DEPT_ID) = B.DEPT_ID
+		AND A.OFEND_DT LIKE #{search_year} || '%'
+		AND A.OFEND_DT         >= '20160901'
+		AND NVL(A.DEL_YN, 'N')  = 'N'
+		AND A.OFEND_DETAIL_GBN IS NOT NULL
+		]]>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(search_type) and "A".equals(search_type)'>
+		<![CDATA[
+		AND A.OFEND_DETAIL_GBN <> 'ALL'
+		]]>
+		</if>
+		<![CDATA[
+		AND A.OFEND_DEPT_ID    IN
+		    (
+		        SELECT B.DEPT_ID
+		        FROM SC_DEPT_SEC_EMP A
+		          , CO_DEPT B
+		        WHERE A.ENA_DEPT_ID = B.DEPT_ID
+		        AND DEL_YN          = 'N'
+		        AND SEC_EMP_ID      = #{search_sec_emp_id}
+		        AND B.DEPT_FPATH_ID LIKE '%' || decode(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+		    )
+	    ]]>
+	</select>
+	
+	<select id="selectStorageManageListExcelDeptStat" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		WITH PAGE AS
+			    (
+			        SELECT ROW_NUMBER() OVER ( ORDER BY T1.ARTICLECOMPUTERIZEID DESC ) AS ROW_NUM
+			          , T1.*
+			          , CO.DEPT_ID AS USDEPT_ID
+			          , CO.EMP_ID  AS USEMP_ID
+			          , CO.EMP_NM  AS USEMP_NM
+			          , C2.DEPT_ID AS DEPT_ID
+			        FROM
+			            (
+			                SELECT AC.ARTICLECOMPUTERIZEID
+			                  , AG.ARTICLEGROUPNAME
+			                  , AC.ARTICLEGROUPID
+			                  , AC.ARTICLEID
+			                  , AC.ACSERIALNO
+			                  , AC.MODELNAME
+			                  , AC.SERIALNO2
+			                  , AC.EMP_NO
+			                  , AC.DEPT_CD
+			                  , AC.INSTALLDEPT
+			                  , AC.USEMP_NO
+			                  , AC.USEKND
+			                  , DECODE(AC.USEKND,1,'사용',0,'사용중지') AS USEKND_NM
+			                  , AC.EXISTKND
+			                  , DECODE(AC.USEKND,0,'해당없음',DECODE(AC.EXISTKND,NULL,'실사안됨',1,'실물있음',0,'실물없음')) AS EXISTKND_NM
+			                FROM ARTICLESUBCOMPUTERIZE AC
+			                  , ARTICLEGROUP AG
+			                  , ARTICLE A
+			                WHERE AC.ARTICLEKNDNO = AG.ARTICLEKNDNO
+			                AND AC.ARTICLEGROUPID = AG.ARTICLEGROUPID
+			                AND AC.ARTICLEKNDNO   = A.ARTICLEKNDNO
+			                AND AC.ARTICLEGROUPID = A.ARTICLEGROUPID
+			                AND AC.ARTICLEID      = A.ARTICLEID                
+			                AND AC.USEKND = '1'
+			                AND (select aaa.dept_id from co_emp aaa where aaa.emp_id = ac.usemp_no) 
+					            IN
+					            (
+					                SELECT B.DEPT_ID
+					                FROM SC_DEPT_SEC_EMP A
+					                   , CO_DEPT B
+					                WHERE A.ENA_DEPT_ID = B.DEPT_ID
+					                  AND DEL_YN          = 'N'
+					                  AND SEC_EMP_ID      = #{search_sec_emp_id}
+					                  and b.dept_fpath_id like '%' || decode(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+					            )
+			            )
+			            T1
+			          , CO_EMP CO
+			          , CO_EMP C2
+			        WHERE T1.USEMP_NO = CO.EMP_ID(+)
+			        AND T1.EMP_NO     = C2.EMP_ID(+)        
+			    )
+			SELECT T2.*
+			  , FN_GET_CO_UPDEPT(T2.DEPT_ID,'1')||' '||FN_GET_DEPT_NM(T2.DEPT_ID)     AS DEPT_NMS
+			  , FN_GET_EMP_JW_NM(T2.EMP_NO)                                           AS EMP_NMS
+			  , FN_GET_CO_UPDEPT(T2.USDEPT_ID,'1')||' '||FN_GET_DEPT_NM(T2.USDEPT_ID) AS USE_DEPT_NMS
+			  , FN_GET_EMP_JW_NM(T2.USEMP_ID )                                        AS USE_EMP_NMS
+			FROM PAGE T2
+	    ]]>
+	</select>
+
+	<select id="selectDeptInDelayExcelDeptStat" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		/* 부서별 반입지연 통계 엑셀 다운로드 */
+		SELECT ROW_NUMBER() OVER (ORDER BY IO.WriteDate,WriteSeq ) AS ROW_NUM,
+		       IO.WriteDate, 
+		       IO.WriteSeq, 
+		       IO.CompanyKnd, 
+		       IO.CompanyAreaKnd, 
+		       IO.CompanyNo , 
+		       CASE IO.COMPANYNO when '1101000001' then '이천'
+		       					 when '1102000001' then '청주1'
+		       					 when '1105000001' then '청주2'
+		       					 when '1106000001' then '청주3'
+		       					 when '1103000001' then '영동'
+		       					 when '1107000001' then '분당사무소(서현)'
+		       					 when '1108000001' then '분당사무소(정자)'
+		       					 when '1130000001' then '청주원자재통합창고'
+		       					 when '1401000001' then '이천사외유휴장비창고'
+		       					 when '1136000001' then '청주4원자재창고'
+		       					 when '1131000001' then '청주완제품창고'
+		       					 else ''
+		       END AS COMPANY_NAME,       					 
+		       IO.InOutSerialNo, 
+		       OutDate, 
+		       InDate , 
+		       InOutKnd, 
+		       CASE InOutKnd 
+		           WHEN 1 
+		           THEN '반입필요' 
+		           WHEN 2 
+		           THEN '반입불요(무상)' 
+		           WHEN 3 
+		           THEN '반입불요(유상)' 
+		           ELSE '' 
+		       END AS InOutKndName, 
+		       CASE OutCompanyKnd 
+		           WHEN 1 
+		           THEN (SELECT X.COMP_NM FROM CO_COMP X WHERE X.COMP_ID = IO.MYCOMPANYNO) 
+		           WHEN 3 
+		           THEN (SELECT Y.COMP_NM FROM CO_COMP Y WHERE Y.COMP_ID = IO.FOREIGN_COMP)  
+		           ELSE (SELECT Z.PARTNERNAME FROM PARTNER Z WHERE Z.SYSTEMPARTNERID = IO.SYSTEMPARTNERID) 
+		       END AS PartnerORCompanyName, 
+		       D.DEPT_NM || '/' || FN_GET_JW_NM(E.JW_ID) || '/' || E.EMP_NM AS DeptEmpList, 
+		       R.DETL_NM AS OutReasonName , 
+		       FinishKnd, 
+		       CASE FinishKnd 
+		           WHEN 0 
+		           THEN '진행중' 
+		           WHEN 1 
+		           THEN '완료' 
+		           WHEN 2 
+		           THEN '부결' 
+		           ELSE '' 
+		       END AS FinishStateName, 
+		       D.DEPT_ID , 
+		       TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD')) - TO_DATE(IO.INDATE,'YYYY-MM-DD') AS DelayCnt , 
+		       IO.ArticleKndNo, 
+		       AG.ArticleSelectKnd,
+		       IO.EMP_NO,
+		       FN_GET_DEPT_NM(IO.DEPT_CD) AS ORG_DEPT_NM,
+		       FN_GET_DEPT_NM(FN_GET_DEPT_ID(IO.EMP_NO)) AS PRT_DEPT_NM
+		  FROM InOutWrite IO, 
+		       CO_DEPT D, 
+		       CO_EMP E, 
+		       CO_CODE_D R, 
+		       ArticleGroup AG 
+		 WHERE IO.dept_cd = D.DEPT_ID 
+		       AND IO.emp_no = E.EMP_ID 
+		       AND IO.OutReasonID = R.DETL_CD(+)  
+		       AND IO.ArticleKndNo = AG.ArticleKndNo 
+		       AND IO.ArticleGroupID = AG.ArticleGroupID 
+		       AND IO.InOutKnd = 1 /* 반입필요 */       
+		       AND IO.FinishKnd = 0 /* 진행중 */
+		       AND IO.OUTGATEOKYN = 1 /* 정문반출(대기:0, 승인:1, 부결:2) */
+		       AND IO.OUTDATE IS NOT NULL
+		       AND TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD')) - TO_DATE(IO.INDATE,'YYYY-MM-DD') > 0
+		       AND R.GRP_CD(+)='D001'
+		       and d.dept_id in (
+						  SELECT B.DEPT_ID 
+						  FROM SC_DEPT_SEC_EMP A
+					     , CO_DEPT B
+						  WHERE A.ENA_DEPT_ID = B.DEPT_ID
+							AND DEL_YN          = 'N'
+							AND SEC_EMP_ID      = #{search_sec_emp_id}
+							and b.dept_fpath_id like '%' || decode(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+		       )
+	]]>
+	</select>
+	
+	<select id="selectBuildingMoveListExcelDeptStat" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		WITH 
+		SEC_DEPT AS (
+		SELECT B.DEPT_ID, B.DEPT_NM
+		        FROM CO_DEPT B
+		        WHERE B.DEPT_ID IN (SELECT ENA_DEPT_ID FROM SC_DEPT_SEC_EMP A 
+		        					WHERE A.DEL_YN          = 'N'
+		        					AND A.SEC_EMP_ID      = #{search_sec_emp_id} )
+		        AND B.DEPT_FPATH_ID LIKE '%' || DECODE(#{search_dept_id}, 'ALL', '',#{search_dept_id}) || '%'
+		),
+		T AS
+		    (
+		        SELECT EMP.DEPT_ID
+		          , A.OUTSERIALNO
+		          , A.WRITEDATE
+		          , CASE A.COMPANYNO
+		                WHEN '1101000001'
+		                THEN '이천'
+		                WHEN '1102000001'
+		                THEN '청주1'
+		                WHEN '1105000001'
+		                THEN '청주2'
+		                WHEN '1106000001'
+		                THEN '청주3'
+		                WHEN '1103000001'
+		                THEN '영동'
+		                WHEN '1107000001'
+		                THEN '분당사무소(서현)'
+		                WHEN '1108000001'
+		                THEN '분당사무소(정자)'
+		                WHEN '1130000001'
+		                THEN '청주원자재통합창고'
+		                WHEN '1401000001'
+		                THEN '이천사외유휴장비창고'
+		                WHEN '1136000001'
+		                THEN '청주4원자재창고'
+		                WHEN '1131000001'
+		                THEN '청주완제품창고'
+		                WHEN '1109000001'
+		                THEN '청주4(M15)'
+		                ELSE ''
+		            END                                              AS COMPANY_NAME
+		          , DECODE(A.INOUTKND, '1', '반입필요', '2', '반입불요', '') AS INOUTKNDNAME
+		          , CASE
+		                WHEN A.FIRSTINPUTDATE IS NULL
+		                THEN OUTEMP_NAME|| '[미반출] ▶'
+		                ELSE OUTEMP_NAME|| '[반출] ▶'
+		            END AS OUT_APPR_NAME
+		          , CASE
+		                WHEN A.INOUTKND = '1'
+		                THEN
+		                    CASE
+		                        WHEN A.LASTUPDATEDATE IS NULL
+		                        THEN INEMP_NAME || '[미반입] ▶'
+		                        ELSE INEMP_NAME || '[반입] ▶'
+		                    END
+		                ELSE
+		                    CASE
+		                        WHEN A.LASTUPDATEDATE IS NULL
+		                        THEN INEMP_NAME || '[미반입]'
+		                        ELSE INEMP_NAME || '[반입]'
+		                    END
+		            END AS IN_APPR_NAME
+		          , CASE
+		                WHEN A.INOUTKND = '1'
+		                THEN
+		                    CASE
+		                        WHEN A.ROUTAPPROVALYN = '0'
+		                        THEN FN_GET_GATE_NM(ROUTGATEID) || '[미반출] ▶'
+		                        WHEN A.ROUTAPPROVALYN = '1'
+		                        THEN FN_GET_GATE_NM(ROUTGATEID) || '[반출] ▶'
+		                        ELSE FN_GET_GATE_NM(ROUTGATEID) || '[부결] ▶'
+		                    END
+		                ELSE ''
+		            END AS R_OUT_APPR_NAME
+		          , CASE
+		                WHEN A.INOUTKND = '1'
+		                THEN
+		                    CASE
+		                        WHEN A.RINAPPROVALYN = '0'
+		                        THEN FN_GET_GATE_NM(RINGATEID) || '[미반입]'
+		                        WHEN A.RINAPPROVALYN = '1'
+		                        THEN FN_GET_GATE_NM(RINGATEID) || '[반입]'
+		                        ELSE FN_GET_GATE_NM(RINGATEID) || '[부결]'
+		                    END
+		                ELSE ''
+		            END                                         AS R_IN_APPR_NAME
+		          , A.FIRSTINPUTDATE || ' ' || A.FIRSTINPUTTIME AS OUT_DTM
+		            /* 반출일시 */
+		          , A.LASTUPDATEDATE || ' ' || A.LASTUPDATETIME AS IN_DTM
+		            /* 반입일시 */
+		          , NVL(FN_GET_EMP_JW_NM(A.EMP_NO), EMP_NAME) AS EMP_JW_NM
+		          , TRUNC((SYSDATE       - TO_DATE(REPLACE(A.FIRSTINPUTDATE, '-', '')||REPLACE(SUBSTR(A.FIRSTINPUTTIME,1,8), ':', '') ,'YYYYMMDDHH24MISS'))*24, 2)||'시간' AS OUT_DELAY_YN
+		          , b.OUTARTICLENAME
+		          , b.INOUTCNT
+		        FROM BUILDINGMOVE A
+		          , BUILDINGMOVESUBARTICLE B
+		          , CO_EMP EMP
+		        WHERE A.EMP_EMAIL     = EMP.EMAIL
+		        and a.writedate       = b.writedate
+		        and a.writeseq        = b.writeseq
+		        AND A.WRITEDATE      >= '2016-11-02'
+		        AND A.FIRSTINPUTDATE IS NOT NULL
+		        AND A.LASTUPDATEDATE IS NULL
+		        and a.finishknd = 0
+		        and (a.inemp_name is null or a.inemp_name not in ('QRT', '복지관', '생산동(SK건설)', '인재개발원', '통합자재창고', '협력2관(사원서비스센터)', '체육관', '영빈관', 'P&T 물류센터') )
+		        AND TRUNC((SYSDATE - TO_DATE(REPLACE(A.FIRSTINPUTDATE, '-', '')||REPLACE(SUBSTR(A.FIRSTINPUTTIME,1,8), ':', ''), 'YYYYMMDDHH24MISS')) * 24, 2) > 8
+		        AND EMP.DEPT_ID IN ( SELECT DEPT_ID FROM SEC_DEPT )
+		    )
+		SELECT T.*
+		  , T.OUT_APPR_NAME || ' ' || T.IN_APPR_NAME || ' ' || T.R_OUT_APPR_NAME || ' ' || T.R_IN_APPR_NAME AS APPR_FULL_NAME
+		  , FN_GET_DEPT_NM(T.DEPT_ID)                                                                       AS DEPT_NM
+		FROM T
+		ORDER BY OUT_DTM
+	]]>
+	</select>
+		
+</mapper>
+
+

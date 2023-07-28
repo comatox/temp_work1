@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.idcard.IdcardRepository">
+
+	<insert id="insertIDCardIfHeifBuildingInfo" parameterType="Map">
+		/* BuildingRegRepository.insertIDCardIfHeifBuildingInfo (dmIDCardIF_HEIF_Building_Info_Insert) */
+		INSERT INTO HEIF_IDGATE
+		(  ES_SN,
+		   MODE,
+		   CARD_TYPE,
+		   AREA_CODE,
+		   AREA_APPLY,
+		   CARD_NO,
+		   SSN,NAME,
+		   POB_NO,
+		   POB_NO2,
+		   START_AT,
+		   END_AT,
+		   PASSPORT,
+		   COMPANY_NAME,
+		   BUILDING_CD,
+		   GATE_ID,
+		   INSERT_DATE,
+		   APPLY_DATE,
+		   INEMP_ID
+		) VALUES (
+		   #{ES_SN}, /*고유번호*/
+		   #{MODE},   /*저장방법*/
+		   #{CARD_TYPE},  /*사원증:1, 출입증:2*/
+		   #{AREA_CODE}, /*사업장코드 이천:A, 청주 :B*/
+		   #{AREA_APPLY}, /*건물등록지역 이천:A, 청주 :B*/
+		   #{CARD_NO}, /* 카드번호*/
+		   #{SSN}, /*주민번호*/
+		   #{NAME}, /*이름*/
+		   #{POB_NO}, /*이천사번*/
+		   #{POB_NO2},  /*청주사번*/
+		   #{START_AT}, /*출입시작일*/
+		   #{END_AT}, /*출입종료일*/
+		   #{PASSPORT}, /*여권번호*/
+		   #{COMPANY_NAME}, /*소속업체명*/
+		   #{BUILDING_CD} ,/*일반구역 List*/
+		   #{GATE_ID},/*특수구역 List*/
+		   GETDATE(),/*I/F일자*/
+		   GETDATE(), /*적용일자*/
+		   #{IDCARD_ID} /* 통합사번 */
+	    )
+	</insert>
+
+	<select id="procedureCheckEnableRegisterBldgIC" parameterType="Map" resultType="CamelHashMap">
+		/* IdcardRepository.procedureCheckEnableRegisterBldgIC (dmCheckEnableRegisterBldg_IC) */
+		EXEC SP_SELE_ICIF_VISMEM01
+			@emp_id = #{empId},
+			@PType = #{cardType},
+			@inemp_id = #{idcardId}
+	</select>
+
+	<insert id="insertHEIFReplaceItem" parameterType="Map">
+		/* IdcardRepository.insertHEIFReplaceItem (HEIF_Replace_Item_Insert) */
+		INSERT INTO HEIF_REPLACE_ITEM (
+			ES_SN,
+			HEIF_INDATE,
+			INOUT_TYPE,
+			ITEM_CODE,
+			ITEM_NAME,
+			ITEM_QUANTITY,
+			ITEM_UNIT,
+			MGR_ID,
+			MGR_NAME,
+			MGR_DIV_CODE,
+			MGR_DIV_NAME,
+			MGR_DATE,
+			BASE_CODE,
+			BASE_DESC,
+			REASON,
+			AREA_CODE,
+			RECEIVE_AREA
+		) VALUES (
+			#{esSn},
+			GETDATE(),
+			#{inoutType},
+			#{itemCode},
+			#{itemName},
+			#{itemQuantity},
+			#{itemUnit},
+			#{mgrId},
+			#{mgrName},
+			#{mgrDivCode},
+			#{mgrDivName},
+			#{mgrDate},
+			#{baseCode},
+			#{baseDesc},
+			#{reason},
+			#{compId},
+			#{recvArea}
+		)
+	</insert>
+
+	<insert id="insertIdcardIfHeifEntranceInfo" parameterType="Map">
+		/* IdcardRepository.insertIdcardIfHeifEntranceInfo (dmIDCardIF_HEIF_Entrance_Info_Insert) */
+		INSERT INTO HEIF_ENTRANCE_INFO (
+			ES_SN
+			,HEIF_INDATE
+			,HEIF_MODATE
+			,IDCD_MODATE
+			,REG_NO
+
+			,ENTRANCE_TYPE
+			,ISSUE_TYPE
+			,REISSUE_TYPE
+			,REISSUE_NOTE
+
+			,CAUSE_NOTE
+			,CAUSE_TYPE
+
+			,ENTER_COMPANY_CODE
+			,ENTER_COMPANY_NAME
+			,ENTER_DIV_CODE
+			,ENTER_DIV_NAME
+
+			,CARD_NO
+			,NAME_KOR
+			,NAME_ENG
+			,PERSONAL_NO
+			,RANK_CODE
+			,RANK_NAME
+			,DIV_CODE
+			,DIV_NAME
+			,TEL1_NO
+			,TEL2_NO
+			,TEL3_NO
+			,HOME1_ADDRESS
+			,HOME2_ADDRESS
+			,COMPANY_CODE
+			,COMPANY_NAME
+			,COMPANY_ADDRESS
+			,COMPANY_EMAIL1
+			,CHIEF_NAME
+			,CHIEF_PERSONAL_NO
+			,WORK_TYPE
+			,WHY_ENTER
+			,OLD_START_DATE
+			,OLD_END_DATE
+			,ENTER_START_DATE
+			,ENTER_END_DATE
+			,ATTACH1_NAME
+			,ATTACH1_TYPE
+			,REG_ID
+			,REG_NAME
+			,REG_DIV_CODE
+			,REG_DIV_NAME
+			,REG_RANK_CODE
+			,REG_RANK_NAME
+			,REG_TEL_NO
+			,REG_DATE
+			,PROCESS_STATUS
+			,PROCESS_DATE
+			,GATE
+			,RESIDE_NAME
+			,PASSPORT
+			,AREA_CODE
+			,AREA_NAME
+			,INEMP_ID
+			,TAG_GBN
+			,SM_TAG_ID
+			,EMAIL_ADDR
+			,RECEIVE_AREA
+			,PAYMENT_DATE
+			,PAYMENT_NAME
+			<if test='not @org.springframework.util.StringUtils@isEmpty(accessInit)'>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and schemaNm.equals("PASS_APPL")'>
+					,ACCESS_INIT
+				</if>
+			</if>
+		) VALUES  (
+			#{esSn}
+			,GETDATE()
+			,NULL
+			,NULL
+			,NULL
+
+			,#{entranceType}
+			,#{issueType}
+			,#{reissueType}
+			,#{reissueNote}
+
+			,#{causeNote}
+			,#{causeType}
+
+			,#{enterCompanyCode}
+			,#{enterCompanyName}
+			,#{enterDivCode}
+			,#{enterDivName}
+
+			,#{cardNo}
+			,#{nameKor}
+			,#{nameEng}
+			,#{personalNo}
+			,#{rankCode}
+			,#{rankName}
+			,#{divCode}
+			,#{divName}
+			,#{tel1No}
+			,#{tel2No}
+			,#{tel3No}
+			,#{home1Address}
+			,#{home2Address}
+
+			,#{companyCode}
+			,#{companyName}
+			,SUBSTRING(#{companyAddress}, 1, 90)
+			,#{companyEmail1}
+			,#{chiefName}
+			,#{chiefPersonalNo}
+
+			,#{workType}
+			,#{whyEnter}
+			,#{oldStartDate}
+			,#{oldEndDate}
+
+			,#{enterStartDate}
+			,#{enterEndDate}
+
+			,#{attach1Name}
+			,'image/jpeg'
+
+			,#{regId}
+			,#{regName}
+			,#{regDivCode}
+			,#{regDivName}
+			,#{regRankCode}
+			,#{regRankName}
+			,#{regTelNo}
+			,#{regDate}
+			,#{processStatus}
+			,#{processDate}
+			,#{gate}
+			,#{resideName}
+			,#{passport}
+			,#{areaCode}
+			,#{areaName}
+			,#{idcardIdIf}
+			,#{tagGbn}
+			,#{smTagId}
+			,#{emailAddr}
+			,#{rcvGate} /*수령처*/
+			,#{amtDt}
+			,#{nameKor}
+			<if test='not @org.springframework.util.StringUtils@isEmpty(accessInit)'>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and schemaNm.equals("PASS_APPL")'>
+					,#{accessInit}
+				</if>
+			</if>
+		)
+	</insert>
+
+	<insert id="insertIdcardIFHeifEmployeeInfo" parameterType="Map">
+		/* IdcardRepository.insertIdcardIFHeifEmployeeInfo (dmIDCardIF_HEIF_Employee_Info_Insert) */
+		INSERT INTO HEIF_EMPLOYEE_INFO (
+			ES_SN,
+			HEIF_INDATE,
+			ISSUE_TYPE,
+			REISSUE_TYPE,
+			REISSUE_NOTE,
+			CAUSE_TYPE,
+			COMPANY_CODE,
+			COMPANY_NAME,
+			RANK_CODE,
+			RANK_NAME,
+			DIV_CODE,
+			DIV_NAME,
+			NAME_KOR,
+			NAME_ENG,
+			EMP_ID,
+			ENTER_DATE,
+			TEL1_NO,
+			TEL2_NO,
+			PERSONAL_NO,
+			ATTACH1_NAME,
+			ATTACH1_TYPE,
+			REG_ID,
+			REG_NAME,
+			REG_DIV_CODE,
+			REG_DIV_NAME,
+			REG_RANK_CODE,
+			REG_RANK_NAME,
+			REG_DATE,
+			PROCESS_STATUS,
+			PROCESS_DATE,
+			NAME_HAN,
+			ATTACH_METHOD,
+			AC_CODE,
+			AC_NAME,
+			AREA_CODE,
+			AREA_NAME,
+			GATE,
+			INEMP_ID,
+			TAG_GBN,
+			SM_TAG_ID,
+			CARD_NO,
+			RECEIVE_AREA,
+			SM_TAG_END_ID
+		) VALUES (
+			#{esSn},
+			GETDATE(),
+			#{issueType},
+			#{reissueType},
+			#{reissueNote},
+			#{causeType},
+			#{companyCode},
+			#{companyName},
+			#{rankCode},
+			#{rankName},
+			#{divCode},
+			#{divName},
+			#{nameKor},
+			#{nameEng},
+			#{empId},
+			#{enterDate},
+			#{tel1No},
+			#{tel2No},
+			#{personalNo},
+			CASE
+				WHEN #{attachMethod} = '1' THEN #{attach1Name}
+				ELSE NULL
+			END,
+			CASE
+				WHEN #{attachMethod} = '1' THEN 'image/jpeg'
+				ELSE NULL
+			END,
+			#{regId},
+			#{regName},
+			#{regDivCode},
+			#{regDivName},
+			#{regRankCode},
+			#{regRankName},
+			#{regDate},
+			#{processStatus},
+			#{processDate},
+			#{nameHan},
+			#{attachMethod},
+			#{acCode},
+			#{acName},
+			#{areaCode},
+			#{areaName},
+			#{rcvComp},
+			#{idcardId},
+			#{tagGbn},
+			#{smTagId},
+			#{cardNo},
+			#{rcvGate},
+			#{smTagEndId}
+		)
+	</insert>
+
+	<insert id="insertPassReceiptMngExtnIdcard" parameterType="Map">
+		/* IdcardRepository.insertPassReceiptMngExtnIdcard (dmPassReceiptMngExtnIdcardInsert2) */
+		INSERT INTO HEIF_ENTRANCE_INFO (
+			ES_SN,
+			HEIF_INDATE,
+			ENTRANCE_TYPE,
+			ISSUE_TYPE,
+			CAUSE_TYPE,
+			ENTER_COMPANY_CODE,
+			ENTER_COMPANY_NAME,
+			ENTER_DIV_CODE,
+			ENTER_DIV_NAME,
+			CARD_NO,
+			NAME_KOR,
+			NAME_ENG,
+			PERSONAL_NO,
+			RANK_CODE,
+			RANK_NAME,
+			DIV_CODE,
+			DIV_NAME,
+			TEL1_NO,
+			TEL2_NO,
+			TEL3_NO,
+			HOME1_ADDRESS,
+			HOME2_ADDRESS,
+			COMPANY_CODE,
+			COMPANY_NAME,
+			COMPANY_ADDRESS,
+			COMPANY_EMAIL1,
+			CHIEF_NAME,
+			CHIEF_PERSONAL_NO,
+			WORK_TYPE,
+			WHY_ENTER,
+			OLD_START_DATE,
+			OLD_END_DATE,
+			ENTER_START_DATE,
+			ENTER_END_DATE,
+			ATTACH1_NAME,
+			ATTACH1_TYPE,
+			REG_ID,
+			REG_NAME,
+			REG_DIV_CODE,
+			REG_DIV_NAME,
+			REG_RANK_CODE,
+			REG_RANK_NAME,
+			REG_TEL_NO,
+			REG_DATE,
+			PROCESS_STATUS,
+			PROCESS_DATE,
+			GATE,
+			RESIDE_NAME,
+			PASSPORT,
+			AREA_CODE,
+			AREA_NAME,
+			INEMP_ID,
+			TAG_GBN,
+			SM_TAG_ID,
+			EMAIL_ADDR,
+			RECEIVE_AREA
+		)
+		SELECT
+			#{newPassApplNo} AS ES_SN,
+			GETDATE() AS HEIF_INDATE,
+			ENTRANCE_TYPE,
+			'자동연장' AS ISSUE_TYPE,
+			CAUSE_TYPE,
+			ENTER_COMPANY_CODE,
+			ENTER_COMPANY_NAME,
+			ENTER_DIV_CODE,
+			ENTER_DIV_NAME,
+			CARD_NO,
+			NAME_KOR,
+			NAME_ENG,
+			PERSONAL_NO,
+			RANK_CODE,
+			RANK_NAME,
+			DIV_CODE,
+			DIV_NAME,
+			TEL1_NO,
+			TEL2_NO,
+			TEL3_NO,
+			HOME1_ADDRESS,
+			HOME2_ADDRESS,
+			COMPANY_CODE,
+			COMPANY_NAME,
+			COMPANY_ADDRESS,
+			COMPANY_EMAIL1,
+			CHIEF_NAME,
+			CHIEF_PERSONAL_NO,
+			WORK_TYPE,
+			WHY_ENTER +' 1개월 연장' AS WHY_ENTER,
+			OLD_START_DATE,
+			OLD_END_DATE,
+			SUBSTRING(#{extnSrtDt},1,4)+'-'+SUBSTRING(#{extnSrtDt},5,2)+'-'+SUBSTRING(#{extnSrtDt},7,2) AS EXTN_SRT_DT,
+			SUBSTRING(#{extnEndDt},1,4)+'-'+SUBSTRING(#{extnEndDt},5,2)+'-'+SUBSTRING(#{extnEndDt},7,2) AS EXTN_END_DT,
+			ATTACH1_NAME,
+			ATTACH1_TYPE,
+			REG_ID,
+			REG_NAME,
+			REG_DIV_CODE,
+			REG_DIV_NAME,
+			REG_RANK_CODE,
+			REG_RANK_NAME,
+			REG_TEL_NO,
+			REG_DATE,
+			'10' AS PROCESS_STATUS,
+			CONVERT(VARCHAR, GETDATE(), 23) AS PROCESS_DATE,
+			GATE,
+			RESIDE_NAME,
+			PASSPORT,
+			AREA_CODE, /*구성원 소속 사업장*/
+			AREA_NAME,
+			#{idcardId},
+			#{tagGbn},
+			#{smTagId},
+			#{emailAddr},
+			RECEIVE_AREA /*수령게이트*/
+		FROM HEIF_ENTRANCE_INFO
+		WHERE ES_SN = #{passApplNo}
+	</insert>
+
+	<insert id="insertSubcontMoveIfEntrance" parameterType="Map">
+		/* IdcardRepository.insertSubcontMoveIfEntrance (dmSubcontMoveIfEntranceInsert) */
+		INSERT INTO HEIF_ENTRANCE_INFO (
+		ES_SN
+			HEIF_INDATE
+			ENTRANCE_TYPE
+			ISSUE_TYPE
+			CAUSE_TYPE
+			ENTER_COMPANY_CODE
+			ENTER_COMPANY_NAME
+			ENTER_DIV_CODE
+			ENTER_DIV_NAME
+			CARD_NO
+			NAME_KOR
+			NAME_ENG
+			PERSONAL_NO
+			RANK_CODE
+			RANK_NAME
+			DIV_CODE
+			DIV_NAME
+			TEL1_NO
+			TEL2_NO
+			TEL3_NO
+			HOME1_ADDRESS
+			HOME2_ADDRESS
+			COMPANY_CODE
+			COMPANY_NAME
+			COMPANY_ADDRESS
+			COMPANY_EMAIL1
+			CHIEF_NAME
+			CHIEF_PERSONAL_NO
+			WORK_TYPE
+			WHY_ENTER
+			OLD_START_DATE
+			OLD_END_DATE
+			ENTER_START_DATE
+			ENTER_END_DATE
+			ATTACH1_NAME
+			ATTACH1_TYPE
+			REG_ID
+			REG_NAME
+			REG_DIV_CODE
+			REG_DIV_NAME
+			REG_RANK_CODE
+			REG_RANK_NAME
+			REG_TEL_NO
+			REG_DATE
+			PROCESS_STATUS
+			PROCESS_DATE
+			GATE
+			RESIDE_NAME
+			PASSPORT
+			AREA_CODE
+			AREA_NAME
+			INEMP_ID
+			TAG_GBN
+			SM_TAG_ID
+			EMAIL_ADDR
+			REISSUE_TYPE
+			RECEIVE_AREA
+		) VALUES (
+			#{esSn},
+			GETDATE()
+			#{entranceType},
+			#{issueType},
+			#{causeType},
+			#{enterCompanyCode},
+			#{enterCompanyName},
+			#{enterDivCode},
+			#{enterDivName},
+			#{cardNo},
+			#{nameKor},
+			#{nameEng},
+			#{personalNo},
+			#{rankCode},
+			#{rankName},
+			#{divCode},
+			#{divName},
+			#{tel1No},
+			#{tel2No},
+			#{tel3No},
+			#{home1Address},
+			#{home2Address},
+			#{aftCompanyCode},
+			#{aftCompanyName},
+			#{aftCompanyAddress},
+			#{companyEmail2},
+			#{aftChiefName},
+			#{chiefPersonalNo},
+			#{workType},
+			#{whyEnter},
+			#{oldStartDate},
+			#{oldEndDate},
+			#{enterStartDate},
+			#{enterEndDate},
+			#{attach1Name},
+			#{attach1Type},
+			#{regId},
+			#{regName},
+			#{regDivCode},
+			#{regDivName},
+			#{regRankCode},
+			#{regRankName},
+			#{regTelNo},
+			#{regDate},
+			#{processStatus},
+			#{processDate},
+			#{gate},
+			#{resideName},
+			#{passport},
+			#{areaCode},
+			#{areaName},
+			#{inempId},
+			#{tagGbn},
+			#{smTagId},
+			#{emailAddr},
+			#{reissueType},
+			#{rcvGate}
+		)
+	</insert>
+
+	<insert id="insertIDCardIfHeifOtherInfo" parameterType="Map">
+		INSERT INTO HEIF_OTHER_INFO
+			(
+	           ES_SN
+	           ,HEIF_INDATE
+	           ,ENTRANCE_TYPE
+	           ,ISSUE_TYPE
+	           ,REISSUE_TYPE
+	           ,REISSUE_NOTE
+
+	           ,ENTER_COMPANY_CODE
+	           ,ENTER_COMPANY_NAME
+
+	           ,EMP_ID
+	           ,NAME_KOR
+	           ,NAME_ENG
+
+	           ,WHY_ENTER
+	           ,ENTER_START_DATE
+	           ,ENTER_END_DATE
+
+	           ,REG_ID
+	           ,REG_NAME
+	           ,REG_DIV_CODE
+	           ,REG_DIV_NAME
+	           ,REG_RANK_CODE
+	           ,REG_RANK_NAME
+	           ,REG_TEL_NO
+	           ,REG_DATE
+
+	           ,PROCESS_STATUS
+	           ,PROCESS_DATE
+
+	           ,AREA_CODE
+	           ,AREA_NAME
+	           ,TAG_GBN
+			)
+			VALUES
+			(
+	     		#{esSn}
+				,GETDATE()
+				,#{entranceType}
+				,#{issueType}
+				,#{reissueType}
+				,#{reissueNote}
+
+				,#{enterCompanyCode}
+				,#{enterCompanyName}
+
+				,#{empId}
+				,#{nameKor}
+				,#{nameEng}
+
+				,#{whyEnter}
+				,#{enterStartDate}
+				,#{enterEndDate}
+
+				,#{regId}
+				,#{regName}
+				,#{regDivCode}
+				,#{regDivName}
+				,#{regRankCode}
+				,#{regRankName}
+				,#{regTelNo}
+				,#{regDate}
+
+				,#{processStatus}
+				,#{processDate}
+
+				,#{areaCode}
+				,#{areaName}
+				,#{tagGbn}
+			)
+	</insert>
+
+</mapper>

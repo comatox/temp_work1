@@ -1,0 +1,974 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.esecuritysi.EsecuritySiRepository">
+
+	<select id="selectReserveVisitCorrPlan" parameterType="String" resultType="CamelHashMap">
+		/* EsecuritySiRepository.selectReserveVisitCorrPlan (dmReserveVisit_CorrPlan) */
+		SELECT CASE WHEN PLAN > 0 THEN 'Y' ELSE 'N' END AS PLAN_YN,
+			   CASE WHEN ( SELECT NVL(MAX(ROWNUM),0)
+				           FROM   SC_IO_CORR_PLAN
+				           WHERE  NOT NVL(APPR_GBN,'Z0401003') = 'Z0401003'
+				           AND    IO_EMP_ID = #{ioEmpId}
+				           AND    DEL_YN = 'N'
+				           AND    ACT_DO = 'C0280006'
+				          ) > 0 THEN 'Y' ELSE 'N'
+			   END AS EXPR_PLAN_YN
+		FROM (
+		    SELECT NVL(MAX(ROWNUM),0) AS PLAN
+			    FROM SC_IO_CORR_PLAN
+			    WHERE NOT NVL(APPR_GBN,'Z0401003') = 'Z0401003'
+			    AND IO_EMP_ID = #{ioEmpId}
+			    AND DEL_YN = 'N'
+		)
+	</select>
+
+	<select id="selectPassInsStopDenyInfo" parameterType="Map" resultType="CamelHashMap">
+		WITH T AS (
+			SELECT
+				A.CARD_NO,
+				A.IO_EMP_ID
+			FROM IO_PASS A
+			WHERE PASS_APPL_NO =  #{passApplNo}
+		)
+
+		SELECT
+			NVL(Z.STOP_YN, 'N') AS STOP_YN,
+			(
+				SELECT NVL(MAX('Y'), 'N')
+				FROM DUAL
+				WHERE EXISTS (
+					SELECT	I.IO_EMP_ID
+					FROM  IO_EMP_DENY I, T
+					WHERE I.IO_EMP_ID = T.IO_EMP_ID
+					AND I.DEL_YN = 'N'
+					AND TO_CHAR(SYSDATE, 'yyyyMMdd') <![CDATA[ >= ]]> REPLACE(I.DENY_STRT_DT, '-', '')
+					AND TO_CHAR(SYSDATE, 'yyyyMMdd') <![CDATA[ <= ]]> REPLACE(I.DENY_END_DT, '-', '')
+				)
+			) AS DENY_STATUS
+		FROM (
+			SELECT
+				NVL(
+					MAX(
+						CASE WHEN A.STOP_YN_01 = 'Y'
+						OR A.STOP_YN_02 = 'Y'
+						OR A.STOP_YN_03 = 'Y'
+						OR A.STOP_YN_04 = 'Y'
+						OR A.STOP_YN_05 = 'Y'
+						OR A.STOP_YN_06 = 'Y'
+						OR A.STOP_YN_07 = 'Y'
+						OR A.STOP_YN_08 = 'Y'
+						OR A.STOP_YN_09 = 'Y'
+						OR A.STOP_YN_10 = 'Y' THEN 'Y' ELSE 'N' END
+					), 'N'
+				) AS STOP_YN
+			FROM IO_PASS_EXPR A
+			JOIN T B
+			ON A.IO_EMP_ID = B.IO_EMP_ID
+			AND A.CARD_NO   = B.CARD_NO
+		) Z
+	</select>
+
+	<update id="coorpVendroCompUpdate" parameterType="Map" >
+	<![CDATA[
+	/*  AdminVisitEntranceRepository.coorpVendroCompUpdate (dmCoorpVendroCompUpt) */
+	UPDATE IO_COMP
+	   SET COMP_KO_NM = #{compKoNm},
+	       COMP_EN_NM = #{compEnNm},
+	       BOSS_NM = #{bossNm},
+	       TEL_NO = #{telNo},
+	       FAX_NO = #{faxNo},
+	       ZIP1 = #{zip1},
+	       ZIP2 = #{zip2},
+	       ADDR = #{addr},
+	       ADDR2 = #{addr2},
+	       HOMEPAGE = #{homepage},
+	       FILE_LEGAL = #{fileLegal},
+	       MOD_BY = #{loginId},
+	       MOD_DTM = SYSDATE
+     WHERE IO_COMP_ID = #{ioCompId}
+	]]>
+	</update>
+
+	<update id="dmIoEmpPassportNoUpdate" parameterType="Map">
+	<![CDATA[
+	/*  AdminVisitEntranceRepository.dmIoEmpPassportNoUpdate (dmIoEmpPassportNoUpdate) */
+	UPDATE IO_EMP
+       SET PASSPORT_NO = #{newPassportNo}
+     WHERE IO_EMP_ID = #{ioEmpId}
+       /* AND IO_COMP_ID = .IO_COMP_ID. 여권번호 변경 신청후 승인하기 전에 소속변경 하는 경우가 발생함 */
+    ]]>
+	</update>
+
+	<select id="selectHazardousChemicalsVisitCo" parameterType="Map" resultType="CamelHashMap">
+		/* IdcardSiRepository.selectHazardousChemicalsVisitCo ("dmHazardousChemicalsVisit_Co") */
+		SELECT
+			TEL_NO1 AS HP_NO
+		FROM CO_EMP
+		WHERE EMP_ID = #{coEmpId}
+	</select>
+
+	<select id="selectHazardousChemicalsVisitPass" parameterType="Map" resultType="CamelHashMap">
+		/* IdcardSiRepository.selectHazardousChemicalsVisitPass ("dmHazardousChemicalsVisit_Pass") */
+		SELECT
+			A.HP_NO,
+			B.MAIN_DESC AS VST_RSN
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND A.DEL_YN = 'N'
+		AND A.IO_EMP_ID = (SELECT IO_EMP_ID FROM IO_PASS WHERE PASS_APPL_NO = (SELECT MAX(PASS_APPL_NO)FROM IO_PASS WHERE IDCARD_ID = #{idcardId}))
+	</select>
+
+	<select id="selectHazardousChemicalsVisitVst" parameterType="Map" resultType="CamelHashMap">
+		/* IdcardSiRepository.selectHazardousChemicalsVisitVst ("dmHazardousChemicalsVisit_Vst") */
+		SELECT
+			A.IO_EMP_ID,
+			C.HP_NO,
+			A.VST_RSN
+		FROM IO_VST_MAN A, IO_VST_MAN_GATE_IO B, IO_EMP C
+		WHERE A.VST_APPL_NO = B.VST_APPL_NO
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+		AND B.IO_EMP_ID = C.IO_EMP_ID
+		AND B.IO_CARDNO = #{idcardId}
+		AND B.VST_DT = REPLACE(#{vstDt}, '-')
+		AND C.EMP_NM = #{empNm}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+			AND C.JUMIN_NO = #{juminNo}
+		</if>
+		GROUP BY A.IO_EMP_ID, C.HP_NO, A.VST_RSN
+	</select>
+
+	<update id="updateIoEmpCompId" parameterType="Map">
+		UPDATE IO_EMP SET
+			IO_COMP_ID = #{ioCompIdMove}
+		WHERE IO_EMP_ID = #{ioEmpIdMan}
+		AND IO_COMP_ID = #{ioCompId}
+	</update>
+
+	<update id="updateIoInoutCompId" parameterType="Map">
+		UPDATE IO_INOUTWRITE IO SET
+			IO_COMP_ID = #{ioCompIdMove},
+            IO_COMP_NM = FN_GET_IO_COMP_KO_NM(#{ioCompIdMove}),
+            IO_EMP_CHG_RSN = '도급업체변경신청승인',
+            MOD_BY = #{modBy},
+            MOD_DTM = SYSDATE
+        WHERE IO.IO_EMP_ID = #{ioEmpIdMan}
+        AND IO.IO_COMP_ID = #{ioCompId}
+        AND IO.FINISHKND <![CDATA[ <> ]]> 1
+	</update>
+
+	<select id="selectGetPassYn" parameterType="String" resultType="String">
+		SELECT
+			CASE
+				WHEN NVL(FN_GET_IDCARD_ID(#{ioEmpIdMan}), 'N')  = 'N' THEN 'N'
+				ELSE 'Y'
+			END AS PASS_YN
+		FROM DUAL
+	</select>
+
+	<select id="selectSubcontMovePassApplNo" parameterType="String" resultType="CamelHashMap">
+		SELECT
+			SEQ_IO_PASS.NEXTVAL AS NEW_PASS_APPL_NO,
+			(SELECT MAX(PASS_APPL_NO) AS PASS_APPL_NO FROM IO_PASS WHERE IO_EMP_ID = #{ioEmpIdMan} AND IDCARD_ID IS NOT NULL) AS OLD_PASS_APPL_NO
+	  FROM DUAL
+	</select>
+
+	<select id="selectIoPassInfo" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			A.TAG_GBN,
+			A.SM_TAG_ID,
+			B.EMAIL_ADDR
+		FROM IO_PASS A, IO_EMP B
+		WHERE A.PASS_APPL_NO = #{oldPassApplNo}
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+	</select>
+
+	<insert id="insertSubcontMoveIoPass" parameterType="Map">
+		INSERT INTO IO_PASS (
+			PASS_APPL_NO,
+			IO_COMP_ID,
+			IO_EMP_ID,
+			APPLY_GBN,
+			LOSO_GBN,
+			REISSUE_GBN,
+			EXEM_GBN,
+			ALTEMP_GBN,
+			APPLY_DT,
+			ISSUE_DT,
+			IO_RSN,
+			IO_STRT_DT,
+			IO_END_DT,
+			EXTN_STRT_DT,
+			EXTN_END_DT,
+			EXTN_RSN,
+			CARD_NO,
+			GATE,
+			GATE_RSN,
+			AMT_INFO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			STATUS,
+			APPR_YN,
+			DOC_ID,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			REISSUE_RSN,
+			ACCEPT_YN,
+			CANCEL_RSN,
+			APPL_STAT,
+			CARDKEY_GATE,
+			REST_YN,
+			REST_CHK,
+			USE_YN,
+			IDCARD_ID,
+			EXPR_YN,
+			EXPR_EMP_ID,
+			EXPR_DT,
+			EXPR_RSN,
+			EXTENTION_YN,
+			RCV_COMP_ID
+		)
+		SELECT
+			#{newPassApplNo},
+			#{ioCompIdMove},
+			A.IO_EMP_ID,
+			'A0061005',
+			A.LOSO_GBN,
+			A.REISSUE_GBN,
+			A.EXEM_GBN,
+			A.ALTEMP_GBN,
+			TO_CHAR(SYSDATE, 'yyyyMMdd'),
+			A.ISSUE_DT,
+			A.IO_RSN,
+			A.IO_STRT_DT,
+			A.IO_END_DT,
+			A.EXTN_STRT_DT,
+			A.EXTN_END_DT,
+			A.EXTN_RSN,
+			A.CARD_NO,
+			A.GATE,
+			A.GATE_RSN,
+			A.AMT_INFO,
+			(SELECT MAX(B.COMP_ID) FROM IO_EMP_COM_MOVE B WHERE B.MOVE_APPL_NO = #{moveApplNo}) AS COMP_ID,
+			(SELECT MAX(B.DEPT_ID) FROM IO_EMP_COM_MOVE B WHERE B.MOVE_APPL_NO = #{moveApplNo}) AS DEPT_ID,
+			(SELECT MAX(B.JW_ID) FROM IO_EMP_COM_MOVE B WHERE B.MOVE_APPL_NO = #{moveApplNo}) AS JW_ID,
+			(SELECT MAX(B.EMP_ID) FROM IO_EMP_COM_MOVE B WHERE B.MOVE_APPL_NO = #{moveApplNo}) AS EMP_ID,
+			'A0091002',
+			A.APPR_YN,
+			'',
+			A.DEL_YN,
+			A.AC_IP,
+			(SELECT MAX(B.EMP_ID) FROM IO_EMP_COM_MOVE B WHERE B.MOVE_APPL_NO = #{moveApplNo}) AS CRT_BY,
+			SYSDATE,
+			A.REISSUE_RSN,
+			A.ACCEPT_YN,
+			A.CANCEL_RSN,
+			A.APPL_STAT,
+			A.CARDKEY_GATE,
+			A.REST_YN,
+			A.REST_CHK,
+			A.USE_YN,
+			A.IDCARD_ID,
+			A.EXPR_YN,
+			A.EXPR_EMP_ID,
+			A.EXPR_DT,
+			A.EXPR_RSN,
+			A.EXTENTION_YN,
+			A.RCV_COMP_ID
+		FROM IO_PASS A
+		WHERE A.PASS_APPL_NO = #{oldPassApplNo}
+	</insert>
+
+	<insert id="insertSubcontMoveIfIdcard" parameterType="Map">
+		INSERT INTO IF_IDCARD (
+			SCHEMA_NM,
+			APPL_NO,
+			STATUS,
+			CARD_NO,
+			IDCARD_ID,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		)
+		SELECT
+			'PASS',
+			#{newPassApplNo},
+			'10',
+			A.CARD_NO,
+			A.IDCARD_ID,
+			#{crtBy},
+			SYSDATE,
+			'SYSTEM',
+			SYSDATE
+		FROM IO_PASS A
+		WHERE A.PASS_APPL_NO = #{oldPassApplNo}
+	</insert>
+
+	<select id="selectSubcontMoveIfEntrance" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+	        #{newPassApplNo} AS ES_SN,
+	        '' AS HEIF_INDATE,
+	        FN_GET_CODE( 'A007', A.ALTEMP_GBN, 'DETL_CD') AS ENTRANCE_TYPE,
+	        '정보변경' AS ISSUE_TYPE,
+	        0 AS CAUSE_TYPE,
+
+        	'Z08' AS ENTER_COMPANY_CODE,
+	        'SK하이닉스시스템아이씨' AS ENTER_COMPANY_NAME,
+	        DECODE(B.NATION, 'Z0011001', SUBSTR(B.JUMIN_NO, 1, 6), B.PASSPORT_NO) AS PERSONAL_NO,
+	        (SELECT EMAIL_ADDR FROM IO_EMP WHERE IO_EMP_ID =  E.ADMIN1_EMAIL) AS COMPANY_EMAIL1,
+	        B.FILE_PHOTO  AS ATTACH1_NAME,
+			'image/jpeg' AS ATTACH1_TYPE,
+	        A.COMP_ID AS AREA_CODE,
+	        FN_GET_COMP_NM(NVL(A.RCV_COMP_ID,A.COMP_ID)) AS AREA_NAME,
+	        A.IDCARD_ID AS INEMP_ID,
+	        A.TAG_GBN,
+	        B.EMAIL_ADDR,
+
+	        F.DEPT_DIV_CD AS ENTER_DIV_CODE,
+	        FN_GET_DEPT_DIV_NM(F.DEPT_DIV_CD, F.COMP_ID) AS ENTER_DIV_NAME,
+	        A.CARD_NO AS CARD_NO,
+	        B.EMP_NM AS NAME_KOR,
+	        ''  AS NAME_ENG,
+
+	        ''  AS RANK_CODE,
+	        B.JW_NM AS RANK_NAME,
+	        ''  AS DIV_CODE,
+	        ''  AS DIV_NAME,
+	        C.TEL_NO2 AS TEL1_NO,
+	        ''  AS TEL2_NO,
+	        B.HP_NO AS TEL3_NO,
+	        ''  AS HOME1_ADDRESS,
+	        B.ADDR||' '||B.ADDR2    AS HOME2_ADDRESS,
+	        E.IO_COMP_ID AS COMPANY_CODE,
+	        E.COMP_KO_NM  AS COMPANY_NAME,
+	        E.ADDR||' '||E.ADDR2 AS COMPANY_ADDRESS,
+
+	        E.BOSS_NM AS CHIEF_NAME,
+	        '' AS CHIEF_PERSONAL_NO,
+	        FN_GET_CODE_IDCARD('A020', A.LOSO_GBN) AS WORK_TYPE,
+			A.IO_RSN AS WHY_ENTER,
+	        '' AS OLD_START_DATE,
+	        '' AS OLD_END_DATE,
+	        CASE WHEN A.APPLY_GBN = 'A0061003' THEN SUBSTR(A.EXTN_STRT_DT, 1, 4)||'-'||SUBSTR(A.EXTN_STRT_DT, 5, 2)||'-' ||SUBSTR(A.EXTN_STRT_DT, 7, 2) ELSE SUBSTR(A.IO_STRT_DT,   1, 4)||'-'||SUBSTR(A.IO_STRT_DT,   5, 2)||'-' ||SUBSTR(A.IO_STRT_DT,   7, 2) END AS ENTER_START_DATE,
+	        CASE WHEN A.APPLY_GBN = 'A0061003' THEN SUBSTR(A.EXTN_END_DT,  1, 4)||'-'||SUBSTR(A.EXTN_END_DT,  5, 2)||'-' ||SUBSTR(A.EXTN_END_DT,  7, 2) ELSE SUBSTR(A.IO_END_DT,    1, 4)||'-'||SUBSTR(A.IO_END_DT,    5, 2)||'-' ||SUBSTR(A.IO_END_DT,    7, 2) END AS ENTER_END_DATE,
+	        C.EMP_ID AS REG_ID,
+	        C.EMP_NM AS REG_NAME,
+	        F.DEPT_DIV_CD AS REG_DIV_CODE,
+	        FN_GET_DEPT_DIV_NM(F.DEPT_DIV_CD, F.COMP_ID) AS REG_DIV_NAME,
+	        C.TEL_NO2 AS REG_TEL_NO,
+	        D.JW_ID AS REG_RANK_CODE,
+	        D.JW_NM AS REG_RANK_NAME,
+	        TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS REG_DATE,
+	        '10' AS PROCESS_STATUS,
+	        TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS PROCESS_DATE,
+			A.CARDKEY_GATE AS GATE,
+	        '' AS RESIDE_NAME,
+	        DECODE(B.NATION, 'Z0011001', 'N', 'Y') AS PASSPORT,
+	        A.SM_TAG_ID,
+	        '8' AS REISSUE_TYPE,
+	        (SELECT EMAIL_ADDR FROM IO_EMP WHERE IO_EMP_ID = H.ADMIN1_EMAIL) AS COMPANY_EMAIL2,
+	        H.IO_COMP_ID AS AFT_COMPANY_CODE,
+	        H.COMP_KO_NM AS AFT_COMPANY_NAME,
+	        H.ADDR || ' ' || H.ADDR2 AS AFT_COMPANY_ADDRESS,
+	        H.BOSS_NM AS AFT_CHIEF_NAME
+		FROM IO_PASS A, IO_EMP B, CO_EMP C, CO_JW D, IO_COMP E, CO_DEPT F, IO_PASS G, IO_COMP H
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.EMP_ID = C.EMP_ID
+		AND A.JW_ID = D.JW_ID
+		AND A.IO_COMP_ID = E.IO_COMP_ID
+		AND A.DEPT_ID = F.DEPT_ID
+		AND G.IO_EMP_ID = B.IO_EMP_ID
+	    AND G.IO_COMP_ID = H.IO_COMP_ID
+	    AND G.PASS_APPL_NO = #{newPassApplNo}
+		AND A.PASS_APPL_NO = #{oldPassApplNo}
+	</select>
+
+	<insert id="insertSubcontMoveIfEntranceSi" parameterType="Map">
+		INSERT INTO HEIF8_ENTRANCE_INFO (
+			ES_SN
+			HEIF_INDATE
+			ENTRANCE_TYPE
+			ISSUE_TYPE
+			CAUSE_TYPE
+			ENTER_COMPANY_CODE
+			ENTER_COMPANY_NAME
+			ENTER_DIV_CODE
+			ENTER_DIV_NAME
+			CARD_NO
+			NAME_KOR
+			NAME_ENG
+			PERSONAL_NO
+			RANK_CODE
+			RANK_NAME
+			DIV_CODE
+			DIV_NAME
+			TEL1_NO
+			TEL2_NO
+			TEL3_NO
+			HOME1_ADDRESS
+			HOME2_ADDRESS
+			COMPANY_CODE
+			COMPANY_NAME
+			COMPANY_ADDRESS
+			COMPANY_EMAIL1
+			CHIEF_NAME
+			CHIEF_PERSONAL_NO
+			WORK_TYPE
+			WHY_ENTER
+			OLD_START_DATE
+			OLD_END_DATE
+			ENTER_START_DATE
+			ENTER_END_DATE
+			ATTACH1_NAME
+			ATTACH1_TYPE
+			REG_ID
+			REG_NAME
+			REG_DIV_CODE
+			REG_DIV_NAME
+			REG_RANK_CODE
+			REG_RANK_NAME
+			REG_TEL_NO
+			REG_DATE
+			PROCESS_STATUS
+			PROCESS_DATE
+			GATE
+			RESIDE_NAME
+			PASSPORT
+			AREA_CODE
+			AREA_NAME
+			INEMP_ID
+			TAG_GBN
+			SM_TAG_ID
+			EMAIL_ADDR
+			REISSUE_TYPE
+		) VALUES (
+			#{esSn},
+			GETDATE(),
+			#{entranceType},
+			#{issueType},
+			#{causeType},
+			#{enterCompanyCode},
+			#{enterCompanyName},
+			#{enterDivCode},
+			#{enterDivName},
+			#{cardNo},
+			#{nameKor},
+			#{nameEng},
+			#{personalNo},
+			#{rankCode},
+			#{rankName},
+			#{divCode},
+			#{divName},
+			#{tel1No},
+			#{tel2No},
+			#{tel3No},
+			#{home1Address},
+			#{home2Address},
+			#{aftCompanyCode},
+			#{aftCompanyName},
+			#{aftCompanyAddress},
+			#{companyEmail2},
+			#{aftChiefName},
+			#{chiefPersonalNo},
+			#{workType},
+			#{whyEnter},
+			#{oldStartDate},
+			#{oldEndDate},
+			#{enterStartDate},
+			#{enterEndDate},
+			#{attach1Name},
+			#{attach1Type},
+			#{regId},
+			#{regName},
+			#{regDivCode},
+			#{regDivName},
+			#{regRankCode},
+			#{regRankName},
+			#{regTelNo},
+			#{regDate},
+			#{processStatus},
+			#{processDate},
+			#{gate},
+			#{resideName},
+			#{passport},
+			#{areaCode},
+			#{areaName},
+			#{inempId},
+			#{tagGbn},
+			#{smTagId},
+			#{emailAddr},
+			#{reissueType}
+		)
+	</insert>
+
+	<update id="updateIoComp" parameterType="Map">
+		UPDATE IO_COMP SET
+			FILE_LEGAL = #{fileLegal},
+			FILE_OATH = #{fileOath},
+			FILE_POA = #{filePoa},
+			ADMIN1_EMAIL = #{admin1Email},
+			ADMIN1_TEL_NO = #{admin1TelNo},
+			COMP_ID = #{compId},
+			DEPT_ID = #{deptId},
+			EMP_ID = #{empId},
+			JW_ID = #{jwId},
+			APPR_YN = #{apprYn},
+			DOC_ID = #{docId},
+			TEMP_ADMIN_EMAIL = '',
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE IO_COMP_ID = REPLACE(#{ioCompId}, '-', '')
+	</update>
+
+	<update id="updateCoorpVendorAdminApprRecevieReject" parameterType="Map">
+		UPDATE IO_COMP SET
+		     FILE_LEGAL = ''
+		    ,FILE_OATH = ''
+		    ,FILE_POA = ''
+		    ,ADMIN1_EMAIL = ''
+		    ,ADMIN1_TEL_NO = ''
+		    ,COMP_ID = ''
+		    ,DEPT_ID = ''
+		    ,JW_ID = ''
+		    ,EMP_ID = ''
+		    ,APPR_YN = #{apprYn}
+		    ,DOC_ID = ''
+		    ,AC_IP = #{acIp}
+		    ,MOD_BY = #{modBy}
+		    ,MOD_DTM = SYSDATE
+		WHERE IO_COMP_ID = REPLACE(#{ioCompId}, '-', '')
+	</update>
+
+	<update id="updateCoorpVendorAdminApprRecevieReject2" parameterType="Map">
+		UPDATE IO_COMP SET
+			TEMP_ADMIN_EMAIL = ''
+		WHERE IO_COMP_ID = REPLACE(#{ioCompId}, '-', '')
+	</update>
+
+	<update id="updateCoorpVendorInfoSubcontYn" parameterType="Map">
+		UPDATE IO_COMP SET
+			SUBCONT_YN = #{subcontYn}
+		WHERE IO_COMP_ID = REPLACE(#{ioCompId}, '-', '')
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 상세 > 대표관리자초기화 - initRepresentAdmin (ASIS : dmInitRepresentAdmin ) -->
+	<update id="initRepresentAdmin" parameterType="Map" >
+		/* [SI] 방문객 관리(제한관리) > 상세 > 대표관리자초기화 - initRepresentAdmin */
+		UPDATE io_comp
+		SET FILE_LEGAL    = ''
+		  , FILE_OATH     = ''
+		  , FILE_POA      = ''
+		  , ADMIN1_EMAIL  = ''
+		  , ADMIN1_TEL_NO = ''
+		  , COMP_ID       = ''
+		  , DEPT_ID       = ''
+		  , JW_ID         = ''
+		  , EMP_ID        = ''
+		  , DOC_ID        = ''
+		  , APPR_YN       = 'Z0331001'
+		  , MOD_DTM = SYSDATE
+		  , MOD_BY= #{modBy}
+		WHERE REPLACE(IO_COMP_ID, '-', '')  = REPLACE(#{ioCompId}, '-', '')
+	</update>
+
+	<!-- [SI] 방문객 관리(제한관리)  > 출입제한 이력 Seq  - offLimitsIoEmpDenySeq (ASIS : dmOffLimitsIoEmpDenySeq ) -->
+	<select id="offLimitsIoEmpDenySeq" resultType="java.lang.String">
+		/* [SI] 방문객 관리(제한관리)  > 출입제한 이력 Seq  - offLimitsIoEmpDenySeq  */
+    	SELECT SEQ_IO_EMP_DENY.NEXTVAL AS SEQ_IO_EMP_DENY
+    	  FROM DUAL
+	</select>
+
+	<!-- [SI] 방문객 관리(제한관리)  > 출입제한 이력 등록  - offLimitsHistoryInsert (ASIS : dmOffLimitsHistoryInsert ) -->
+	<insert id="offLimitsHistoryInsert" parameterType="Map">
+		/* [SI] 방문객 관리(제한관리)  > 출입제한 이력 등록  - offLimitsHistoryInsert  */
+		INSERT INTO IO_EMP_DENY
+		(
+		   DENY_NO,
+		   IO_EMP_ID,
+		   DENY_STRT_DT,
+		   DENY_END_DT,
+		   DENY_CTG_CD,
+		   DENY_RSN,
+		   DEL_YN,
+		   AC_IP,
+		   CRT_DTM,
+		   CRT_BY
+		   <if test='!"HN".equals(siteType)'>
+		   , APPLY_YN
+   		   , APPLY_DTM
+		   </if>
+		   <if test='"HN".equals(siteType)'>
+		   , HS_DENY_NO
+		   , SI_DENY_NO
+		   </if>
+		)
+		VALUES (
+			#{seqIoEmpDeny},
+			#{ioEmpId},
+			#{denyStrtDt},
+			#{denyEndDt},
+			#{denyCtgCd},
+			#{denyRsn},
+			'N',
+			#{acIp},
+			SYSDATE,
+			#{crtBy}
+			<if test='!"HN".equals(siteType)'>
+			, 'Y'
+   			, SYSDATE
+			</if>
+			<if test='"HN".equals(siteType)'>
+		    , #{hsDenyNo}
+		    , #{siDenyNo}
+		   </if>
+		)
+	</insert>
+
+	<!-- [SI] 방문객 관리(제한관리) > 이전 출입증 여부체크  - passMst2Check (ASIS : dmPassMst2Check ) -->
+	<select id="passMst2Check" parameterType="Map" resultType="CamelHashMap">
+		/* [SI] 방문객 관리(제한관리) > 이전 출입증 여부체크 - passMst2Check */
+		<![CDATA[
+		SELECT  IO_EMP_ID,
+			CARD_NO,
+			SMART_IDCARD
+	    FROM VW_IO_PASS_MST2
+	    WHERE IO_EMP_ID =  #{ioEmpId}
+	        /* AND STOP_YN = 'N' 상시출입증 정지/정지해제시 해당 내용의 비 정규데이터로 인한 오작동 해결을 위함 HSK 20210309 */
+	     AND MP_GBN = 'P'
+	     AND STATUS <> 'A0091010'	/* 반납된 출입증은 제외*/
+	     AND rownum = 1
+	     ]]>
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 출입 외부 제한 이력 Seq  - offLimitsIoPassExprHistSeq (ASIS : dmOffLimitsIoPassExprHistSeq ) -->
+	<select id="offLimitsIoPassExprHistSeq" resultType="java.lang.String">
+		/* [SI]방문객 관리(제한관리) > 출입 외부 제한 이력 Seq  - offLimitsIoPassExprHistSeq */
+		SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL  AS EXPR_APPL_NO
+		  FROM DUAL
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 출입 외부 제한 이력 등록  - offLimitsExprHistoryInsert (ASIS : dmOffLimitsExprHistoryInsert ) -->
+	<insert id="offLimitsExprHistoryInsert" parameterType="Map" >
+		/* [SI]방문객 관리(제한관리) > 출입 외부 제한 이력 등록  - offLimitsExprHistoryInsert */
+		INSERT INTO IO_PASS_EXPR_HIST
+		(
+		  EXPR_APPL_NO
+		, EXPR_GBN
+		, IO_COMP_ID
+		, IO_EMP_ID
+		, IDCARD_ID
+		, CARD_NO
+		, COMP_ID
+		, DEPT_ID
+		, JW_ID
+		, EMP_ID
+		, EXPR_RSN
+		, EXPR_STRT_DT
+		, EXPR_END_DT
+		, AC_IP
+		, CRT_BY
+		, CRT_DTM
+		, S_C_GBN
+		) VALUES
+		(
+      	  #{exprApplNo}
+		, #{exprGbn}
+		, #{ioCompId}
+		, #{ioEmpId}
+		, #{smartIdcard}
+		, #{cardNo}
+		, #{compId}
+		, #{deptId}
+		, #{jwId}
+		, #{crtBy}
+		, #{denyRsn}
+		, replace(#{denyStrtDt},'-','')
+		, replace(#{denyEndDt},'-','')
+		, #{acIp}
+		, #{crtBy}
+		, SYSDATE
+		, #{sCGbn}
+		)
+	</insert>
+
+	<!-- [SI]방문객 관리(제한관리) > 날짜변경 - offLimitsDenyDateUpdate (ASIS : dmOffLimitsHistoryUpdate ) -->
+	<update id="offLimitsDenyDateUpdate" parameterType="Map">
+		/* [SI]방문객 관리(제한관리) > 날짜변경 - offLimitsDenyDateUpdate */
+		UPDATE IO_EMP_DENY
+		   SET DEL_YN = 'Y'
+		     , DENY_END_DT = #{denyEndDt}
+		     , DENY_RSN = #{denyRsn}
+		     , MOD_BY = #{modBy}
+		     , MOD_DTM = SYSDATE
+		 WHERE IO_EMP_ID = #{ioEmpId}
+		   AND DENY_NO = #{denyNo}
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 가입승인/전산탈퇴(delYn: N.가입승인, Y.전산탈퇴) - changeUserStatus  (ASIS : dmChangeUserStatus ) -->
+	<update id="changeUserStatus" parameterType="Map">
+		/* [SI]방문객 관리(제한관리) > 가입승인/전산탈퇴(delYn: N.가입승인, Y.전산탈퇴) - changeUserStatus  (ASIS : dmChangeUserStatus ) */
+		UPDATE IO_EMP
+		   SET DEL_YN = #{delYn},
+		       MOD_BY = #{modBy},
+		       MOD_DTM = SYSDATE
+	     WHERE IO_EMP_ID = #{ioEmpId}
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 출입증 Count  - ioInOutCount (ASIS : dmIoInOutCount ) -->
+	<select id="ioInOutCount" parameterType="Map" resultType="java.lang.String">
+		/* [SI]방문객 관리(제한관리) > 출입증 Count  - ioInOutCount */
+		<![CDATA[
+		SELECT COUNT(IO.INOUT_APPL_NO) AS INOUT_CNT
+		  FROM IO_INOUTWRITE IO
+		 WHERE IO.IO_EMP_ID = #{ioEmpId}
+		   AND IO.IO_COMP_ID = #{ioCompId}
+		   AND IO.FINISHKND <> 1
+		]]>
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 업체물품 반인신청 List - inIoEmpExistIoinoutChgItemList (ASIS : dmInIoEmpExistIoinoutChgItemList ) -->
+	<select id="inIoEmpExistIoinoutChgItemList" parameterType="Map"  resultType="CamelHashMap">
+		/* [SI]방문객 관리(제한관리) > 업체물품 반인신청 List - inIoEmpExistIoinoutChgItemList */
+		<![CDATA[
+		 SELECT IOA.INOUT_APPL_NO, IO.IOINOUTSERIALNO, IOA.ITEM_SEQ
+		 		, IO.IO_EMP_ID, IO.IO_EMP_NM, IO.IO_COMP_ID, IO.IO_COMP_NM
+		 		, IOA.ITEM_NM, IOA.SERIAL_NO, IOA.MODEL_NM, IOA.IN_QTY
+		 		, IOA.UNIT_CD, NVL(IOA.OUT_QTY,0) AS OUT_QTY
+	       FROM IO_INOUTWRITE IO
+	          , IO_INOUTARTICLELIST IOA
+	      WHERE IO.IO_EMP_ID = #{ioEmpId}
+	        AND IO.IO_COMP_ID = #{ioCompId}
+	        AND IO.FINISHKND <> 1
+	        AND IO.INOUT_APPL_NO = IOA.INOUT_APPL_NO
+	      ORDER BY IOA.INOUT_APPL_NO DESC
+	             , IOA.ITEM_SEQ
+	    ]]>
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 신청자ID -> 대표관리자ID로 변경  - inIoEmpInfoIoInOutChg  (ASIS : dmInIoEmpInfo_IoInOutChg ) -->
+	<update id="inIoEmpInfoIoInOutChg" parameterType="Map">
+		/* [SI]방문객 관리(제한관리) > 신청자ID -> 대표관리자ID로 변경  - inIoEmpInfoIoInOutChg */
+		<![CDATA[
+        UPDATE IO_INOUTWRITE IO
+        SET IO_EMP_ID = (SELECT B.IO_EMP_ID FROM IO_COMP A, IO_EMP B WHERE A.IO_COMP_ID = #{ioCompId} AND A.ADMIN1_EMAIL = B.IO_EMP_ID),
+            IO_EMP_NM = (SELECT B.EMP_NM FROM IO_COMP A, IO_EMP B WHERE A.IO_COMP_ID = #{ioCompId} AND A.ADMIN1_EMAIL = B.IO_EMP_ID),
+            IO_EMP_CHG_RSN = '대표관리자 퇴직확인',
+            MOD_BY = #{ioEmpId},
+            MOD_DTM = SYSDATE
+        WHERE IO.IO_EMP_ID = #{ioEmpId}
+        AND IO.IO_COMP_ID = #{ioCompId}
+        AND IO.FINISHKND <> 1
+        ]]>
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 전산탈퇴 > violationCount - ioEmpViolationCount (ASIS : dmIoEmpViolationCount ) -->
+	<select id="ioEmpViolationCount" parameterType="Map" resultType="Integer">
+		/* [SI]방문객 관리(제한관리) > 전산탈퇴 > violationCnt - ioEmpViolationCount */
+		SELECT COUNT(*) AS VIOLATION_CNT FROM (
+		    SELECT A.OFEND_EMP_ID
+		      , A.OFEND_DT
+		      , A.ACT_DO
+		      , (
+		            SELECT DETL_NM
+		            FROM CO_CODE_D
+		            WHERE DETL_CD = B.APPR_GBN
+		        ) AS APPR_GBN_NM
+		        /*, count(*) over(partition by a.ofend_emp_id, b.appr_gbn) as cnt, a.del_yn, b.del_yn*/
+		    FROM SC_IO_OFEND A
+		      , SC_IO_CORR_PLAN B
+		    WHERE A.SC_IO_DOC_NO = B.SC_IO_DOC_NO(+)
+		    AND A.DEL_YN         ='N'
+		    AND A.OFEND_EMP_ID   =#{ioEmpId}
+		    AND
+		        (
+		        /* 시정계획서 징구 or 시정공문 징구 */
+		            A.ACT_DO IS NULL
+		         OR A.ACT_DO IN ('C0280002', 'C0280006')
+		        )
+		    AND
+		        (
+		        /* 승인, 제한 해제 아닌 건이 존재 */
+		            B.APPR_GBN     IS NULL
+		         OR B.APPR_GBN NOT IN ('Z0401003', 'Z0401006')
+		        )
+		)
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 전산탈퇴 > gateInCount - ioEmpGateOutCheck (ASIS : dmIoEmpGateOutCheck ) -->
+	<select id="ioEmpGateOutCheck" parameterType="Map" resultType="Integer">
+		/* [SI]방문객 관리(제한관리) > 전산탈퇴 > gateInCount - ioEmpGateOutCheck */
+		SELECT COUNT(*) AS GATE_IN_CNT
+		  FROM IO_VST_MAN_GATE_IO
+		 WHERE IO_EMP_ID = #{ioEmpId}
+		   AND VST_SEQ = 1
+		   AND IOKND = 1			/* Gate In */
+		   AND DEL_YN = 'N'
+	</select>
+
+
+	<!-- [SI]방문객 관리(제한관리) > 전산탈퇴 > ioCount - ioEmpInOutCount (ASIS : dmIoInOutCount ) -->
+	<select id="ioEmpInOutCount" parameterType="Map" resultType="Integer">
+		/* [SI]방문객 관리(제한관리) > 전산탈퇴 > ioCount - ioInOutCount */
+		<![CDATA[
+		 SELECT COUNT(IO.INOUT_APPL_NO) AS CNT
+		   FROM IO_INOUTWRITE IO
+		  WHERE IO.IO_EMP_ID = #{ioEmpId}
+		    AND IO.IO_COMP_ID = #{ioCompId}
+		    AND IO.FINISHKND <> 1
+		    AND IO.MOD_BY <> 'AUTODEL'
+		]]>
+	</select>
+
+	<!-- [SI]방문객 관리(제한관리) > 임시비밀번호발송 > 임시비밀번호 Update  - ioEmpPasswordUpdate (ASIS : dmIoEmpPassword_U ) -->
+	<update id="ioEmpPasswordUpdate" parameterType="Map" >
+		/* [SI]방문객 관리(제한관리) > 임시비밀번호발송 > 임시비밀번호 Update  - ioEmpPasswordUpdate */
+		UPDATE IO_EMP
+	       SET PASSWORD = DAMO.HASH_STR_DATA(#{nPassword}),
+	           LST_PW_DT = TO_CHAR(SYSDATE, 'YYYYMMDD'),
+	           LOGIN_CT = 0
+	     WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+		   AND IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 출입제한이력 해제  Update - offLimitsHistoryUpdate (ASIS : dmOffLimitsHistoryUpdate ) -->
+	<update id="offLimitsHistoryUpdate" parameterType="Map">
+		/* [SI]방문객 관리(제한관리) > 출입제한이력 해제  Update - offLimitsHistoryUpdate */
+		UPDATE IO_EMP_DENY
+		   SET DEL_YN = 'Y'
+		     , MOD_BY = #{modBy}
+		     , MOD_DTM = SYSDATE
+		     <if test="not @org.springframework.util.StringUtils@isEmpty(denyRsn)">
+		     , DENY_RSN = #{denyRsn}
+		     </if>
+		 WHERE IO_EMP_ID = #{ioEmpId}
+		   AND DENY_NO = #{denyNo}
+	</update>
+
+	<!-- [SI]방문객 관리(제한관리) > 출입제한이력 카드ID - offLimitsGetCardNo (ASIS : dmOffLimitsGetCardNo ) -->
+	<select id="offLimitsGetCardNo" parameterType="Map" resultType="java.lang.String">
+		/* [SI]방문객 관리(제한관리) > 출입제한이력 카드ID - offLimitsGetCardNo */
+		SELECT NVL(MAX(SMART_IDCARD),'----------') as IDCARD
+		  FROM VW_IO_PASS_MST2 A
+		 WHERE A.IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<select id="selectIoEmpVioCnt" parameterType="Map" resultType="Integer">
+		/* EsecuritySiRepository.selectIoEmpVioCnt (dmKioskIF_IoEmpVioCnt) */
+		SELECT
+			COUNT(*) AS VIO_CNT
+		FROM IO_EMP A, SC_IO_OFEND D, SC_IO_CORR_PLAN E
+		WHERE A.IO_EMP_ID = E.IO_EMP_ID
+		AND D.SC_IO_DOC_NO = E.SC_IO_DOC_NO
+		AND D.CORR_PLAN_SEND_YN = 'C0101002'
+		AND E.APPR_GBN != 'Z0401003'
+		AND D.DEL_YN='N'
+		AND A.IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<select id="selectPassMst2" parameterType="Map" resultType="Integer">
+		/* EsecuritySiRepository.selectPassMst2 (dmGetPassMst2) */
+		SELECT
+			COUNT(IO_EMP_ID) AS CNT
+		FROM VW_IO_PASS_MST2
+		WHERE IO_EMP_ID = #{ioEmpId}
+		AND STATUS <![CDATA[ <> ]]> 'A0091010' /* 반납된 출입증은 제외*/
+		AND MP_GBN !='M' /* 사원증 제외 */
+		AND STOP_YN = 'N'
+	</select>
+
+	<update id="updateVisitIoEmpCompId" parameterType="Map">
+		/* EsecuritySiRepository.updateVisitIoEmpCompId (dmIoEmpCompIdUpdate) */
+		UPDATE IO_EMP SET
+			IO_COMP_ID = #{newIoCompId}
+		WHERE IO_EMP_ID = #{ioEmpId}
+		AND IO_COMP_ID = #{ioCompId}
+	</update>
+
+	<update id="updateVisitIoInoutCompId" parameterType="Map">
+		/* EsecuritySiRepository.updateVisitIoInoutCompId (dmIoInoutCompIdUpdate) */
+		UPDATE IO_INOUTWRITE IO SET
+			IO_COMP_ID = #{newIoCompId},
+			IO_COMP_NM = FN_GET_IO_COMP_KO_NM(#{newIoCompId}),
+			IO_EMP_CHG_RSN = '소속업체변경신청승인',
+			MOD_BY = #{crtBy},
+			MOD_DTM = SYSDATE
+		WHERE IO.IO_EMP_ID = #{ioEmpId}
+		AND IO.IO_COMP_ID = #{ioCompId}
+		AND IO.FINISHKND <![CDATA[ <> ]]> 1
+	</update>
+
+	<insert id="insertOffLimitsCompChgExprHist" parameterType="Map">
+		/* EsecuritySiRepository.insertOffLimitsCompChgExprHist (dmOffLimitsCompChgExprHistInsert) */
+		INSERT INTO IO_PASS_EXPR_HIST (
+			EXPR_APPL_NO,
+			EXPR_GBN,
+			IO_COMP_ID,
+			IO_EMP_ID,
+			IDCARD_ID,
+			CARD_NO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			EXPR_IO_COMP_ID,
+			EXPR_IO_EMP_ID,
+			EXPR_RSN,
+			EXPR_STRT_DT,
+			EXPR_END_DT,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			S_C_GBN
+		)
+		SELECT
+			SEQ_IO_PASS_EXPR_HIST.NEXTVAL,
+			'A0460010',
+			A.IO_COMP_ID,
+			A.IO_EMP_ID,
+			C.SMART_IDCARD AS IDCARD_ID,
+			C.CARD_NO,
+			B.COMP_ID,
+			B.DEPT_ID,
+			B.JW_ID,
+			B.EMP_ID,
+			'',
+			'',
+			'소속변경',
+			TO_CHAR(SYSDATE, 'yyyyMMdd'),
+			'29991231',
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE,
+			'S'
+		FROM IO_EMP A
+		LEFT JOIN CO_EMP B
+		ON B.EMP_ID = #{crtBy}
+		LEFT JOIN VW_IO_PASS_MST2 C
+		ON C.IO_EMP_ID = #{ioEmpId}
+		WHERE A.IO_EMP_ID = #{ioEmpId}
+	</insert>
+
+	<select id="selectOffLimitsExprHistSeq" parameterType="Map" resultType="CamelHashMap">
+		/* EsecuritySiRepository.selectOffLimitsExprHistSeq (dmOffLimitsExprHistSeqSelect) */
+		SELECT
+			MAX(A.EXPR_APPL_NO) AS EXPR_APPL_NO,
+			B.IDCARD_ID AS IDCARD_ID
+		FROM IO_PASS_EXPR_HIST A,
+		(
+			SELECT
+				IDCARD_ID,
+				IO_EMP_ID FROM IO_PASS
+			WHERE PASS_APPL_NO = (SELECT MAX(PASS_APPL_NO) AS PASS_APPL_NO FROM IO_PASS WHERE IDCARD_ID IS NOT NULL AND IO_EMP_ID = #{ioEmpId})
+		) B
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.IO_EMP_ID = #{ioEmpId}
+		GROUP BY B.IDCARD_ID
+	</select>
+
+</mapper>

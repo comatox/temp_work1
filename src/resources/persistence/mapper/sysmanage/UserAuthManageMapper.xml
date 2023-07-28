@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.UserAuthManageRepository">
+
+	<select id="selectUserAuthList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+		    *
+		FROM (    
+		    SELECT
+		        ROW_NUMBER()  OVER (ORDER BY COMP_ID,  EMP_ID ASC, DEPT_ID DESC) as ROW_NUM
+		        ,T.*  
+		    FROM (
+		        SELECT
+		            T1.EMP_ID
+		            ,T1.EMP_NM
+		            ,T1.DEPT_ID
+		            ,T2.DEPT_NM
+		            ,T1.COMP_ID
+		            ,T3.COMP_NM
+		            ,T1.JW_ID
+		            ,T4.JW_NM
+		            ,T1.AUTH_CNT
+								,T1.JC_CD
+		        FROM (
+		            SELECT
+		                A.EMP_ID
+		                ,A.EMP_NM
+		                ,A.DEPT_ID
+		                ,A.JW_ID
+		                ,A.COMP_ID
+										,A.DIV_CD
+										,A.JC_CD
+										,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'F003' AND ETC1=A.DIV_CD AND USE_YN = 'Y') AS DIV_NM
+										,COUNT((select aa.auth_id from co_auth aa where aa.AUTH_KND = #{searchAuthKnd} and aa.auth_id = B.AUTH_ID)) as AUTH_CNT
+		                <if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+										,SUM(DECODE(B.AUTH_ID, #{searchAuth}, 1, 0)) as WHERE_CNT
+										</if>
+		            FROM
+		                CO_EMP A
+		                ,CO_EMP_AUTH B
+		            WHERE
+		                A.EMP_ID = B.EMP_ID(+)
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+											AND A.DIV_CD = #{searchDivCd}
+										</if>
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+											AND A.COMP_ID = #{searchCompId}
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+											AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{searchEmpNm}) || '%'
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+											AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{searchEmpId}) || '%'
+										</if>
+		            GROUP BY A.EMP_ID ,A.EMP_NM ,A.DEPT_ID ,A.JW_ID, A.COMP_ID, A.DIV_CD, A.JC_CD
+		            ) T1
+		            ,CO_DEPT T2
+		            ,CO_COMP T3
+		            ,CO_JW T4
+		        WHERE 1=1
+		            AND T1.DEPT_ID = T2.DEPT_ID(+)
+		            AND T1.COMP_ID = T3.COMP_ID(+)
+		            AND T1.JW_ID = T4.JW_ID(+)
+		            <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+									AND UPPER(T2.DEPT_NM) LIKE '%' || UPPER(#{searchDeptNm}) || '%'
+								</if>
+								<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+									AND T1.WHERE_CNT > 0
+								</if>
+		    	) T
+		) T2
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+
+	</select>
+	
+	<select id="selectUserAuthListCnt" parameterType="hashMap" resultType="Integer">
+		SELECT
+		    NVL(MAX(ROW_NUM), 0) as TOT_CNT
+		FROM (    
+		    SELECT
+		        ROW_NUMBER()  OVER (ORDER BY COMP_ID,  EMP_ID ASC, DEPT_ID DESC) as ROW_NUM
+		        ,T.*  
+		    FROM (
+		        SELECT
+		            T1.EMP_ID
+		            ,T1.EMP_NM
+		            ,T1.DEPT_ID
+		            ,T2.DEPT_NM
+		            ,T1.COMP_ID
+		            ,T3.COMP_NM
+		            ,T1.JW_ID
+		            ,T4.JW_NM
+		            ,T1.AUTH_CNT
+		        FROM (
+		            SELECT
+		                A.EMP_ID
+		                ,A.EMP_NM
+		                ,A.DEPT_ID
+		                ,A.JW_ID
+		                ,A.COMP_ID
+		                ,COUNT(B.AUTH_ID) as AUTH_CNT
+		                <if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+											,SUM(DECODE(B.AUTH_ID, #{searchAuth}, 1, 0)) as WHERE_CNT
+										</if>
+		            FROM
+		                CO_EMP A
+		                ,CO_EMP_AUTH B
+		            WHERE
+		                A.EMP_ID = B.EMP_ID(+)
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+											AND A.DIV_CD = #{searchDivCd}
+										</if>
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+											AND A.COMP_ID = #{searchCompId}
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+											AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{searchEmpNm}) || '%'
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+											AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{searchEmpId}) || '%'
+										</if>
+								GROUP BY A.EMP_ID ,A.EMP_NM ,A.DEPT_ID ,A.JW_ID, A.COMP_ID,  A.DIV_CD, A.JC_CD
+								) T1
+								,CO_DEPT T2
+								,CO_COMP T3
+								,CO_JW T4
+							WHERE 1=1
+									AND T1.DEPT_ID = T2.DEPT_ID(+)
+									AND T1.COMP_ID = T3.COMP_ID(+)
+									AND T1.JW_ID = T4.JW_ID(+)
+		            <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+									AND UPPER(T2.DEPT_NM) LIKE '%' || UPPER(#{searchDeptNm}) || '%'
+								</if>
+								<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+									AND T1.WHERE_CNT > 0
+								</if>
+		    ) T
+		)
+	</select>
+	
+	<select id="selectUserAuthManageEmpAuthList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+		    T2.AUTH_ID
+		    ,T2.AUTH_NM
+		    ,T2.AUTH_RMRK
+		    ,CASE
+		        WHEN NVL(T1.EMP_ID, 'N') = 'N'
+		        THEN 0
+		        ELSE 1
+		    END AS CHECK_CNT
+		FROM (     
+		    SELECT
+		        A.EMP_ID
+		        ,A.EMP_NM
+		        ,B.AUTH_ID
+		    FROM
+		        CO_EMP A
+		        ,CO_EMP_AUTH B
+		    WHERE
+		        A.EMP_ID = B.EMP_ID
+		        AND A.EMP_ID = #{searchEmpId}
+		    ) T1
+		    ,CO_AUTH T2
+		WHERE T2.AUTH_ID = T1.AUTH_ID(+)
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authUseYn)">
+			AND T2.USE_YN = #{authUseYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+			AND T2.AUTH_KND = #{authKnd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(managementKnd)">
+			<if test='"2".equals(managementKnd)'>
+				AND T2.MANAGEMENT_KND = '2'
+			</if>
+		</if>
+		ORDER BY T2.SEQ
+	</select>
+	
+	<delete id="deleteUserAuthManage" parameterType="hashMap">
+		DELETE
+			CO_EMP_AUTH
+		WHERE
+			EMP_ID = #{authEmpId}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+			AND AUTH_ID IN (SELECT AUTH_ID FROM CO_AUTH WHERE AUTH_KND = #{authKnd})
+		</if>
+
+	</delete>
+	
+	<insert id="insertUserAuthManage" parameterType="hashMap">
+		INSERT
+			INTO
+		CO_EMP_AUTH
+			(
+				EMP_ID
+				,AUTH_ID
+				,CRT_BY
+				,CRT_DTM
+				,MOD_BY
+				,MOD_DTM
+			) VALUES (
+				 #{authEmpId}
+				,#{authId}
+				,#{crtBy}
+				,SYSDATE
+				,#{crtBy}
+				,SYSDATE
+			)
+	</insert>
+
+</mapper>
+
+

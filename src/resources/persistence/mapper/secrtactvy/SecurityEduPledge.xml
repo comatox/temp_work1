@@ -1,0 +1,1760 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityEduPledgeRepository">
+
+	<select id="selectPositionMovePledgeList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.CO_POSITION_PLEDGE_NO,
+			A.PLEDGE_DT,
+			A.EMP_ID,
+			A.EMP_NM,
+			A.COMP_ID,
+			A.DEPT_ID,
+			A.DEPT_NM,
+			A.JW_ID,
+			A.JW_NM,
+			A.WORK_DESC,
+			A.DEL_YN,
+			A.CORETEC_YN,
+			A.AC_IP,
+			A.CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		FROM CO_EMP_POSITION_MOVE_PLEDGE A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		<![CDATA[
+	    	AND A.CORETEC_YN = #{coretecYn}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT >= REPLACE(#{searchStartDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT <= REPLACE(#{searchEndDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		<![CDATA[
+	    	AND A.EMP_ID = #{empId}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND A.DEPT_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	    ORDER BY A.CO_POSITION_PLEDGE_NO DESC
+	</select>
+
+	<select id="selectPositionMovePledgeListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM CO_EMP_POSITION_MOVE_PLEDGE A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		<![CDATA[
+	    	AND A.CORETEC_YN = #{coretecYn}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND TO_CHAR(A.PLEDGE_DT,'YYYY-MM-DD') <= #{searchEndDate}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND TO_CHAR(A.PLEDGE_DT,'YYYY-MM-DD') <= #{searchEndDate}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		<![CDATA[
+	    	AND A.EMP_ID = #{empId}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND A.DEPT_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	</select>
+
+	<select id="selectPositionMovePledge" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			A.CO_POSITION_PLEDGE_NO,
+			A.PLEDGE_DT,
+			A.EMP_ID,
+			A.EMP_NM,
+			A.COMP_ID,
+			A.DEPT_ID,
+			A.DEPT_NM,
+			A.JW_ID,
+			A.JW_NM,
+			A.WORK_DESC,
+			A.DEL_YN,
+			A.CORETEC_YN,
+			A.AC_IP,
+			A.CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		FROM CO_EMP_POSITION_MOVE_PLEDGE A
+		WHERE A.CO_POSITION_PLEDGE_NO = #{coPositionPledgeNo}
+	</select>
+
+	<insert id="insertPositionMovePledge" parameterType="Map">
+		INSERT INTO CO_EMP_POSITION_MOVE_PLEDGE (
+			CO_POSITION_PLEDGE_NO
+			, PLEDGE_DT
+			, EMP_ID
+			, EMP_NM
+			, COMP_ID
+			, DEPT_ID
+			, DEPT_NM
+			, JW_ID
+			, JW_NM
+			, WORK_DESC
+			, AC_IP
+			, CRT_BY
+			, CRT_DTM
+			<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+			, CORETEC_YN
+			</if>
+		) VALUES(
+			CO_POSITION_PLEDGE_NO.NEXTVAL
+			, TO_CHAR(SYSDATE, 'YYYYMMDD')
+			, #{empId}
+			, #{empNm}
+			, #{compId}
+			, #{deptId}
+			, #{deptNm}
+			, #{jwId}
+			, #{jwNm}
+			, #{workDesc}
+			, #{acIp}
+			, #{empId}
+			, SYSDATE
+			<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+			, #{coretecYn}
+			</if>
+		)
+	</insert>
+
+	<select id="selectProtectionPledgeList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.CO_SPECIAL_PLEDGE_NO,
+			A.PLEDGE_DT,
+			A.EMP_ID,
+			A.EMP_NM,
+			A.COMP_ID,
+			A.DEPT_ID,
+			A.DEPT_NM,
+			A.JW_ID,
+			A.JW_NM,
+			A.WORK_DESC,
+			A.DEL_YN,
+			A.CORETEC_YN,
+			A.AC_IP,
+			A.CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		FROM CO_EMP_SPECIAL_PLEDGE A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		<![CDATA[
+	    	AND A.CORETEC_YN = #{coretecYn}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT >= REPLACE(#{searchStartDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT <= REPLACE(#{searchEndDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		<![CDATA[
+	    	AND A.EMP_ID = #{empId}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND A.DEPT_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	    ORDER BY A.CO_SPECIAL_PLEDGE_NO DESC
+	</select>
+
+	<select id="selectProtectionPledgeListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM CO_EMP_SPECIAL_PLEDGE A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		<![CDATA[
+	    	AND A.CORETEC_YN = #{coretecYn}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT >= REPLACE(#{searchStartDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND A.PLEDGE_DT <= REPLACE(#{searchEndDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		<![CDATA[
+	    	AND A.EMP_ID = #{empId}
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND A.DEPT_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	</select>
+
+	<select id="selectProtectionPledge" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			A.CO_SPECIAL_PLEDGE_NO,
+			A.PLEDGE_DT,
+			A.EMP_ID,
+			A.EMP_NM,
+			A.COMP_ID,
+			A.DEPT_ID,
+			A.DEPT_NM,
+			A.JW_ID,
+			A.JW_NM,
+			A.WORK_DESC,
+			A.DEL_YN,
+			A.CORETEC_YN,
+			A.AC_IP,
+			A.CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		FROM CO_EMP_SPECIAL_PLEDGE A
+		WHERE A.CO_SPECIAL_PLEDGE_NO = #{coSpecialPledgeNo}
+	</select>
+
+	<select id="selectIoProtectionPledgeList" parameterType="Map" resultType="CamelHashMap">
+		SELECT *
+		FROM (
+			SELECT
+				A.SPECIAL_PLEDGE_NO,
+				TO_CHAR(A.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+				A.IO_COMP_ID,
+				FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM,
+				A.IO_EMP_ID,
+				/* NVL(FN_GET_IO_EMP_NM2(A.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(A.IO_EMP_ID)) AS IO_EMP_NM, */
+				A.IO_EMP_NM,
+				FN_GET_IO_EMP_JW_NM(A.IO_EMP_ID) AS IO_EMP_JW_NM,
+				A.WORK_DESC,
+				A.AC_IP,
+				A.CRT_BY,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				A.MOD_BY,
+				TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+			FROM IO_EMP_SPECIAL_PLEDGE A
+			WHERE 1 = 1
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			<![CDATA[
+		    	AND A.CRT_DTM >= TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    ]]>
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			<![CDATA[
+		    	AND A.CRT_DTM <= TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    ]]>
+		    </if>
+		) T
+		WHERE 1 = 1
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND T.IO_EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND T.IO_COMP_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	    ORDER BY T.SPECIAL_PLEDGE_NO DESC
+	</select>
+
+	<select id="selectIoProtectionPledgeListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM (
+			SELECT
+				A.SPECIAL_PLEDGE_NO,
+				TO_CHAR(A.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+				A.IO_COMP_ID,
+				FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM,
+				A.IO_EMP_ID,
+				/* NVL(FN_GET_IO_EMP_NM2(A.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(A.IO_EMP_ID)) AS IO_EMP_NM, */
+				A.IO_EMP_NM,
+				FN_GET_IO_EMP_JW_NM(A.IO_EMP_ID) AS IO_EMP_JW_NM,
+				A.WORK_DESC,
+				A.AC_IP,
+				A.CRT_BY,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				A.MOD_BY,
+				TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+			FROM IO_EMP_SPECIAL_PLEDGE A
+			WHERE 1 = 1
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			<![CDATA[
+		    	AND A.CRT_DTM >= TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		    ]]>
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			<![CDATA[
+		    	AND A.CRT_DTM <= TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		    ]]>
+		    </if>
+		) T
+		WHERE 1 = 1
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		<![CDATA[
+	    	AND T.IO_EMP_NM LIKE '%' || #{empNm} || '%'
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		<![CDATA[
+	    	AND T.IO_COMP_NM LIKE '%' || #{deptNm} || '%'
+	    ]]>
+	    </if>
+	    ORDER BY T.SPECIAL_PLEDGE_NO DESC
+	</select>
+
+	<select id="selectIoProtectionPledgeListByUser" parameterType="Map" resultType="CamelHashMap">
+		WITH
+			SPP AS (SELECT A.* FROM IO_EMP_SPECIAL_PLEDGE A ORDER BY A.SPECIAL_PLEDGE_NO DESC),
+			TAG AS (
+				 	SELECT B.IO_EMP_ID FROM (
+				 		SELECT X.DOC_ID FROM AP_DOC X
+				 		WHERE X.EMP_ID = #{empId}
+				 		AND X.SCHEMA_NM = 'PASS_APPL'
+				 		AND X.APPR_STAT = '20'
+				 		AND X.APPR_RESULT = '1'
+				 	) A, IO_PASS B /* 상시출입증 */
+				 	WHERE A.DOC_ID = B.DOC_ID
+				UNION
+					SELECT B.IO_EMP_ID FROM (
+						SELECT X.DOC_ID FROM AP_DOC X
+						WHERE X.EMP_ID = #{empId}
+						AND X.SCHEMA_NM = 'VSIT_RSRV'
+						AND X.APPR_STAT = '20'
+					) A, IO_VST B /* 방문예약 */
+					WHERE A.DOC_ID = B.DOC_ID
+			)
+
+		SELECT ROWNUM AS RN,
+		       SPECIAL_PLEDGE_NO,
+		       TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+		       SPP.IO_EMP_ID,
+		       NVL(FN_GET_IO_EMP_NM2(SPP.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(SPP.IO_EMP_ID)) AS IO_EMP_NM,
+		       FN_GET_IO_COMP_KO_NM(SPP.IO_COMP_ID) AS IO_COMP_NM,
+		       FN_GET_IO_EMP_JW_NM(SPP.IO_EMP_ID) AS IO_EMP_JW_NM
+		FROM SPP, TAG
+		WHERE SPP.IO_EMP_ID = TAG.IO_EMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		<![CDATA[
+	    	AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchEndDate}, '-', '')
+	    ]]>
+	    </if>
+	</select>
+
+	<select id="selectIoProtectionPledgeListCntByUser" parameterType="Map" resultType="Integer">
+		WITH
+			SPP AS (SELECT A.* FROM IO_EMP_SPECIAL_PLEDGE A ORDER BY A.SPECIAL_PLEDGE_NO DESC),
+			TAG AS (
+				 	SELECT B.IO_EMP_ID FROM (
+				 		SELECT X.DOC_ID FROM AP_DOC X
+				 		WHERE X.EMP_ID = #{empId}
+				 		AND X.SCHEMA_NM = 'PASS_APPL'
+				 		AND X.APPR_STAT = '20'
+				 		AND X.APPR_RESULT = '1'
+				 	) A, IO_PASS B /* 상시출입증 */
+				 	WHERE A.DOC_ID = B.DOC_ID
+				UNION
+					SELECT B.IO_EMP_ID FROM (
+						SELECT X.DOC_ID FROM AP_DOC X
+						WHERE X.EMP_ID = #{empId}
+						AND X.SCHEMA_NM = 'VSIT_RSRV'
+						AND X.APPR_STAT = '20'
+					) A, IO_VST B /* 방문예약 */
+					WHERE A.DOC_ID = B.DOC_ID
+			)
+
+		SELECT COUNT(*)
+		FROM SPP, TAG
+		WHERE SPP.IO_EMP_ID = TAG.IO_EMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		<![CDATA[
+	    	AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+	    ]]>
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		<![CDATA[
+	    	AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchEndDate}, '-', '')
+	    ]]>
+	    </if>
+	</select>
+
+	<select id="selectIoProtectionPledge" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			A.SPECIAL_PLEDGE_NO,
+			TO_CHAR(A.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+			A.IO_COMP_ID,
+			FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM,
+			A.IO_EMP_ID,
+			NVL(FN_GET_IO_EMP_NM2(A.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(A.IO_EMP_ID)) AS IO_EMP_NM,
+			A.IO_EMP_NM,
+			FN_GET_IO_EMP_JW_NM(A.IO_EMP_ID) AS IO_EMP_JW_NM,
+			A.WORK_DESC,
+			A.AC_IP,
+			A.CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+			A.MOD_BY,
+			TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM IO_EMP_SPECIAL_PLEDGE A
+		WHERE A.SPECIAL_PLEDGE_NO = #{specialPledgeNo}
+	</select>
+
+	<insert id="insertProtectionPledge" parameterType="Map">
+		INSERT INTO CO_EMP_SPECIAL_PLEDGE (
+			CO_SPECIAL_PLEDGE_NO
+			, PLEDGE_DT
+			, EMP_ID
+			, EMP_NM
+			, COMP_ID
+			, DEPT_ID
+			, DEPT_NM
+			, JW_ID
+			, JW_NM
+			, WORK_DESC
+			, AC_IP
+			, CRT_BY
+			, CRT_DTM
+			<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+			, CORETEC_YN
+			</if>
+		) VALUES(
+			SEQ_CO_SPECIAL_PLEDGE_NO.NEXTVAL
+			, TO_CHAR(SYSDATE, 'YYYYMMDD')
+			, #{empId}
+			, #{empNm}
+			, #{compId}
+			, #{deptId}
+			, #{deptNm}
+			, #{jwId}
+			, #{jwNm}
+			, #{workDesc}
+			, #{acIp}
+			, #{empId}
+			, SYSDATE
+			<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+			, #{coretecYn}
+			</if>
+		)
+	</insert>
+
+	<select id="selectSecurityEducationRequestList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectSecurityEducationRequestList (dmSecurityEducation_Stts_List_S) */
+	SELECT T.*
+	  FROM (SELECT ROW_NUMBER() OVER(ORDER BY LEC_DT DESC) AS ROW_NUM
+             , TB.*
+          FROM (SELECT A.LEC_REQ_NO
+                     , A.COMP_ID
+                     , A.DEPT_ID
+                     , FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM
+                     , CASE WHEN B.LEC_GBN ='C0770002' THEN FN_GET_IO_COMP_KO_NM(B.APPLY_DEPT_ID)
+            		        ELSE FN_GET_DEPT_NM(NVL(B.APPLY_DEPT_ID,A.DEPT_ID)) 
+            		    END AS APPLY_DEPT_NM
+            		 , B.LEC_SEQ
+            		 , CASE WHEN B.LEC_GBN ='C0770002' THEN '협력업체'
+            		        ELSE FN_GET_DEPT_NM(NVL(D.ORG_BUM_CD,C.ORG_BUM_CD)) 
+            		    END AS DEPT_BUM_NM
+            		 , FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.EMP_ID)) AS CURR_DEPT_NM
+            		 , A.JW_ID
+            		 , A.EMP_ID
+            		 , FN_GET_EMP_NM(A.EMP_ID) as EMP_NM
+            		 , A.INNO
+            		 , SUBSTR(B.LEC_DT,1,4) || '-' || SUBSTR(B.LEC_DT, 5,2) || '-' || SUBSTR(B.LEC_DT, 7,2) as LEC_DT
+            		 , SUBSTR(B.LEC_TM,1,2) || ':' || SUBSTR(B.LEC_TM, 3,2) AS LEC_TM
+            		 , B.LEC_MAN_CNT
+            		 , B.LEC_PLACE
+            		 , A.RMRK
+            		 , A.DOC_ID
+            		 , A.CRT_BY
+            		 , AD.APPR_STAT
+            		 , AD.APPR_RESULT
+            		 , CASE WHEN AD.APPR_STAT = '0' THEN '대기'
+    	                    WHEN AD.APPR_STAT = '10' THEN '진행'
+	                        WHEN AD.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+                    	END as APPR_STAT_NM
+                	 , CASE WHEN AD.APPR_RESULT = '0' THEN '검토중'
+        	                WHEN AD.APPR_RESULT = '1' THEN '승인'
+    	                    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    	                    WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+	                    END as APPR_RESULT_NM
+                  FROM  SC_LEC_REQ_M A
+                      , SC_LEC_REQ_D B
+                      , AP_DOC AD
+                      , (SELECT ORG_CD    
+     						  , SUBSTR(SYS_CONNECT_BY_PATH(ORG_CD,'|'), 2,8) AS ORG_BUM_CD
+ 					       FROM TBL_PT_ORG
+ 						  START WITH ORG_LVL_NUM = '4'	/* 조직도레벨 */
+  						CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD) C
+  					  , (SELECT ORG_CD    
+     						  , SUBSTR(SYS_CONNECT_BY_PATH(ORG_CD,'|'), 2,8) AS ORG_BUM_CD
+ 						   FROM TBL_PT_ORG
+ 						  START WITH ORG_LVL_NUM = '4'	/* 조직도레벨 */
+  						CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD) D                     	
+                  WHERE 1=1
+                    AND A.LEC_REQ_NO = B.LEC_REQ_NO
+                    AND AD.DOC_ID = A.DOC_ID(+)
+                    AND A.DEPT_ID = C.ORG_CD(+)
+                    AND B.APPLY_DEPT_ID = D.ORG_CD(+)
+                ]]>
+                
+                <if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+                <![CDATA[
+					AND A.EMP_ID = #{empId}
+				]]>
+				</if>
+				
+                <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+                <![CDATA[
+					AND REPLACE(B.LEC_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+				]]>
+				</if>
+				
+                <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+				<![CDATA[
+					AND REPLACE(B.LEC_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '')
+				]]>
+				</if>
+				
+                <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+                <![CDATA[/* 진행상태 */ ]]>
+                	<choose>
+						<when test='"10".equals(applStat)'>
+							<![CDATA[/* 검토중 */
+							AND AD.APPR_STAT = #{applStat}
+							]]>
+						</when>
+						<when test='"20".equals(applStat)'>
+							<![CDATA[/* 처리완료 */
+							AND AD.APPR_STAT = #{applStat}
+							]]>
+						</when>
+						<when test='"1".equals(applStat)'>
+							<![CDATA[/* 승인 */
+							AND AD.APPR_RESULT = #{applStat}
+							]]>
+						</when>
+						<when test='"2".equals(applStat)'>
+							<![CDATA[/* 부결 */
+							AND AD.APPR_RESULT = #{applStat}
+							]]>
+						</when>
+					</choose>
+				</if>
+			<![CDATA[
+			   ) TB
+		) T 
+	]]>
+	</select>
+
+
+	<select id="selectSecurityEducationRequestView" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectSecurityRectifyPlanView (dmSecurityEducation_Stts_View) */
+	SELECT A.LEC_REQ_NO
+	     , A.COMP_ID
+	     , FN_GET_COMP_NM(A.COMP_ID) 	as COMP_NM
+	     , A.DEPT_ID
+	     , FN_GET_DEPT_NM(A.DEPT_ID) 	as DETP_NM
+	     , A.JW_ID
+	     , A.EMP_ID
+	     , FN_GET_EMP_NM(A.EMP_ID)		AS EMP_NM
+	     , FN_GET_EMP_JW_NM(A.EMP_ID) 	as EMP_JW_NM
+	     , FN_GET_JW_NM(A.JW_ID)		AS JW_NM
+	     , A.INNO
+	     , A.RMRK
+	     , A.DOC_ID
+	     , A.CRT_BY
+	     , REPLACE(REPLACE(A.ETC1,chr(10),'<br/>'), chr(13), '') as ETC1
+	     , REPLACE(REPLACE(A.ETC2,chr(10),'<br/>'), chr(13), '') as ETC2
+	     , REPLACE(REPLACE(A.ETC3,chr(10),'<br/>'), chr(13), '') as ETC3
+	     , REPLACE(REPLACE(A.ETC4,chr(10),'<br/>'), chr(13), '') as ETC4
+	     , A.ETC1 AS ORGIN_ETC1
+	     , A.ETC2 AS ORGIN_ETC2
+	     , A.ETC3 AS ORGIN_ETC3
+	     , A.ETC4 AS ORGIN_ETC4
+	     , FN_GET_EMP_JW_NM(A.SCRT_EMP_ID) AS SCRT_EMP_NM
+	     , A.SCRT_APPOINT_DT
+	     , AD.APPR_STAT		/* 결재상태 0대기 10진행 20완료 */
+	     , AD.APPR_RESULT	/* 결재결과 0결과전 1승인 2부결 */
+	  FROM SC_LEC_REQ_M A
+	     , AP_DOC AD
+	 WHERE 1=1
+	   AND AD.DOC_ID = A.DOC_ID
+	   AND A.LEC_REQ_NO = #{lecReqNo}
+	   ]]>
+	   <if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+	   <![CDATA[
+	   AND AD.DOC_ID = #{docId}
+	   ]]>
+	   </if>
+	</select>
+
+	<select id="selectEducationTargetList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectEducationDetailList (dmSecurityEducation_SttsDetail_View) */
+	SELECT A.LEC_REQ_NO
+	     , (CASE WHEN B.LEC_GBN ='C0770002' THEN FN_GET_IO_COMP_KO_NM(B.APPLY_DEPT_ID)
+	             ELSE FN_GET_DEPT_NM(NVL(B.APPLY_DEPT_ID,A.DEPT_ID)) 
+	         END ) AS DEPT_NM
+	     , B.APPLY_DEPT_ID
+	     , SUBSTR(B.LEC_DT,1,4) || '-' || SUBSTR(B.LEC_DT, 5,2) || '-' || SUBSTR(B.LEC_DT, 7,2) AS LEC_DT
+	     , SUBSTR(B.LEC_TM,1,2) || ':' || SUBSTR(B.LEC_TM, 3,2) AS LEC_TM
+	     , B.LEC_MAN_CNT||' 명' AS LEC_MAN_CNT
+	     , B.LEC_PLACE
+	     , fn_get_code_nm('C077',B.LEC_GBN) AS LEC_GBN_NM
+	     , B.LEC_GBN
+	     , B.LEC_MAN_CNT AS ORGIN_LEC_MAN_CNT
+	  FROM SC_LEC_REQ_M A
+	     , SC_LEC_REQ_D B
+	 WHERE 1=1
+	   AND A.LEC_REQ_NO = B.LEC_REQ_NO
+	   AND A.LEC_REQ_NO = #{lecReqNo}
+	 ORDER BY B.LEC_SEQ 
+	]]>
+	</select>
+	 
+	<select id="selectEducationReservationStatus" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectEducationReservationStatus (dmSecurityEducation_Stts_Calendar_List_S) */
+	SELECT  NVL(CNT, 0) as CNT, LEC_DT
+      FROM (SELECT COUNT(*) as CNT,
+                   B.LEC_DT
+              FROM SC_LEC_REQ_M A,
+                   SC_LEC_REQ_D B,
+                   AP_DOC AD 
+             WHERE 1=1
+               AND A.LEC_REQ_NO = B.LEC_REQ_NO
+               AND A.DOC_ID = AD.DOC_ID
+               AND B.LEC_DT BETWEEN REPLACE(#{strtDt},'-', '') AND REPLACE(#{endDt},'-', '')
+               AND AD.APPR_RESULT = '1'
+               AND AD.APPR_STAT = '20'
+        GROUP BY B.LEC_DT
+    )]]>
+	</select>
+	
+	<select id="selectSpecialTaskCoList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.selectSpecialTaskCoList (dmCoEmpSpecialPledgeList) */
+		SELECT
+   			 TB.*
+		FROM (
+			SELECT
+		        ROW_NUMBER() OVER(ORDER BY SPECIAL_PLEDGE_NO DESC) AS ROW_NUM
+		        ,T.*
+		    FROM (
+					SELECT CO_SPECIAL_PLEDGE_NO AS SPECIAL_PLEDGE_NO,
+			      		   PLEDGE_DT,
+			       		   EMP_ID,
+			       		   EMP_NM,
+			       		   COMP_ID,
+			       		   DEPT_ID,
+			       		   DEPT_NM,
+			       		   JW_ID,
+			       		   JW_NM,
+			       		   WORK_DESC,
+			       		   'C' AS TYPE
+					FROM CO_EMP_SPECIAL_PLEDGE
+					WHERE DEL_YN = 'N'		
+		]]>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+					<![CDATA[
+						AND CORETEC_YN = #{coretecYn}
+	   	   			]]>
+	   	   			</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchstartDt)">
+					<![CDATA[
+						AND PLEDGE_DT >= REPLACE(#{searchstartDt}, '-', '')
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchendDt)">
+					<![CDATA[
+						AND PLEDGE_DT <= REPLACE(#{searchendDt}, '-', '')
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchempNm)">
+					<![CDATA[
+						AND EMP_NM LIKE '%' || #{searchempNm} || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchdeptNm)">
+					<![CDATA[
+						AND DEPT_NM LIKE '%' || #{searchdeptNm} || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+					<![CDATA[
+						AND EMP_ID = #{empId}
+					]]>
+					</if>
+		<![CDATA[			
+				) T
+			)TB
+		]]>
+	</select>
+	
+	<select id="selectSpecialTaskCoDetail" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.selectSpecialTaskCoDetail (dmCoEmpSpecialPledgeView) */
+		SELECT CO_SPECIAL_PLEDGE_NO AS SPECIAL_PLEDGE_NO,
+      		   PLEDGE_DT,
+      		   SUBSTR(PLEDGE_DT,0,4) AS YEAR,
+       		   SUBSTR(PLEDGE_DT,5,2) AS MONTH,
+       		   SUBSTR(PLEDGE_DT,7) AS DAY,
+       		   EMP_ID,
+       		   EMP_NM,
+       		   COMP_ID,
+       		   DEPT_ID,
+       		   DEPT_NM,
+       		   JW_ID,
+       		   JW_NM,
+       		   WORK_DESC
+		FROM CO_EMP_SPECIAL_PLEDGE
+		WHERE CO_SPECIAL_PLEDGE_NO=#{specialPledgeNo}
+		]]>
+	</select>
+	
+	
+	
+	<select id="selectSpecialTaskIoList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.selectSpecialTaskIoList (dmIoEmpSpecialPledgeList) */
+	SELECT 
+		T.SPECIAL_PLEDGE_NO
+		, T.IO_EMP_ID AS EMP_ID
+		, T.PLEDGE_DT
+		, T.IO_EMP_NM AS EMP_NM
+		, T.IO_COMP_NM AS COMP_NM
+		, T.IO_EMP_JW_NM AS JW_NM
+		, T.ROW_NUM
+	    , 'I' AS TYPE
+	FROM (
+	WITH SPP AS
+	 (SELECT A.* FROM IO_EMP_SPECIAL_PLEDGE A ORDER BY A.SPECIAL_PLEDGE_NO DESC),
+	TAG AS
+	 (SELECT 
+	   B.IO_EMP_ID
+	    FROM (SELECT X.DOC_ID
+	            FROM AP_DOC X
+	           WHERE X.EMP_ID = #{empId}
+	             AND X.SCHEMA_NM = 'PASS_APPL'
+	             AND X.APPR_STAT = '20'
+                 AND X.APPR_RESULT = '1') A,
+	         IO_PASS B /* 상시출입증 */
+	   WHERE A.DOC_ID = B.DOC_ID
+	  UNION
+	  SELECT B.IO_EMP_ID
+	    FROM (SELECT 
+	           X.DOC_ID
+	            FROM AP_DOC X
+	           WHERE X.EMP_ID = #{empId}
+	             AND X.SCHEMA_NM = 'VSIT_RSRV'
+	             AND X.APPR_STAT = '20'
+                 AND X.APPR_RESULT = '1') A,
+	         IO_VST B /* 방문예약 */
+	   WHERE A.DOC_ID = B.DOC_ID)
+	SELECT ROWNUM AS ROW_NUM,
+	       SPECIAL_PLEDGE_NO,
+	       TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+	       SPP.IO_EMP_ID,
+	       NVL(FN_GET_IO_EMP_NM2(SPP.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(SPP.IO_EMP_ID)) AS IO_EMP_NM,
+	       FN_GET_IO_COMP_KO_NM(SPP.IO_COMP_ID) AS IO_COMP_NM,
+	       FN_GET_IO_EMP_JW_NM(SPP.IO_EMP_ID) AS IO_EMP_JW_NM
+	  FROM SPP, TAG
+	 WHERE SPP.IO_EMP_ID = TAG.IO_EMP_ID	     
+    ]]>
+    
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchstartDt)">
+    <![CDATA[
+		AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchstartDt}, '-', '')
+	]]>
+	</if>
+	
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchendDt)">
+	<![CDATA[
+		AND TO_CHAR(SPP.CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchendDt}, '-', '')
+	]]>
+	</if>
+	<![CDATA[
+		) T 
+	]]>
+	</select>
+	
+	<select id="selectSpecialTaskIoDetail" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.selectSpecialTaskIoDetail (dmIoEmpSpecialPledgeView) */
+		SELECT SPECIAL_PLEDGE_NO,
+		       TO_CHAR(CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+		       TO_CHAR(CRT_DTM, 'YYYY') AS YEAR,
+		       TO_CHAR(CRT_DTM, 'MM') AS MONTH,
+		       TO_CHAR(CRT_DTM, 'DD') AS DAY,
+		       IO_EMP_ID AS EMP_ID,
+		       NVL(FN_GET_IO_EMP_NM2(IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(IO_EMP_ID)) AS EMP_NM,
+		       FN_GET_IO_COMP_KO_NM(IO_COMP_ID) AS COMP_NM,
+		       fn_get_io_emp_jw_nm(IO_EMP_ID) AS JW_NM,
+		       WORK_DESC
+		  FROM IO_EMP_SPECIAL_PLEDGE
+		 WHERE SPECIAL_PLEDGE_NO = #{specialPledgeNo}
+		 ]]>
+	</select>
+	
+	<select id="selectDataProvideList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.selectDataProvideList (dmDataProvieDestroyList) */
+	WITH T AS ( 
+			SELECT *
+			FROM (
+			    SELECT T1.*
+			      FROM ( 
+			      	SELECT 
+			      		IEDP.DATA_PROVIDE_NO AS DATA_PROVIDE_NO
+			      		, IEDP.IO_COMP_ID AS IO_COMP_ID
+			      		, IEDP.IO_EMP_NM AS IO_EMP_NM
+						, FN_GET_EMP_NM(IEDP.EMP_ID) AS EMP_NM
+						, IEDP.DATA_DESC AS DATA_DESC
+						, TO_CHAR(IEDP.MOD_DTM, 'YY-MM-DD') AS MOD_DTM
+						, IEDD.DESTROY_DATA_DESC AS DESTROY_DATA_DESC
+						, TO_CHAR(IEDD.DESTROY_DATE, 'YY-MM-DD') AS DESTROY_DATE
+						, COUNT(*) OVER() AS TOT_CNT
+						, ROW_NUMBER() OVER ( ORDER BY IEDP.DATA_PROVIDE_NO DESC ) AS ROW_NUM
+					FROM IO_EMP_DATA_PROVIDE IEDP, IO_EMP_DATA_DESTROY IEDD
+	]]>
+					<choose>
+						<when test='"P".equals(reqType)'>
+							<![CDATA[
+							WHERE IEDP.DATA_PROVIDE_NO = IEDD.DATA_PROVIDE_NO(+)
+							]]>
+						</when>
+						<when test='"D".equals(reqType)'>
+							<![CDATA[
+							WHERE IEDP.DATA_PROVIDE_NO(+) = IEDD.DATA_PROVIDE_NO
+							]]>
+						</when>
+					</choose>
+					
+					<if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+						<if test='"N".equals(adminYn)'>
+							<![CDATA[
+				     	   		AND IEDP.EMP_ID = #{empId}
+				     	   	]]>
+						</if>
+					</if>
+		 
+		 			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDtm)">
+			 			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDtm)">
+							<choose>
+								<when test='"P".equals(reqType)'>
+									<![CDATA[
+									AND TO_CHAR(IEDP.CRT_DTM, 'YYYYMMDD') BETWEEN REPLACE(#{searchStartDtm}, '-', '') AND REPLACE(#{searchEndDtm}, '-', '')
+									]]>
+								</when>
+								<when test='"D".equals(reqType)'>
+									<![CDATA[
+									AND TO_CHAR(IEDD.CRT_DTM, 'YYYYMMDD') BETWEEN REPLACE(#{searchStartDtm}, '-', '') AND REPLACE(#{searchEndDtm}, '-', '')
+									]]>
+								</when>
+							</choose>
+						</if>
+					</if>
+	<![CDATA[
+					) T1
+			) X
+		)
+		SELECT DATA_PROVIDE_NO,
+					 IO_COMP_ID,		
+					 IO_EMP_NM,
+					 EMP_NM,
+					 DATA_DESC,
+					 MOD_DTM,
+					 DESTROY_DATA_DESC,
+					 DESTROY_DATE,
+					 TOT_CNT,
+             		 ROW_NUM
+		   FROM T
+	]]>
+	</select>
+	
+	<select id="dataProvideListExcel" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[		
+	/*  SecurityEducationRepository.dataProvideListExcel (dmDataProvieDestroyListExcel) */
+	WITH T AS ( 
+			SELECT *
+			FROM (
+			    SELECT T1.*
+			      FROM ( 
+			      	SELECT 
+			      		IEDP.DATA_PROVIDE_NO AS DATA_PROVIDE_NO
+			      		, IEDP.IO_COMP_ID AS IO_COMP_ID
+			      		, IEDP.IO_EMP_NM AS IO_EMP_NM
+						, FN_GET_EMP_NM(IEDP.EMP_ID) AS EMP_NM
+						, IEDP.DATA_DESC AS DATA_DESC
+						, TO_CHAR(IEDP.MOD_DTM, 'YY-MM-DD') AS MOD_DTM
+						, IEDD.DESTROY_DATA_DESC AS DESTROY_DATA_DESC
+						, TO_CHAR(IEDD.DESTROY_DATE, 'YY-MM-DD') AS DESTROY_DATE
+						, COUNT(*) OVER() AS TOT_CNT
+						, ROW_NUMBER() OVER ( ORDER BY IEDP.DATA_PROVIDE_NO DESC ) AS ROW_NUM
+					FROM IO_EMP_DATA_PROVIDE IEDP, IO_EMP_DATA_DESTROY IEDD
+	]]>
+					<choose>
+						<when test='"P".equals(reqType)'>
+							<![CDATA[
+							WHERE IEDP.DATA_PROVIDE_NO = IEDD.DATA_PROVIDE_NO(+)
+							]]>
+						</when>
+						<when test='"D".equals(reqType)'>
+							<![CDATA[
+							WHERE IEDP.DATA_PROVIDE_NO(+) = IEDD.DATA_PROVIDE_NO
+							]]>
+						</when>
+					</choose>
+					
+					<if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+						<if test='"N".equals(adminYn)'>
+							<![CDATA[
+				     	   		AND IEDP.EMP_ID = #{empId}
+				     	   	]]>
+						</if>
+					</if>
+		 
+		 			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDtm)">
+			 			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDtm)">
+							<choose>
+								<when test='"P".equals(reqType)'>
+									<![CDATA[
+									AND TO_CHAR(IEDP.CRT_DTM, 'YYYYMMDD') BETWEEN REPLACE(#{searchStartDtm}, '-', '') AND REPLACE(#{searchEndDtm}, '-', '')
+									]]>
+								</when>
+								<when test='"D".equals(reqType)'>
+									<![CDATA[
+									AND TO_CHAR(IEDD.CRT_DTM, 'YYYYMMDD') BETWEEN REPLACE(#{searchStartDtm}, '-', '') AND REPLACE(#{searchEndDtm}, '-', '')
+									]]>
+								</when>
+							</choose>
+						</if>
+					</if>
+	<![CDATA[
+					) T1
+			) X
+		)
+		SELECT DATA_PROVIDE_NO,
+					 IO_COMP_ID,		
+					 IO_EMP_NM,
+					 EMP_NM,
+					 DATA_DESC,
+					 MOD_DTM,
+					 DESTROY_DATE,
+					 CASE WHEN DESTROY_DATE IS NULL  
+					 	THEN  ''
+					 	ELSE DATA_DESC
+				 	 END DESTROY_DATA_DESC,
+					 TOT_CNT,
+             		 ROW_NUM
+		   FROM T
+	]]>
+	</select>
+	
+	<select id="selectProvideDetail" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectProvideDetail (dmDataProvieView) */
+	SELECT
+		IEDP.DATA_PROVIDE_NO AS DATA_PROVIDE_NO
+		, IEDD.DATA_DESTROY_NO AS DATA_DESTROY_NO
+		, CE.EMAIL AS EMAIL
+		, FN_GET_DEPT_NM(CE.DEPT_ID) AS DEPT_NM
+		, FN_GET_EMP_NM(IEDP.EMP_ID) AS EMP_NM
+		, FN_GET_JW_NM(CE.JW_ID) AS JW_NM
+		, IEDP.DATA_DESC AS DATA_DESC
+		, IEDP.REQ_DESC AS REQ_DESC
+		, IEDP.USE_DESC AS USE_DESC
+		, IEDP.IO_EMP_NM AS IO_EMP_NM
+		, FN_GET_IO_COMP_KO_NM(IEDP.IO_COMP_ID) AS IO_COMP_NM
+		, TO_CHAR(IEDP.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+	    FROM   
+	    	IO_EMP_DATA_PROVIDE IEDP
+	    	, IO_EMP_DATA_DESTROY IEDD
+			, CO_EMP CE
+	 WHERE ROWNUM = 1
+     AND IEDP.DATA_PROVIDE_NO = IEDD.DATA_PROVIDE_NO(+)
+     AND IEDP.EMP_ID = CE.EMP_ID
+     AND IEDP.DATA_PROVIDE_NO = #{dataProvideNo}
+      ]]>
+	</select>
+	
+	<select id="selectDestroyDetail" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectDestroyDetail (dmDataDestroyView) */
+	SELECT  
+		TO_CHAR(IEDP.MOD_DTM, 'YYYY-MM-DD') AS PROVIDE_DATE 
+		, TO_CHAR(IEDD.DESTROY_DATE, 'YYYY-MM-DD') AS DESTROY_DATE
+ 		, IEDP.DATA_DESC AS DESTROY_DATA_DESC
+ 		, IEDD.DESTROY_REASON_DESC AS DESTROY_REASON_DESC
+ 		, IEDD.DESTROY_WAY_DESC AS DESTROY_WAY_DESC
+ 		, TO_CHAR(IEDD.CRT_DTM, 'YYYY-MM-DD') AS MOD_DTM
+ 		, FN_GET_IO_EMP_NM2(IEDD.IO_EMP_ID) AS IO_EMP_NM
+ 		, FN_GET_IO_COMP_KO_NM(IEDP.IO_COMP_ID) AS IO_COMP_NM
+	FROM 
+	  	IO_EMP_DATA_DESTROY IEDD
+	  	, IO_EMP_DATA_PROVIDE IEDP
+	WHERE ROWNUM = 1
+	AND IEDD.DATA_PROVIDE_NO = IEDP.DATA_PROVIDE_NO
+	AND IEDD.DATA_PROVIDE_NO = #{dataProvideNo}
+      ]]>
+	</select>
+	
+	<select id="searchIoCompList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectIoCompList (dmioCompSearch) */
+	SELECT A.*
+    FROM
+        (
+            SELECT 
+            	ROW_NUMBER() OVER (ORDER BY COMP_KO_NM ASC) AS ROW_NUM
+                , T.*
+			FROM (               
+				SELECT 
+				    IO_COMP_ID
+				    ,CASE LENGTH(IO_COMP_ID)
+				        WHEN 10
+				        THEN SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+				        ELSE SUBSTR(IO_COMP_ID, 1,3) || '-' || SUBSTR(IO_COMP_ID, 4,2) || '-' || SUBSTR(IO_COMP_ID, 6)
+				     END AS S_IO_COMP_ID
+				    ,COMP_KO_NM
+				    ,COMP_EN_NM
+				    ,LEGAL_NO
+				    ,BOSS_NM
+				    ,TEL_NO
+				    ,FAX_NO
+				    ,ADDR || ' ' || ADDR2 as ADDR
+				    ,ZIP1 || '-' || ZIP2 AS ZIP
+				 FROM
+	                 IO_COMP
+                 WHERE DEL_YN = 'N'
+                 AND REST_YN = 'N'							
+	]]>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+			<![CDATA[
+				AND ((COMP_KO_NM like '%' || #{compKoNm} || '%') OR (UPPER(COMP_EN_NM) like '%' || UPPER(#{compKoNm}) || '%'))
+			]]>
+			</if>
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			<![CDATA[
+				AND IO_COMP_ID LIKE '%'||#{compId}||'%'
+			]]>
+			</if>
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compType)">
+				<choose>
+					<when test='"1".equals(compType)'>
+					<![CDATA[
+						AND COMP_DIV = 'C'
+					]]>
+					</when>
+					<when test='"2".equals(compType)'>
+					<![CDATA[
+		                AND COMP_DIV = 'P'
+					]]>
+					</when>
+					<when test='"3".equals(compType)'>
+					<![CDATA[
+		                AND COMP_DIV = 'G'
+					]]>
+					</when>
+					<when test='"4".equals(compType)'>
+					<![CDATA[
+		               AND COMP_DIV in ('C', 'G')
+					]]>
+					</when>
+				</choose>
+			</if>
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(subcontYn)">
+				<if test='"Y".equals(subcontYn)'>
+					AND SUBCONT_YN = 'Y'
+				</if>
+			</if>
+		<![CDATA[
+                    ) T
+            ) A
+		WHERE ROW_NUM BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1 AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}  
+		]]>
+	</select>
+	
+	<select id="searchIoCompListCnt" parameterType="Map" resultType="int">
+	<![CDATA[
+		/*  SecurityEducationRepository.selectIoCompListCnt (dmIoCompSearchTotalCount) */
+		SELECT 
+			COUNT(*) AS TOT_CNT
+		FROM
+			IO_COMP
+		WHERE DEL_YN = 'N'
+		AND REST_YN = 'N'                                                      
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+		<![CDATA[
+			AND ((COMP_KO_NM like '%' || #{compKoNm} || '%') OR (UPPER(COMP_EN_NM) like '%' || UPPER(#{compKoNm}) || '%'))
+		]]>
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		<![CDATA[
+			AND IO_COMP_ID LIKE '%'||#{compId}||'%'
+		]]>
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compType)">
+			<choose>
+				<when test='"1".equals(compType)'>
+				<![CDATA[
+					AND COMP_DIV = 'C'
+				]]>
+				</when>
+				<when test='"2".equals(compType)'>
+				<![CDATA[
+	                AND COMP_DIV = 'P'
+				]]>
+				</when>
+				<when test='"3".equals(compType)'>
+				<![CDATA[
+	                AND COMP_DIV = 'G'
+				]]>
+				</when>
+				<when test='"4".equals(compType)'>
+				<![CDATA[
+	               AND COMP_DIV in ('C', 'G')
+				]]>
+				</when>
+			</choose>
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(subcontYn)">
+			<if test='"Y".equals(subcontYn)'>
+				AND SUBCONT_YN = 'Y'
+			</if>
+		</if>
+	</select>
+	
+	<select id="searchDeptList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityEducationRepository.searchDeptList (dmSecurityEducation_Search_Dept) */
+		SELECT 
+			ROWNUM, DEPT_ID, DEPT_NM
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER ( ORDER BY DEPT_NM ASC ) AS ROW_NUM
+				, DEPT_ID
+				, DEPT_NM
+			FROM
+				CO_DEPT
+			WHERE 1 = 1
+			AND USE_YN = 'Y'
+	]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+			   AND UPPER(DEPT_NM) LIKE '%' || UPPER(#{"searchDeptNm"}) || '%'
+		]]>
+		</if>
+	<![CDATA[
+			)
+	]]>
+		<if test='rowPerPage != -1'>
+		<![CDATA[
+			WHERE ROW_NUM BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1
+			  AND ((#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+		]]>
+		</if>
+	</select>
+	
+	<select id="searchDeptListCnt" parameterType="Map" resultType="int">
+		<![CDATA[
+		/*  SecurityEducationRepository.searchDeptListCnt (dmSecurityEducation_Search_Dept_Count) */
+			SELECT COUNT(*) AS TOTAL_COUNT
+		      FROM CO_DEPT
+		     WHERE 1 = 1
+		       AND USE_YN = 'Y'
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+			   AND UPPER(DEPT_NM) LIKE '%' || UPPER(#{"searchDeptNm"}) || '%'
+		]]>
+		</if>
+	</select>
+	
+	
+	<select id="getSecurityEduCationSeq" parameterType="Map" resultType="String">
+	<![CDATA[
+		/*  SecurityEducationRepository.getSecurityEduCationSeq (dmSecurityEducation_Seq_S) */
+		SELECT
+			SEQ_LEC_REQ_NO.nextval AS LEC_REQ_NO
+		FROM DUAL
+	]]>
+	</select>
+	
+	<insert id="insertSecurityEduReq" parameterType="Map" >
+	<![CDATA[
+		/*  SecurityEducationRepository.insertSecurityEduReq (dmSecurityEducation_Request) */
+		INSERT INTO SC_LEC_REQ_M
+		(
+			LEC_REQ_NO
+			, COMP_ID
+			, DEPT_ID
+			, JW_ID
+			, EMP_ID
+			, INNO
+			, RMRK
+			, ETC1
+			, ETC2
+			, ETC3
+			, ETC4
+			, SCRT_EMP_ID
+			, SCRT_APPOINT_DT
+			, AC_IP
+			, CRT_BY
+			, CRT_DTM
+		)
+		VALUES 
+		(
+			#{lecReqNo}
+			, #{compId}
+			, #{deptId}
+			, #{jwId}
+			, #{empId}
+			, #{inno}
+			, #{rmrk}
+			, #{etc1}
+			, #{etc2}
+			, #{etc3}
+			, #{etc4}
+			, #{scrtEmpId}
+			, #{scrtAppointDt}
+			, #{acIp}
+			, #{empId}
+			, SYSDATE
+		)
+	]]>
+	</insert>
+	
+	
+	<insert id="insertSecurityEduReqSub" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityEducationRepository.insertSecurityEduReqSub (dmSecurityEducation_Sub_I) */
+		INSERT INTO SC_LEC_REQ_D 
+			( LEC_REQ_NO, LEC_SEQ, LEC_DT, LEC_TM, LEC_MAN_CNT, LEC_PLACE, APPLY_DEPT_ID,LEC_GBN )
+	]]>
+		<foreach collection="eduTargetList" item="item" index="i" separator="FROM DUAL UNION ALL SELECT " open="SELECT " close=" FROM DUAL ">
+		#{lecReqNo}, (SELECT COUNT(*)+(1+#{i}) FROM SC_LEC_REQ_D WHERE LEC_REQ_NO = #{lecReqNo}), REPLACE(#{item.lecDt},'-','')
+		, #{item.lecT}||#{item.lecM}, #{item.lecManCnt}, #{item.lecPlace}, #{item.applyDeptId}, #{item.lecGbn}
+		</foreach>
+	</insert>
+	
+	<update id="updateSecurityEduDocId" parameterType="Map" >
+	<![CDATA[
+	/*  SecurityEducationRepository.updateSecurityEduDocId (dmSecurityEducation_DOCID_U) */
+	UPDATE SC_LEC_REQ_M
+		   SET DOC_ID = #{docId}
+		 WHERE LEC_REQ_NO = #{lecReqNo}
+	]]>
+	</update>
+	
+	<insert id="specialTaskPledgeSave"  parameterType="Map" >
+	<![CDATA[
+	/*  SecurityEducationRepository.specialTaskPledgeSave (dmCoEmpSpecialPledgeInsert) */
+		INSERT INTO CO_EMP_SPECIAL_PLEDGE
+		       (  
+					CO_SPECIAL_PLEDGE_NO
+					, PLEDGE_DT
+					, EMP_ID
+					, EMP_NM
+					, COMP_ID
+					, DEPT_ID
+					, DEPT_NM
+					, JW_ID
+					, JW_NM
+					, WORK_DESC
+					, AC_IP
+					, CRT_BY
+					, CRT_DTM
+		        ]]>
+		        <if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		        	<if test='"Y".equals(coretecYn)'>
+		        	<![CDATA[
+		        	, CORETEC_YN
+		        	]]>
+		        	</if>
+		        </if>
+		<![CDATA[
+		        )    
+		VALUES  
+		       (
+			       SEQ_CO_SPECIAL_PLEDGE_NO.NEXTVAL
+			        , TO_CHAR(SYSDATE, 'YYYYMMDD')
+			        , #{empId}
+			        , #{empNm}
+			        , #{compId}
+			        , #{deptId}
+			        , #{deptNm}
+			        , #{jwId}
+			        , #{jwNm}
+			        , #{contents}
+			        , #{acIp}
+			        , #{empId}
+			        , SYSDATE
+		]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(coretecYn)">
+		        	<if test='"Y".equals(coretecYn)'>
+		        	<![CDATA[
+		        	, #{coretecYn}
+		        	]]>
+		        	</if>
+		        </if>
+   	   	<![CDATA[
+		       )
+		]]>
+	</insert>
+	
+	<select id="securityEducationRequestExcel" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityEducationRepository.securityEducationRequestExcel (dmSecurityEducation_Stts_List_Excel) */
+		SELECT
+		    T.*
+		FROM (
+            SELECT
+                    ROW_NUMBER() OVER(ORDER BY LEC_DT DESC) AS ROW_NUM
+                    ,TB.*
+            FROM (
+            		SELECT A.LEC_REQ_NO, A.COMP_ID, A.DEPT_ID, 
+            		       FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM, B.LEC_SEQ,
+            		       CASE WHEN B.LEC_GBN ='C0770002' THEN FN_GET_IO_COMP_KO_NM(B.APPLY_DEPT_ID)
+            		            ELSE FN_GET_DEPT_NM(NVL(B.APPLY_DEPT_ID,A.DEPT_ID)) 
+            		        END AS APPLY_DEPT_NM,
+            			    CASE WHEN B.LEC_GBN ='C0770002' THEN '협력업체'
+            		            ELSE FN_GET_DEPT_NM(NVL(D.ORG_BUM_CD,C.ORG_BUM_CD)) 
+            		        END AS DEPT_BUM_NM,  
+            			   FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.EMP_ID)) AS CURR_DEPT_NM,
+            		       A.JW_ID, A.EMP_ID, FN_GET_EMP_NM(A.EMP_ID) as EMP_NM, A.INNO,
+            		       SUBSTR(B.LEC_DT,1,4) || '-' || SUBSTR(B.LEC_DT, 5,2) || '-' || SUBSTR(B.LEC_DT, 7,2) as LEC_DT,
+            		       SUBSTR(B.LEC_TM,1,2) || ':' || SUBSTR(B.LEC_TM, 3,2) AS LEC_TM,
+            		       B.LEC_MAN_CNT, B.LEC_PLACE, A.RMRK, A.DOC_ID, A.CRT_BY, AD.APPR_STAT, AD.APPR_RESULT,
+            		       CASE WHEN AD.APPR_STAT = '0' THEN '대기'
+    	                        WHEN AD.APPR_STAT = '10' THEN '진행'
+	                            WHEN AD.APPR_STAT = '20' THEN '완료'
+	                            WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+                    	    END as APPR_STAT_NM,
+                	       CASE WHEN AD.APPR_RESULT = '0' THEN '검토중'
+        	                    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    	                        WHEN AD.APPR_RESULT = '2' THEN '부결'
+    	                        WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+	                        END as APPR_RESULT_NM
+                      FROM  SC_LEC_REQ_M A, SC_LEC_REQ_D B, AP_DOC AD,
+                      	   (SELECT ORG_CD    
+     						     , SUBSTR(SYS_CONNECT_BY_PATH(ORG_CD,'|'), 2,8) AS ORG_BUM_CD
+ 							 FROM TBL_PT_ORG
+ 							 START WITH ORG_LVL_NUM = '4'	/* 조직도레벨 */
+  							 CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD
+                            ) C,
+                            (SELECT ORG_CD    
+     						     , SUBSTR(SYS_CONNECT_BY_PATH(ORG_CD,'|'), 2,8) AS ORG_BUM_CD
+ 							 FROM TBL_PT_ORG
+ 							 START WITH ORG_LVL_NUM = '4'	/* 조직도레벨 */
+  							 CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD
+                            ) D   
+                    WHERE 1=1
+                        AND A.LEC_REQ_NO = B.LEC_REQ_NO
+                        AND AD.DOC_ID = A.DOC_ID
+                        AND A.DEPT_ID = C.ORG_CD(+)
+                        AND B.APPLY_DEPT_ID = D.ORG_CD(+)
+		]]>
+			
+						<if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+                        <![CDATA[
+							AND A.EMP_ID = #{empId}
+						]]>
+						</if>
+                       
+                        <if test="not @org.springframework.util.StringUtils@isEmpty(pSearchStrtdt)">
+                        <![CDATA[
+							AND REPLACE(B.LEC_DT, '-', '') >= REPLACE(#{pSearchStrtdt}, '-', '')
+						]]>
+						</if>
+
+                        <if test="not @org.springframework.util.StringUtils@isEmpty(pSearchEnddt)">
+						<![CDATA[
+								AND REPLACE(B.LEC_DT, '-', '') <= REPLACE(#{pSearchEnddt}, '-', '')
+						]]>
+						</if>
+
+ 						<if test="not @org.springframework.util.StringUtils@isEmpty(pApplStat)">
+                        <![CDATA[
+						/* 진행상태 */
+						]]>
+							<choose>
+								<when test='"10".equals(pApplStat)'>
+									<![CDATA[
+										/* 검토중 */
+										AND AD.APPR_STAT = #P_APPL_STAT#
+									]]>
+								</when>
+								<when test='"20".equals(pApplStat)'>
+									<![CDATA[
+										/* 처리완료 */
+										AND AD.APPR_STAT = #P_APPL_STAT#
+									]]>
+								</when>
+								<when test='"1".equals(pApplStat)'>
+									<![CDATA[
+										/* 승인 */
+										AND AD.APPR_RESULT = #P_APPL_STAT#
+									]]>
+								</when>
+								<when test='"2".equals(pApplStat)'>
+									<![CDATA[
+										/* 부결 */
+										AND AD.APPR_RESULT = #P_APPL_STAT#
+									]]>
+								</when>
+							</choose>
+						</if>
+						
+						<if test="@org.springframework.util.StringUtils@isEmpty(pApplStat)">
+						<![CDATA[
+							AND AD.APPR_STAT = ''
+						]]>
+						</if>
+		<![CDATA[
+                    ) TB
+            ) T   
+        ]]>
+	</select>
+	
+	
+	<select id="selectSpecialTaskIoListAdm" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectSpecialTaskIoListAdm (dmIoEmpSpecialPledgeList_Adm) */
+	SELECT 
+		T.* 
+		, 'I' AS TYPE
+	FROM (
+	SELECT ROWNUM AS RN,
+	       SPECIAL_PLEDGE_NO,
+	       TO_CHAR(A.CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+	       A.IO_EMP_ID,
+	       NVL(FN_GET_IO_EMP_NM2(A.IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(A.IO_EMP_ID)) AS IO_EMP_NM,
+	       FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM,
+	       FN_GET_IO_EMP_JW_NM(A.IO_EMP_ID) AS IO_EMP_JW_NM
+	  FROM IO_EMP_SPECIAL_PLEDGE A 
+	 WHERE 1=1
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchempNm)">
+	<![CDATA[
+		AND NVL(FN_GET_IO_EMP_NM2(A.IO_EMP_ID), FN_GET_IO_EMP_DEL_NM2(A.IO_EMP_ID)) LIKE '%' || #{searchempNm} || '%'
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchdeptNm)">
+	<![CDATA[
+		AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || #{searchdeptNm} || '%'
+	]]>
+	</if>
+	
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchstartDt)">
+    <![CDATA[
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchstartDt}, '-', '')
+	]]>
+	</if>
+	
+	<if test="not @org.springframework.util.StringUtils@isEmpty(searchendDt)">
+	<![CDATA[
+		AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchendDt}, '-', '')
+	]]>
+	</if>
+	<![CDATA[
+		) T
+	]]>
+	</select>
+	
+	<select id="selectSpecialTaskCoListExcel" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectSpecialTaskCoListExcel (dmCoEmpPledgeSpecialListExcel) */	
+	SELECT
+		TB.*
+	FROM (
+			SELECT
+		       	T.*
+		   	FROM (
+					SELECT 
+						PLEDGE_DT,
+						EMP_ID,
+						EMP_NM,
+						DEPT_NM,
+						JW_NM,
+						WORK_DESC
+					FROM CO_EMP_SPECIAL_PLEDGE
+					WHERE 1=1		
+				]]>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchstartDt)">
+			    <![CDATA[
+					AND PLEDGE_DT >= REPLACE(#{searchstartDt}, '-', '')
+				]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchendDt)">
+				<![CDATA[
+					AND PLEDGE_DT <= REPLACE(#{searchendDt}, '-', '')
+				]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchempNm)">
+				<![CDATA[
+					AND EMP_NM LIKE '%' || #{searchempNm} || '%'
+				]]>
+				</if>
+			
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchdeptNm)">
+				<![CDATA[
+					AND DEPT_NM LIKE '%' || #{searchdeptNm} || '%'
+				]]>
+				</if>
+				
+			<![CDATA[	
+					ORDER BY CO_SPECIAL_PLEDGE_NO DESC
+			) T
+		)TB
+	]]>
+	</select>
+	
+	<select id="selectSpecialTaskIoListExcel" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityEducationRepository.selectSpecialTaskIoListExcel (dmIoEmpPledgeSpecialListExcel) */	
+	SELECT
+		TB.*
+	FROM (
+			SELECT
+		       	T.*
+		   	FROM (
+					SELECT
+						SPECIAL_PLEDGE_NO,
+	       				TO_CHAR(CRT_DTM, 'YYYYMMDD') AS PLEDGE_DT,
+	       				IO_EMP_ID,
+	       				NVL(FN_GET_IO_EMP_NM2(IO_EMP_ID),FN_GET_IO_EMP_DEL_NM2(IO_EMP_ID)) AS IO_EMP_NM,
+	       				FN_GET_IO_COMP_KO_NM(IO_COMP_ID) AS IO_COMP_NM,
+	       				FN_GET_IO_EMP_JW_NM(IO_EMP_ID) AS IO_EMP_JW_NM,
+	       				WORK_DESC
+					FROM IO_EMP_SPECIAL_PLEDGE
+					WHERE 1=1		
+				]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchstartDt)">
+			    <![CDATA[
+					AND TO_CHAR(CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchstartDt}, '-', '')
+				]]>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchendDt)">
+				<![CDATA[
+					AND TO_CHAR(CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchendDt}, '-', '')
+				]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchempNm)">
+				<![CDATA[
+					AND IO_EMP_NM LIKE '%' || #{searchempNm} || '%'
+				]]>
+				</if>
+			
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchdeptNm)">
+				<![CDATA[
+					AND IO_COMP_NM LIKE '%' || #{searchdeptNm} || '%'
+				]]>
+				</if>
+				
+		<![CDATA[	
+				ORDER BY SPECIAL_PLEDGE_NO DESC
+			) T
+		)TB
+		]]>
+	</select>
+
+	<select id="selectSecurityEducationInfoAdmList" parameterType="Map" resultType="CamelHashMap">
+		/* selectSecurityEducationInfoAdm */
+		SELECT * FROM ( SELECT ROW_NUMBER() OVER(ORDER BY B.FINISH_YN, B.SEC_EDU_TITLE) AS ROW_NUM,B.* FROM (
+		SELECT
+		DISTINCT
+		C.EMP_ID,
+		TRIM(C.EMAIL) as EMAIL,
+		C.EMP_NM,
+		nvl(B.MANUAL_YN,'N') AS MANUAL_YN,
+		nvl((SELECT JW_NM FROM CO_JW SCJ WHERE SCJ.JW_ID = C.JW_ID),'') AS JW_NM,
+		FN_GET_COMP_NM(C.COMP_ID) AS COMP_NM,
+		CASE WHEN (SELECT count(1) FROM SEC_EDU_HISTORY SH WHERE SH.EMP_ID = C.EMP_ID AND FINISH_YN ='Y' AND SH.SEC_EDU_NO = A.SEC_EDU_NO ) >= 1 THEN
+		CASE WHEN (SELECT count(1) FROM SEC_EDU_HISTORY SH WHERE SH.EMP_ID = C.EMP_ID AND FINISH_YN ='Y' AND SH.SEC_EDU_NO = A.SEC_EDU_NO ) >=
+		(SELECT count(1) FROM SEC_EDU_SUB SS WHERE SS.SEC_EDU_NO = B.SEC_EDU_NO ) THEN 'Y' ELSE 'N' END ELSE 'N' END AS FINISH_YN,
+		A.SEC_EDU_TITLE,
+		NVL((SELECT SUM(NVL(ROUND(SB.FINISH_RATE, 2), '0')/(SELECT count(1) FROM SEC_EDU_SUB SS WHERE SS.SEC_EDU_NO = SB.SEC_EDU_NO )) FROM SEC_EDU_HISTORY SB WHERE A.SEC_EDU_NO = SB.SEC_EDU_NO AND SB.EMP_ID = C.EMP_ID),'0') AS FINISH_RATE,
+		NVL(TO_CHAR((SELECT MAX(FINISH_DTM)  FROM SEC_EDU_HISTORY SH WHERE SH.SEC_EDU_NO = A.SEC_EDU_NO AND SH.EMP_ID = C.EMP_ID ),'YYYY-MM-DD'),'-') AS FINISH_DT,
+		D.SEC_EDU_FIRST_SEND_DT ,
+		D.SEC_EDU_LAST_SEND_DT
+		FROM CO_EMP C
+		INNER JOIN SEC_EDU A ON A.DEL_YN ='N'
+		LEFT OUTER JOIN SEC_EDU_HISTORY B ON C.EMP_ID = B.EMP_ID  AND B.DEL_YN ='N' AND A.SEC_EDU_NO  = B.SEC_EDU_NO
+		LEFT OUTER JOIN SEC_EDU_MAILSEND D ON A.SEC_EDU_NO = D.SEC_EDU_NO AND C.EMP_ID = D.EMP_ID
+		WHERE C.HT_CD in ('C','H')
+		AND C.COMP_ID not in ('1100000001','1217000001')
+		AND C.EMP_ID NOT IN (SELECT EMP_ID FROM EDU_EX_EMP)
+		AND C.USE_YN  = 'Y'
+		AND C.EMAIL IS NOT NULL
+		AND C.EMP_ID NOT LIKE 'X%'
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND C.EMP_NM like '%' || #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(secEduTitle)">
+			AND A.SEC_EDU_TITLE like '%' || #{secEduTitle} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+			AND FN_GET_COMP_NM(C.COMP_ID) like '%' || #{compNm} || '%'
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(finishDtSt)">
+			AND NVL(B.FINISH_DTM,'1992-01-01') <![CDATA[<>]]> '1991-01-01'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishDtSt)">
+			AND B.FINISH_DTM <![CDATA[<>]]> #{finishDtSt}
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(finishDtEd)">
+			AND NVL(B.FINISH_DTM,'1992-01-01') <![CDATA[<]]> sysdate
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishDtEd)">
+			AND B.finish_DTM <![CDATA[<]]> #{finishDtEd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(htCd)">
+			AND C.HT_CD = #{htCd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(resideYn)">
+			AND C.RESIDE_YN = #{resideYn}
+		</if>
+		) B
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishYn)">
+			<if test='"M".equals(finishYn)'>
+				AND NVL(B.MANUAL_YN,'N') = 'Y'
+			</if>
+			AND NVL(B.FINISH_YN,'N') = #{finishYn}
+		</if>
+		)T
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectSecurityEducationInfoAdmCount" parameterType="Map" resultType="Integer">
+		/* selectSecurityEducationInfoAdmCount */
+		SELECT count(1) as TOT_CNT FROM (
+		SELECT
+		DISTINCT
+		C.EMP_ID,
+		TRIM(C.EMAIL) as EMAIL,
+		C.EMP_NM,
+		nvl(B.MANUAL_YN,'N') AS MANUAL_YN,
+		FN_GET_COMP_NM(C.COMP_ID) AS COMP_NM,
+		CASE WHEN (SELECT count(1) FROM SEC_EDU_HISTORY SH WHERE SH.EMP_ID = C.EMP_ID AND FINISH_YN ='Y' AND SH.SEC_EDU_NO = A.SEC_EDU_NO ) >= 1 THEN
+		CASE WHEN (SELECT count(1) FROM SEC_EDU_HISTORY SH WHERE SH.EMP_ID = C.EMP_ID AND FINISH_YN ='Y' AND SH.SEC_EDU_NO = A.SEC_EDU_NO ) >=
+		(SELECT count(1) FROM SEC_EDU_SUB SS WHERE SS.SEC_EDU_NO = B.SEC_EDU_NO ) THEN 'Y' ELSE 'N' END ELSE 'N' END AS FINISH_YN
+		FROM CO_EMP C
+		INNER JOIN SEC_EDU A ON A.DEL_YN ='N'
+		LEFT OUTER JOIN SEC_EDU_HISTORY B ON C.EMP_ID = B.EMP_ID  AND B.DEL_YN ='N' AND A.SEC_EDU_NO  = B.SEC_EDU_NO
+		WHERE C.HT_CD in ('C','H')
+		AND C.COMP_ID not in ('1100000001','1217000001')
+		AND C.EMP_ID NOT IN (SELECT EMP_ID FROM EDU_EX_EMP)
+		AND C.USE_YN  = 'Y'
+		AND C.EMAIL IS NOT NULL
+		AND C.EMP_ID NOT LIKE 'X%'
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND C.EMP_NM like '%' || #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(secEduTitle)">
+			AND A.SEC_EDU_TITLE like '%' || #{secEduTitle} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+			AND FN_GET_COMP_NM(C.COMP_ID) like '%' || #{compNm} || '%'
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(finishDtSt)">
+			AND NVL(B.FINISH_DTM,'1992-01-01') <![CDATA[<>]]> '1991-01-01'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishDtSt)">
+			AND B.FINISH_DTM <![CDATA[<>]]> #{finishDtSt}
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(finishDtEd)">
+			AND NVL(B.FINISH_DTM,'1992-01-01') <![CDATA[<]]> sysdate
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishDtEd)">
+			AND B.finish_DTM <![CDATA[<]]> #{finishDtEd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(htCd)">
+			AND C.HT_CD = #{htCd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(resideYn)">
+			AND C.RESIDE_YN = #{resideYn}
+		</if>
+		) B
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(finishYn)">
+			<if test='"M".equals(finishYn)'>
+				AND NVL(B.MANUAL_YN,'N') = 'Y'
+			</if>
+			AND NVL(B.FINISH_YN,'N') = #{finishYn}
+		</if>
+	</select>
+
+</mapper>

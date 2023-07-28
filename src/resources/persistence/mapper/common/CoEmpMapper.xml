@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CoEmpRepository">
+
+	<select id="selectCoEmpList" parameterType="CoEmpDTO" resultType="CoEmpDTO">
+		/* common: coEmpRepository.selectCoEmpList */
+		SELECT
+		    A.EMP_ID,
+		    A.EMP_NM,
+		    A.COMP_ID,
+		    (SELECT NVL(T.COMP_NM, '') FROM CO_COMP T WHERE T.COMP_ID = A.COMP_ID) AS COMP_NM,
+		    A.DEPT_ID,
+		    B.DEPT_NM,
+		    A.JC_CD,
+		    (SELECT NVL(T.JC_NM, '') FROM CO_JC T WHERE T.JC_ID = A.JC_CD) AS JC_NM,
+		    A.JW_ID,
+		    (SELECT NVL(T.JW_NM, '') FROM CO_JW T WHERE T.JW_ID = A.JW_ID) AS JW_NM,
+      		A.EMAIL,
+      		A.TEL_NO1,
+      		A.TEL_NO2
+		FROM CO_EMP A
+		LEFT OUTER JOIN CO_DEPT B
+		ON A.DEPT_ID = B.DEPT_ID
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+		  AND A.USE_YN = #{useYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		  AND A.DEPT_ID = #{deptId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		  AND UPPER(B.DEPT_NM) LIKE '%'||UPPER(#{deptNm})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		  AND A.EMP_ID = #{empId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		  AND UPPER(A.EMP_NM) LIKE '%'||UPPER(#{empNm})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empYn)">
+          AND (A.EMP_ID LIKE '10%'
+            OR A.EMP_ID LIKE '20%'
+            OR A.EMP_ID LIKE '19%'
+          )
+		</if>
+		ORDER BY A.EMP_ID ASC
+	</select>
+
+	<select id="selectCoEmpListCnt" parameterType="CoEmpDTO" resultType="Integer">
+		/* common: coEmpRepository.selectCoEmpListCnt */
+		SELECT COUNT(*)
+		FROM CO_EMP A
+		LEFT OUTER JOIN CO_DEPT B
+		ON A.DEPT_ID = B.DEPT_ID
+		WHERE A.USE_YN = 'Y'
+		WHERE A.USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		  AND A.DEPT_ID = #{deptId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		  AND B.DEPT_NM LIKE '%'||UPPER(#{deptNm})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		  AND A.EMP_ID = #{empId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		  AND A.EMP_NM LIKE '%'||UPPER(#{empNm})||'%'
+		</if>
+	</select>
+
+	<select id="selectCoEmp" parameterType="String" resultType="CoEmpDTO">
+		/* common: coEmpRepository.selectCoEmp */
+		SELECT
+		    A.EMP_ID,
+		    A.EMP_NM,
+		    A.COMP_ID,
+		    B.COMP_NM,
+		    B.COMP_KND,
+		    B.COMP_AREA_KND,
+		    A.DEPT_ID,
+		    C.DEPT_NM,
+		    (SELECT NVL(T.ORG_NAM, '') FROM TBL_PT_ORG T WHERE T.ORG_CD = A.DEPT_ID) AS ORG_NAM,
+		    A.JC_CD,
+		    D.JC_NM,
+		    A.JW_ID,
+		    E.JW_NM,
+		    A.ID,
+		    A.DIV_CD,
+		    FN_GET_DIV_NM(A.DEPT_ID) AS DIV_NM,
+		    A.JUMIN_NO,
+		    A.EMAIL,
+		    A.TEL_NO1,
+		    A.TEL_NO2,
+		    A.ZIP1,
+		    A.ZIP2,
+		    A.ADDR,
+		    A.HT_CD,
+		    A.JOIN_DT,
+		    A.RETIRE_DT,
+		    A.GATE_ID,
+		    A.GATE_KND,
+		    A.ADMIN_KND,
+		    A.JOBLOCAT,
+		    A.WGRP_CD,
+		    A.VST_MNG_YN,
+		    A.USER_TYPE_CD,
+		    A.USE_YN,
+		    A.TRGFLAG,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM,
+		    FN_GET_DEPT_DIV_NM(C.DEPT_DIV_CD, A.COMP_ID) AS DEPT_DIV_NM
+		FROM CO_EMP A
+		LEFT OUTER JOIN CO_COMP B
+		ON A.COMP_ID = B.COMP_ID
+		LEFT OUTER JOIN CO_DEPT C
+		ON A.DEPT_ID = C.DEPT_ID
+		LEFT OUTER JOIN CO_JC D
+		ON A.JC_CD = D.JC_ID
+		LEFT OUTER JOIN CO_JW E
+		ON A.JW_ID = E.JW_ID
+		WHERE A.EMP_ID = #{empId}
+	</select>
+
+	<select id="selectTelByDocId" parameterType="Integer" resultType="String">
+		/* common: coEmpRepository.selectTelByDocId */
+		SELECT
+		    A.TEL_NO1
+		  FROM CO_EMP A
+		  LEFT OUTER JOIN AP_DOC B ON A.EMP_ID = B.APPL_EMP_ID
+		 WHERE B.DOC_ID = #{docId}
+	</select>
+
+	<select id="selectMainScMgrList" parameterType="String" resultType="CoEmpDTO">
+		/* common: coEmpRepository.selectMainScMgrList (dmInsNetMainScMgrList) */
+	    SELECT 'MGR' AS USER_TYPE_CD ,EMP_NM
+	      FROM CO_EMP
+	   	 WHERE DEPT_ID = (SELECT DEPT_ID FROM CO_EMP WHERE EMP_ID = #{empId} )
+	   	   AND JC_CD IN ('KA', 'KC', 'JA', 'CA' , 'JH' ,'JI', 'KH', 'KI', 'JJ', 'JF', 'BD')
+	   	   AND HT_CD !='T'
+	   	   AND ROWNUM =1
+	   	UNION ALL
+	    SELECT 'SC' AS USER_TYPE_CD ,EMP_NM
+	      FROM SC_DEPT_SEC A , CO_EMP B
+	     WHERE A.DEL_YN='N'
+	       AND A.DEPT_ID = (SELECT DEPT_ID FROM CO_EMP WHERE EMP_ID = #{empId} )
+	       AND A.EMP_ID = B.EMP_ID
+	       AND B.HT_CD !='T'
+	</select>
+
+	<select id="selectMainMgrStatList" parameterType="String" resultType="CoEmpStatDTO">
+		/* common: coEmpRepository.selectMainMgrStatList (dmInsNetMainScMgrStateList) */
+		SELECT OFEND_CNT,IO_OFEND_CNT,BEP_CNT,DELAY_CNT,VISIT_CNT,PASS_CNT
+		  FROM STA_VST_MAIN_02
+	     WHERE ENTER_DT = (SELECT MAX(ENTER_DT) FROM STA_VST_MAIN_02 WHERE EMP_ID = #{empId} )
+	       AND EMP_ID= #{empId}
+	</select>
+
+	<select id="selectMainScStatList" parameterType="String" resultType="CoEmpStatDTO">
+		/* common: coEmpRepository.selectMainScStatList (dmInsNetMainScStatList) */
+		SELECT OFEND_CNT,IO_OFEND_CNT,BEP_CNT,DELAY_CNT,VISIT_CNT,PASS_CNT
+	      FROM STA_VST_MAIN_01
+	     WHERE ENTER_DT = (SELECT MAX(ENTER_DT) FROM STA_VST_MAIN_01 WHERE EMP_ID = #{empId})
+	       AND EMP_ID= #{empId}
+	</select>
+
+
+	<select id="selectCoXEmpList" parameterType="CoEmpDTO" resultType="CoEmpDTO">
+		/* common: coEmpRepository.selectCoXEmpList */
+		SELECT 	ROW_NUMBER() OVER(ORDER BY EMP_ID ASC ) AS ROW_NUM,
+				EMP_ID,
+				EMP_NM,
+				COMP_ID,
+				COMP_NM,
+				DEPT_ID,
+				DEPT_NM
+		FROM (
+			SELECT 	A.EMP_ID,
+			        A.EMP_NM,
+			        A.COMP_ID,
+			        X2.COMP_NM,
+			        A.DEPT_ID,
+			        X1.DEPT_NM
+			FROM CO_EMP A, CO_DEPT X1, CO_COMP X2, CO_JW X3
+			WHERE A.HT_CD <![CDATA[ <> ]]> 'T'
+			AND A.DEPT_ID  = X1.DEPT_ID(+)
+			AND A.COMP_ID  = X2.COMP_ID(+)
+			AND A.JW_ID    = X3.JW_ID(+)
+			AND A.EMP_ID NOT LIKE 'X%'
+			AND A.EMP_ID NOT LIKE 'I%'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+			  AND X1.DEPT_NM LIKE '%'||UPPER(#{deptNm})||'%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			  AND A.EMP_ID = #{empId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			  AND UPPER(A.EMP_NM) LIKE '%'||UPPER(#{empNm})||'%' ESCAPE '['
+			</if>
+
+			UNION ALL
+
+			SELECT 	A.EMP_ID,
+             		A.EMP_NM,
+             		A.COMP_ID,
+             		X2.COMP_NM,
+             		A.ORG_CD AS DEPT_ID,
+             		A.ORG_NAM AS DEPT_NM
+            FROM CO_DRM_EMP A, CO_COMP X2
+			WHERE A.COMP_ID  = X2.COMP_ID(+)
+			AND A.USE_YN = 'Y'
+			AND REGEXP_LIKE(A.EMP_ID, 'X|I')
+			<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+			  AND X1.ORG_NAM LIKE '%'||UPPER(#{deptNm})||'%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			  AND A.EMP_ID = #{empId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			  AND UPPER(A.EMP_NM) LIKE '%'||UPPER(#{empNm})||'%' ESCAPE '['
+			</if>
+		) T 
+	</select>
+
+	<select id="selectGlobalStaffProductEmpList" parameterType="GlobalStaffSearchDTO" resultType="GlobalStaffDTO">
+		/* common: coEmpRepository. */
+		SELECT BAREA_CD AS COMPANY_CODE,
+		       BAREA_CD AS COMPANY_NAME,
+		       EMP_NUM,
+		       EMP_NAM,
+		       CASE
+		         WHEN EMP_ENG_NAM_FST IS NULL AND EMP_ENG_NAM_SCND IS NULL THEN EMP_NAM
+		         ELSE EMP_ENG_NAM_FST || ' ' || EMP_ENG_NAM_SCND
+		       END AS EMP_ENG_NAM,
+		       JTIT_CD,
+		       JTIT_NAM,
+		       EMAIL_ADDR
+		  FROM MDM_IF_PA_W
+		 WHERE ACT_CLSS_CD = 'C'
+		   AND EMP_NUM_CLSS_CD = 'H'
+		   AND PERSONID_KOR IS NULL
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		  AND EMP_NUM LIKE #{empId} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		  AND (UPPER(EMP_NAM) LIKE '%'||UPPER(#{empNm})||'%'
+		  	OR UPPER(EMP_ENG_NAM_FST || ' ' || EMP_ENG_NAM_SCND) LIKE '%'||UPPER(#{empNm})||'%'
+		  	)
+		</if>
+	</select>
+
+	<select id="selectGlobalStaffSaleEmpList" parameterType="GlobalStaffSearchDTO" resultType="GlobalStaffDTO">
+		/* common: coEmpRepository.selectGlobalStaffSaleEmpList
+		TODO: WCPPORTLETUSER 접속할 수 없어서 에러가 날 것이다. DB연결정보 설정이 필요하다. DB 연결정보 확보 하는대로 수정 예정 */
+		SELECT COMPANY_CODE,
+		       COMPANY_NAME,
+		       EMP_NUM,
+		       EMP_NAM,
+		       CASE
+		         WHEN EMP_ENG_NAM IS NULL THEN EMP_NAM
+		         ELSE EMP_ENG_NAM
+		       END AS EMP_ENG_NAM,
+		       JTIT_CD,
+		       JTIT_NAM,
+		       EMAIL_ADDR
+		  FROM WCPPORTLETUSER.TBL_PT_WW_USER_SECURITY
+		 WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		  AND EMP_NUM LIKE #{empId} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		  AND (UPPER(EMP_NAM) LIKE '%'||UPPER(#{empNm})||'%'
+		  	OR UPPER(EMP_ENG_NAM) LIKE '%'||UPPER(#{empNm})||'%'
+		  	)
+		</if>
+	</select>
+
+	<select id="selectCoEmpCarInfoViewList" parameterType="CoEmpCarInfoViewSearchDTO" resultType="CoEmpCarInfoViewDTO">
+	    SELECT
+		    ROW_NUMBER() OVER(ORDER BY EMP_ID ASC ) AS ROW_NUM
+		    ,EMP_ID
+		    ,(SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = EMP_ID) AS IDCARD_ID
+		    ,EMP_NM
+		    ,COMP_ID
+		    ,COMP_NM
+		    ,DEPT_ID
+		    ,DEPT_NM
+		    ,EMAIL
+		    ,JW_ID
+		    ,JW_NM
+		    ,TEL_NO1
+		    ,REPLACE(TEL_NO1, '-', '') AS HP_NO
+		    ,TEL_NO2 AS TEL_NO
+		    ,HC_CAR_KND
+		    ,HC_CAR_NO
+		    ,IB_CAR_KND
+		    ,IB_CAR_NO
+		    ,IEO_APPLY_DT
+		    ,IEO_STATUS
+		    ,IEO_APPLY_GBN
+		FROM (
+		        SELECT
+		            T1.*
+		            ,HC.CAR_KND  AS HC_CAR_KND
+		            ,HC.CAR_NO AS HC_CAR_NO
+		            ,IB.CAR_KND AS IB_CAR_KND
+		            ,IB.CAR_NO AS IB_CAR_NO
+		            ,IEO.APPLY_DT AS IEO_APPLY_DT
+		            ,IEO.STATUS AS IEO_STATUS
+		            ,IEO.APPLY_GBN AS IEO_APPLY_GBN
+		        FROM (
+		                SELECT
+		                    A.EMP_ID
+		                    ,A.EMP_NM
+		                    ,A.COMP_ID
+		                    ,X2.COMP_NM
+		                    ,A.DEPT_ID
+		                    ,X1.DEPT_NM
+		                    ,A.EMAIL
+		                    ,A.JW_ID
+		                    ,X3.JW_NM
+		                    ,A.TEL_NO1
+		                    ,A.TEL_NO2
+		                  FROM
+		                    CO_EMP A
+		                    ,CO_DEPT X1
+		                    ,CO_COMP X2
+		                    ,CO_JW X3
+		                WHERE
+		                    A.HT_CD != 'T'
+		                    AND A.DEPT_ID = X1.DEPT_ID(+)
+		                    AND A.COMP_ID = X2.COMP_ID(+)
+		                    AND A.JW_ID = X3.JW_ID(+)
+	                    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+	                        AND A.EMP_ID = #{searchEmpId}
+                        </if>
+                        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+	                        AND UPPER(A.EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%'
+                        </if>
+                        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+	                        AND UPPER(X1.DEPT_NM) LIKE '%'||UPPER(#{searchDeptNm})||'%'
+                        </if>
+		          ) T1
+		         LEFT OUTER JOIN
+		            (SELECT HOLICAR_APP_NO, EMP_ID, CAR_KND, CAR_NO FROM (
+		                    SELECT HOLICAR_APP_NO, EMP_ID, CAR_KND, CAR_NO, SNUM  from (
+		                           SELECT HOLICAR_APP_NO, EMP_ID,  CAR_KND, CAR_NO ,
+		                                  ROW_NUMBER() OVER ( PARTITION BY EMP_ID ORDER BY  HOLICAR_APP_NO DESC) AS SNUM
+		                           FROM IO_HOLICAR_D
+		                    )
+		              ) WHERE SNUM=1
+		             ) HC ON (HC.EMP_ID = T1.EMP_ID)
+		         LEFT OUTER JOIN
+		            (SELECT CARPASS_APP_NO, EMP_ID, CAR_KND, CAR_NO FROM (
+		                    SELECT CARPASS_APP_NO, EMP_ID, CAR_KND, CAR_NO, SNUM  from (
+		                           SELECT CARPASS_APP_NO, EMP_ID,  CAR_KND, CAR_NO ,
+		                                  ROW_NUMBER() OVER ( PARTITION BY EMP_ID ORDER BY  CARPASS_APP_NO DESC) AS SNUM
+		                           FROM IO_BUSICAR_D
+		                    )
+		              ) WHERE SNUM=1
+		            ) IB ON (IB.EMP_ID = T1.EMP_ID)
+		         LEFT OUTER JOIN
+		         ( SELECT EMPCARD_APPL_NO, EMP_ID, STATUS, FN_GET_CODE_NM('A051', APPLY_GBN ) as APPLY_GBN, APPLY_DT,
+		                  ROW_NUMBER() OVER ( PARTITION BY EMP_ID ORDER BY  EMPCARD_APPL_NO DESC) AS SNUM
+		           FROM IO_EMPCARD_ONEDAY
+		           WHERE 1=1 AND DEL_YN = 'N' AND STATUS = 'I' AND EMP_GBN='M'
+		          ) IEO ON (IEO.EMP_ID = T1.EMP_ID AND SNUM =1)
+		)
+	</select>
+	
+	<select id="selectMultiCoEmpInfoList" parameterType="hashMap" resultType="CamelHashMap">
+			SELECT ROW_NUM
+		     , EMP_ID
+		     , IDCARD_ID
+		     , EMP_NM
+		     , COMP_ID
+		     , COMP_NM
+		     , DEPT_ID
+		     , DEPT_NM
+		     , EMAIL
+		     , JW_ID
+		     , JW_NM
+		     , JC_CD
+		     , JC_NM
+		     , TEL_NO1
+		     , HP_NO
+		  FROM (SELECT ROW_NUMBER() OVER(ORDER BY EMP_ID ASC ) AS ROW_NUM
+				     , EMP_ID
+				     , (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = EMP_ID) AS IDCARD_ID 
+				     , EMP_NM
+				     , X2.COMP_ID
+				     , X2.COMP_NM
+				     , E.DEPT_ID
+				     , E.DEPT_NM
+				     , B.EMAIL
+				     , B.JW_ID
+				     , D.JW_NM
+				     , B.JC_CD
+				     , C.JC_NM
+				     , B.TEL_NO1
+				     , REPLACE(TEL_NO1, '-', '') AS HP_NO
+				  FROM CO_EMP   B
+				     , CO_DEPT  E
+				     , CO_JC    C
+				     , CO_JW    D
+				     , CO_COMP  X2   
+				 WHERE B.DEPT_ID = E.DEPT_ID
+				   AND B.USE_YN  = 'Y'
+				   AND B.JW_ID   IS NOT NULL
+				   AND B.HT_CD   = 'C'
+				   AND B.COMP_ID = X2.COMP_ID(+)
+				   AND B.JC_CD = C.JC_ID(+)
+				   AND B.JW_ID = D.JW_ID(+)
+		           <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		   		   AND UPPER(B.EMP_ID) IN
+		   			(
+						SELECT DISTINCT REGEXP_SUBSTR(UPPER(A.TXT), '[^,]+', 1, LEVEL) TXT
+						  FROM (SELECT REPLACE(#{empId},' ','') TXT FROM dual) A
+					   CONNECT BY LEVEL <![CDATA[<=]]> length(REGEXP_REPLACE(A.TXT, '[^,]+',''))+1   			
+		   			)   
+				    </if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		   			AND UPPER(B.EMP_NM) IN 
+		   				(
+							SELECT DISTINCT REGEXP_SUBSTR(UPPER(A.TXT), '[^,]+', 1, LEVEL) TXT
+							  FROM (SELECT REPLACE(#{empNm},' ', '') TXT FROM dual) A
+						   CONNECT BY LEVEL <![CDATA[<=]]> length(REGEXP_REPLACE(A.TXT, '[^,]+',''))+1 
+		   				)          
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		           	AND UPPER(E.DEPT_NM) LIKE '%'|| UPPER(#{deptNm}) ||'%' ESCAPE '[' 
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		 			AND E.DEPT_ID = #{deptId} 
+					</if>
+				) T1
+	</select>
+
+</mapper>
+
+

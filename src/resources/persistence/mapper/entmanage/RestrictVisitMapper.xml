@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.RestrictVisitRepository">
+
+	<select id="selectRestrictCompList" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictCompList (dmRestrictComp_List) */
+		SELECT ROW_NUMBER() OVER ( ORDER BY A.CRT_DTM DESC ) AS ROW_NUM
+	          ,TO_CHAR(A.CRT_DTM, 'yyyy-MM-dd HH24:MI:SS') AS CRT_DT 
+	          ,B.COMP_KO_NM AS COMP_NM
+	          ,DECODE(NVL(A.RESOLVE_DT, ''), '', '제한', '해제') AS REST_YN
+	          ,D.EMP_NM AS RESOLVE_BY_NM
+	          ,TO_CHAR(A.RESOLVE_DT, 'yyyy-MM-dd HH24:MI:SS') AS RESOLVE_DT 
+	          ,A.IO_COMP_ID
+	        FROM IO_COMP_REST_HIST A
+	 	    LEFT JOIN CO_EMP D
+	        ON D.EMP_ID = A.RESOLVE_BY
+		    INNER JOIN IO_COMP B
+	        ON A.IO_COMP_ID = B.IO_COMP_ID
+	    WHERE 1 = 1
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+		   AND UPPER(B.COMP_KO_NM) LIKE '%' || UPPER(#{searchCompNm}) || '%'
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchRestYn)">
+		   AND DECODE(NVL(A.RESOLVE_DT, ''), '', 'Y', 'N') = #{searchRestYn}
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND TO_CHAR(A.CRT_DTM,'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND TO_CHAR(A.CRT_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+		 </if>
+	</select>
+
+	<select id="selectRestrictCompView" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictCompView (dmRestrictComp_View) */
+		SELECT
+	         A.IO_COMP_ID 
+	        ,SUBSTR(A.IO_COMP_ID, 1,3) || '-' || SUBSTR(A.IO_COMP_ID, 4,2) || '-' || SUBSTR(A.IO_COMP_ID, 6) as IO_COMP_ID2
+	        ,A.COMP_KO_NM 
+	        ,A.COMP_EN_NM 
+	        ,A.BOSS_NM
+	        ,NVL(A.ADDR, '') AS ADDR
+	        ,NVL(A.ADDR2, '')  AS ADDR2
+	        ,NVL(A.ZIP1, '') AS ZIP1
+	        ,NVL(A.ZIP2, '') AS ZIP2
+	        ,A.TEL_NO
+	        ,A.FAX_NO
+	        ,A.HOMEPAGE
+	        ,DECODE(NVL(B.RESOLVE_DT, ''), '', 'Y', 'N') AS REST_YN
+		FROM IO_COMP A
+	    LEFT JOIN IO_COMP_REST_HIST B
+	    ON A.IO_COMP_ID = B.IO_COMP_ID
+		WHERE 1=1
+		    AND NVL(A.DEL_YN, 'N') != 'Y'
+		    AND A.COMP_DIV = 'C'
+		    AND A.IO_COMP_ID = #{ioCompId} 
+	</select>
+	
+	<select id="selectRestrictEmpList" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictEmpList (dmRestrictEmp_List) */
+		SELECT ROW_NUMBER() OVER ( ORDER BY A.CRT_DTM DESC ) AS ROW_NUM
+	          ,TO_CHAR(A.CRT_DTM, 'yyyy-MM-dd HH24:MI:SS') AS CRT_DT
+	          ,B.EMP_NM
+	          ,C.COMP_KO_NM AS COMP_NM
+	          ,DECODE(NVL(A.RESOLVE_DT, ''), '', '제한', '해제') AS REST_YN
+	          ,D.EMP_NM AS RESOLVE_BY_NM
+	          ,TO_CHAR(A.RESOLVE_DT, 'yyyy-MM-dd HH24:MI:SS') AS RESOLVE_DT
+	          ,A.IO_EMP_ID
+	          ,B.IO_COMP_ID
+	    FROM IO_EMP_REST_HIST A
+        LEFT JOIN CO_EMP D
+        ON D.EMP_ID = A.RESOLVE_BY
+        INNER JOIN IO_EMP B
+        ON A.IO_EMP_ID = B.IO_EMP_ID
+        INNER JOIN IO_COMP C
+        ON B.IO_COMP_ID = C.IO_COMP_ID
+        WHERE 1 = 1
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+		   AND UPPER(C.COMP_KO_NM) LIKE '%' || UPPER(#{{searchCompNm}) || '%'
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		   AND UPPER(B.EMP_NM) LIKE '%' || UPPER(#{searchEmpNm}) || '%'
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchRestYn)">
+		   AND DECODE(NVL(A.RESOLVE_DT, ''), '', 'Y', 'N') = #{searchRestYn}
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		   AND TO_CHAR(A.CRT_DTM,'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+		 </if>
+	     <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		   AND TO_CHAR(A.CRT_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+		 </if>
+	</select>
+	
+	<select id="selectRestrictEmpView" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictEmpView (dmRestrictEmp_View) */
+        SELECT 
+                A.IO_EMP_ID AS IO_EMP_ID, 
+                A.EMP_NM AS IO_EMP_NM, 
+                A.JW_NM AS IO_JW_NM, 
+                RPAD(SUBSTR(A.HP_NO,1,7),12,'*') AS IO_HP_NO, 
+                A.IO_COMP_ID AS IO_COMP_ID,
+                A.JUMIN_NO AS IO_EMP_JUMIN_NO, 
+                RPAD(SUBSTR(A.PASSPORT_NO,1,7), 9,'*') AS IO_EMP_PASSPORT_NO,
+                A.ADDR AS IO_EMP_ADDR, 
+                B.COMP_KO_NM AS COMP_KO_NM,
+                B.COMP_EN_NM AS COMP_EN_NM,
+                B.BOSS_NM AS BOSS_NM,
+                B.TEL_NO AS COMP_TEL_NO,
+                B.ADDR AS COMP_ADDR,
+                B.ZIP1 AS COMP_ZIP1,
+                B.ZIP2 AS COMP_ZIP2,
+                A.NATION AS NATION,
+                FN_GET_CODE('Z001', A.NATION, '') AS NATION_NM,
+                C.CARD_NO,
+                C.ALTEMP_GBN,
+                FN_GET_CODE( 'A007', C.ALTEMP_GBN, 'DETL_CD') AS ALTEMP_GBN_NM,
+                C.IO_STRT_DT,
+                C.IO_END_DT,
+                C.EXTN_STRT_DT,
+                C.EXTN_END_DT,
+                A.REST_YN
+        FROM IO_EMP A
+        LEFT JOIN IO_PASS C
+        ON  C.IO_COMP_ID = A.IO_COMP_ID
+        AND C.IO_EMP_ID = A.IO_EMP_ID
+        INNER JOIN IO_COMP B
+        ON A.IO_COMP_ID = B.IO_COMP_ID
+        WHERE UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+        AND ROWNUM = 1
+	</select>
+	
+	<select id="selectRestrictHistEmpList" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictHistEmpList (dmRestrictHistEmp_List) */
+		SELECT 
+		    ROW_NUMBER() OVER ( ORDER BY A.BIRTH_DT ASC ) AS ROW_NUM,
+		    A.EMP_NM,
+		    A.BIRTH_DT,
+		    A.REST_STRT_DT || '~' || A.REST_END_DT AS REST_DT,
+		    A.REST_RSN
+		FROM  VW_IO_EMP_RESTRICT A
+		     ,IO_EMP B
+		WHERE      
+		      UPPER(B.IO_EMP_ID) = UPPER(#{ioEmpId})
+		AND   A.EMP_NM = B.EMP_NM
+		AND   A.BIRTH_DT = B.BIRTH_DT
+		AND   TO_CHAR(SYSDATE, 'yyyy-MM-dd') BETWEEN A.REST_STRT_DT AND A.REST_END_DT
+	</select>
+	
+	<select id="selectRestrictHistCompList" parameterType="Map" resultType="CamelHashMap">
+		/* RestrictVisitRepository.selectRestrictHistCompList (dmRestrictHistComp_List) */
+		SELECT 
+		    ROW_NUMBER() OVER ( ORDER BY A.LEGAL_NO ASC ) AS ROW_NUM,
+		    B.COMP_KO_NM AS COMP_NM,
+		    A.REST_STRT_DT || '~' || A.REST_END_DT AS REST_DT,
+		    A.REST_RSN
+		FROM  VW_IO_COMP_RESTRICT A
+		     ,IO_COMP B
+		WHERE      
+		      A.LEGAL_NO = #{ioCompId}
+		AND   A.LEGAL_NO = B.IO_COMP_ID
+		AND   TO_CHAR(SYSDATE, 'yyyy-MM-dd') BETWEEN A.REST_STRT_DT AND A.REST_END_DT
+	</select>
+	
+	<update id="updateRestrictCompResolveComp" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictCompResolveComp (dmRestrictComp_Resolve_Comp_U) */
+		UPDATE IO_COMP
+		SET REST_YN = 'N'
+		WHERE IO_COMP_ID = #{ioCompId}
+	</update>
+	
+	<update id="updateRestrictCompResolveHist" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictCompResolveHist (dmRestrictComp_Resolve_Hist_U) */
+		UPDATE IO_COMP_REST_HIST
+		SET RESOLVE_DT = SYSDATE
+		   ,RESOLVE_BY = #{empId}
+		   ,RESOLVE_RSN = #{resolveRsn}
+		   ,MOD_DTM  = SYSDATE
+		   ,MOD_BY   = #{empId}
+		WHERE IO_COMP_ID = #{ioCompId}
+	</update>
+	
+	<update id="updateRestrictEmpResolveEmp" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictEmpResolveEmp (dmRestrictEmp_Resolve_Emp_U) */
+		UPDATE IO_EMP
+		SET REST_YN = 'N'
+		WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId}) 
+		AND IO_COMP_ID = #{ioCompId}
+	</update>
+	
+	<update id="updateRestrictEmpResolveHist" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictEmpResolveHist (dmRestrictEmp_Resolve_Hist_U) */
+		UPDATE IO_EMP_REST_HIST
+		SET RESOLVE_DT = SYSDATE
+		   ,RESOLVE_BY = #{empId}
+		   ,RESOLVE_RSN = #{resolveRsn}
+		   ,MOD_DTM  = SYSDATE
+		   ,MOD_BY   = #{empId}
+		WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</update>
+	
+	<update id="updateRestrictVisitManResolve" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictVisitManResolve (dmRestrictVisitMan_Resolve_U) */
+		UPDATE IO_VST_MAN
+		SET REST_YN = #{restYn}
+		WHERE VST_APPL_NO = #{vstApplNo}
+		AND UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</update>
+	
+	<update id="updateRestrictVisitManResolveHist" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictVisitManResolveHist (dmRestrictVisitMan_Resolve_Hist_U) */
+		UPDATE IO_VST_MAN_REST_HIST
+		SET RESOLVE_DT  = SYSDATE
+		   ,RESOLVE_BY  = #{empId}
+		   ,RESOLVE_RSN = #{resolveRsn}
+		   ,MOD_DTM     = SYSDATE
+		   ,MOD_BY      = #{empId}
+		WHERE VST_APPL_NO = #{vstApplNo}   
+		AND   IO_EMP_ID   = #{ioEmpId}
+	</update>
+	
+	<update id="updateRestrictVisitResolve" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictVisitResolve (dmRestrictVisit_Resolve_U) */
+		UPDATE IO_VST
+		SET REST_YN = 'N' 
+		WHERE NOT EXISTS (
+			SELECT 1 FROM IO_VST_MAN WHERE VST_APPL_NO = #{vstApplNo} AND REST_YN = 'Y'
+		)
+		AND VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<update id="updateRestrictVisitResolveHist" parameterType="Map">
+		/* RestrictVisitRepository.updateRestrictVisitResolveHist (dmRestrictVisit_Resolve_Hist_U) */
+		UPDATE IO_VST_REST_HIST
+		SET RESOLVE_DT  = SYSDATE
+		,   RESOLVE_BY  = #{empId}
+		,   RESOLVE_RSN = #{resolveRsn}
+		,   MOD_DTM     = SYSDATE
+		,   MOD_BY      = #{empId} 
+		WHERE NOT EXISTS (
+		    SELECT 1 FROM IO_VST_MAN WHERE VST_APPL_NO = #{vstApplNo} AND REST_YN = 'Y'
+		)
+		AND VST_APPL_NO = #{vstApplNo}
+	</update>
+	
+	<update id="updatePassRestrictFree" parameterType="Map">
+		/* RestrictVisitRepository.updatePassRestrictFree (dmPassRestrictFree_U) */
+		UPDATE IO_PASS
+		SET REST_YN = 'N'
+		WHERE PASS_APPL_NO = #{passApplNo}
+	</update>
+	
+	<update id="updatePassRestrictHistFree" parameterType="Map">
+		/* RestrictVisitRepository.updatePassRestrictHistFree (dmPassRestrictHistFree_U) */
+		UPDATE IO_PASS_REST_HIST
+		SET 
+			RESOLVE_DT = SYSDATE,
+			RESOLVE_BY = #{empId},
+			RESOLVE_RSN = #{resolveRsn},
+			MOD_DTM     = SYSDATE,
+			MOD_BY      = #{empId}
+		WHERE PASS_APPL_NO = #{passApplNo}
+	</update>
+	
+</mapper>

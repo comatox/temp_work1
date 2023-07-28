@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.ApprovalBoxRepository">
+
+	<select id="selectApprovalBoxRequestList" parameterType="ApprovalBoxSearchDTO" resultType="ApprovalBoxDTO"><![CDATA[
+		/* approvalBoxRepository.selectApprovalBoxRequestList (dmIntGrtRequestList) */
+		SELECT	
+		            A.DOC_ID AS DOC_ID,
+		            FN_GET_DOC_TYPE(A.SCHEMA_NM, C.LID,'NAME')            AS DOC_NM,               /* 결재문서명 */
+	           		FN_GET_DOC_MSA_URL(A.SCHEMA_NM, C.LID) AS DOC_URL,
+	           		FN_GET_DOC_URL_PARAM(A.SCHEMA_NM, A.DOC_ID) AS DOC_URL_PARAM,
+				    FN_GET_DOC_TYPE(A.SCHEMA_NM, C.LID,'URL')             AS DOC_OLD_URL,              /* 결재문서URL */
+		            A.SCHEMA_NM AS SCHEMA_NM,
+		            TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		            FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) AS DEPT_NM,
+		            /* FN_GET_EMP_JW_NM(A.EMP_ID) AS EMP_NM, */
+		            FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID)||' '||FN_GET_EMP_JW_NM(A.EMP_ID) EMP_NM,
+		            A.APPR_STAT AS APPR_STAT,
+		            DECODE(A.APPR_STAT, '0', '대기', '10', '진행', '20', '완료', '') AS APPR_STAT_NM,
+		            A.APPR_RESULT AS APPR_RESULT,
+					DECODE(A.APPR_RESULT, '0', '진행중', '1', '승인', '2', '부결', '') AS APPR_RESULT_NM,
+		            C.LID AS LID,
+		            A.EMP_ID AS EMP_ID,
+		            A.JW_ID AS JW_ID,
+		            A.DEPT_ID AS DEPT_ID,
+		            A.COMP_ID AS COMP_ID,
+		            A.APPL_DEPT_NM||' '||A.APPL_JW_NM||' '||A.APPL_EMP_NM AS APPL_EMP_NM,
+		            /*A.APPL_EMP_NM AS APPL_EMP_NM,*/
+		            A.APPL_JW_NM AS APPL_JW_NM,
+		            A.APPL_DEPT_NM AS APPL_DEPT_NM,
+		            TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM AP_DOC A,  AP_APPR B, AP_APPR_PORTAL C, CO_EMP D                 
+		WHERE A.DOC_ID = B.DOC_ID        
+		AND A.AP_SEQ = B.AP_SEQ
+		AND A.DOC_ID = C.DOC_ID                
+		AND A.EMP_ID = D.EMP_ID(+)
+		AND A.APPL_EMP_ID = #{applEmpId}
+		AND C.APSEQ = '0'
+		AND A.DEL_YN = 'N'
+        ]]><if test="not @org.springframework.util.StringUtils@isEmpty(fromDate)"><![CDATA[	
+        	AND A.CRT_DTM >= TO_DATE(#{fromDate}, 'YYYY-MM-DD' )			            
+        ]]></if>          
+        <if test="not @org.springframework.util.StringUtils@isEmpty(toDate)"><![CDATA[
+	        AND A.CRT_DTM < TO_DATE( #{toDate}, 'YYYY-MM-DD' )+1
+        ]]></if>		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND D.EMP_NM LIKE '%' || #{searchEmpNm}  || '%'
+		</if>				
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDocNm)">
+			AND FN_GET_DOC_NM(A.SCHEMA_NM, C.LID) LIKE '%' || #{searchDocNm} || '%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchSchemaNm)">
+			AND A.SCHEMA_NM = #{searchSchemaNm}
+		</if>			
+		<if test="not @org.springframework.util.StringUtils@isEmpty(docType)">
+			FN_GET_DOC_TYPE(A.SCHEMA_NM, C.LID , 'ORDER') = #{docType}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprResult)">
+			<if test='"3".equals(searchApprResult)'>
+				AND A.APPR_STAT = '20'
+			</if>
+			<if test='!"3".equals(searchApprResult)'>
+				AND A.APPR_RESULT = #{searchApprResult}
+			</if>			
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprResult)">
+			AND IP.APPLY_GBN  = #{searchApprResult}			
+		</if>			
+		ORDER BY A.DOC_ID DESC		
+	</select>	
+	
+	<select id="selectApprovalBoxApprovalList" parameterType="ApprovalBoxSearchDTO" resultType="ApprovalBoxDTO"><![CDATA[
+		/* approvalBoxRepository.selectApprovalBoxApprovalList (dmIntGrtApprovalList) */
+		SELECT 
+	           DOC_ID,
+	           SCHEMA_NM,
+	           CRT_DTM,
+	           APPR_STAT,
+	           APPR_STAT_NM,
+	           APPR_RESULT,
+	           APPR_RESULT_NM,
+	           LID,
+	           EMP_ID,
+	           JW_ID,
+	           DEPT_ID,
+	           COMP_ID,
+	           APPL_JW_NM,
+	           APPL_DEPT_NM,
+	           MOD_DTM,
+	           APPR_DTM,
+	           APPL_DEPT_NM||' '||APPL_JW_NM||' '||APPL_EMP_NM AS APPL_EMP_NM,
+	           FN_GET_DOC_NM(SCHEMA_NM, LID) AS DOC_NM,
+	           FN_GET_DOC_MSA_URL(SCHEMA_NM, LID) AS DOC_URL,
+	           FN_GET_DOC_URL_PARAM(SCHEMA_NM, DOC_ID) AS DOC_URL_PARAM,
+	           FN_GET_DOC_URL(SCHEMA_NM, LID) AS DOC_OLD_URL,
+	           FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID) AS DEPT_NM,
+	           FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID)||' '||FN_GET_EMP_JW_NM(EMP_ID) AS EMP_NM
+  		FROM (
+			SELECT 
+		           DOC_ID,
+		           SCHEMA_NM,
+		           CRT_DTM,
+		           APPR_STAT,
+		           APPR_STAT_NM,
+		           APPR_RESULT,
+		           APPR_RESULT_NM,
+		           LID,
+		           EMP_ID,
+		           JW_ID,
+		           DEPT_ID,
+		           COMP_ID,
+		           APPL_EMP_NM,
+		           APPL_JW_NM,
+		           APPL_DEPT_NM,
+		           MOD_DTM,
+		           APPR_DTM
+			  FROM (
+				SELECT	
+				        A.DOC_ID AS DOC_ID,
+				        A.SCHEMA_NM AS SCHEMA_NM,
+				        TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				        A.APPR_STAT AS APPR_STAT,
+				        DECODE(A.APPR_STAT, '0', '대기', '10', '진행', '20', '완료', '') AS APPR_STAT_NM,
+				        B.APPR_RESULT AS APPR_RESULT,
+					    DECODE(A.APPR_RESULT, '0', '검토중', '1', '승인', '2', '부결', '') AS APPR_RESULT_NM,
+				        C.LID AS LID,
+				        A.EMP_ID AS EMP_ID,
+				        A.JW_ID AS JW_ID,
+				        A.DEPT_ID AS DEPT_ID,
+				        A.COMP_ID AS COMP_ID,
+				        A.APPL_EMP_NM AS APPL_EMP_NM,
+				        A.APPL_JW_NM AS APPL_JW_NM,
+				        A.APPL_DEPT_NM AS APPL_DEPT_NM,
+				        TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+				        TO_CHAR(B.APPR_DTM, 'YYYY-MM-DD') AS APPR_DTM
+				   FROM AP_DOC A,  AP_APPR B, AP_APPR_PORTAL C, CO_EMP D                 
+				  WHERE A.DOC_ID = B.DOC_ID
+				    AND A.AP_SEQ >= B.AP_SEQ        
+				    AND A.DOC_ID = C.DOC_ID                
+				    AND A.EMP_ID = D.EMP_ID                
+				    AND B.EMP_ID = #{empId}         
+				    AND C.APSEQ = '0'
+				    AND A.DEL_YN = 'N'
+			        ]]><if test="not @org.springframework.util.StringUtils@isEmpty(fromDate)"><![CDATA[	
+			        	AND A.CRT_DTM >= TO_DATE(#{fromDate}, 'YYYY-MM-DD' )			            
+			        ]]></if>          
+			        <if test="not @org.springframework.util.StringUtils@isEmpty(toDate)"><![CDATA[
+				        AND A.CRT_DTM < TO_DATE( #{toDate}, 'YYYY-MM-DD' )+1
+			        ]]></if>		
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+						AND A.APPL_EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+					</if>				
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchDocNm)">
+						AND FN_GET_DOC_NM(A.SCHEMA_NM, C.LID) LIKE '%' || #{searchDocNm} || '%'
+					</if>	
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchSchemaNm)">
+						AND A.SCHEMA_NM = #{searchSchemaNm}
+					</if>			
+					<if test="not @org.springframework.util.StringUtils@isEmpty(docType)">
+						FN_GET_DOC_TYPE(A.SCHEMA_NM, C.LID , 'ORDER') = #{docType}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprResult)">
+						AND B.APPR_RESULT = #{searchApprResult}
+					</if>	
+					ORDER BY A.DOC_ID DESC	
+				)
+			)		
+	</select>	
+	
+	<select id="selectApprovalBoxIdCardList" parameterType="ApprovalBoxSearchDTO" resultType="ApprovalBoxDTO"><![CDATA[
+		/* approvalBoxRepository.selectApprovalBoxIdCardList (dmIntGrtApprovalList_IDCARD) */
+		SELECT 
+	           DOC_ID,
+	           SCHEMA_NM,
+	           CRT_DTM,
+	           APPR_STAT,
+	           APPR_STAT_NM,
+	           APPR_RESULT,
+	           APPR_RESULT_NM,
+	           LID,
+	           EMP_ID,
+	           JW_ID,
+	           DEPT_ID,
+	           COMP_ID,
+	           APPL_JW_NM,
+	           APPL_DEPT_NM,
+	           REQ_EMP_ID,
+		       REQ_EMP_NM,
+		       REQ_COMP_NM,
+	           MOD_DTM,
+	           APPR_DTM,
+	           APPL_DEPT_NM||' '||APPL_JW_NM||' '||APPL_EMP_NM AS APPL_EMP_NM,
+	           FN_GET_DOC_NM(SCHEMA_NM, LID) AS DOC_NM,
+           	   FN_GET_DOC_MSA_URL(SCHEMA_NM, LID) AS DOC_URL,
+           	   FN_GET_DOC_URL_PARAM(SCHEMA_NM, DOC_ID) AS DOC_URL_PARAM,
+	           FN_GET_DOC_URL(SCHEMA_NM, LID) AS DOC_OLD_URL,
+	           FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID) AS DEPT_NM,
+	           FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID)||' '||FN_GET_EMP_JW_NM(EMP_ID) AS EMP_NM,
+       	       APPR_GBN,
+		       APPLY_GBN
+  		FROM (
+			SELECT 
+		           DOC_ID,
+		           SCHEMA_NM,
+		           CRT_DTM,
+		           APPR_STAT,
+		           APPR_STAT_NM,
+		           APPR_RESULT,
+		           APPR_RESULT_NM,
+		           LID,
+		           EMP_ID,
+		           JW_ID,
+		           DEPT_ID,
+		           COMP_ID,
+		           APPL_EMP_NM,
+		           APPL_JW_NM,
+		           APPL_DEPT_NM,
+		           REQ_EMP_ID,
+			       REQ_EMP_NM,
+			       REQ_COMP_NM,		           
+		           MOD_DTM,
+		           APPR_DTM,
+	       	       APPR_GBN,
+			       APPLY_GBN		           
+			  FROM (
+				SELECT	
+				        A.DOC_ID AS DOC_ID,
+				        A.SCHEMA_NM AS SCHEMA_NM,
+				        TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				        A.APPR_STAT AS APPR_STAT,
+				        DECODE(A.APPR_STAT, '0', '대기', '10', '진행', '20', '완료', '') AS APPR_STAT_NM,
+				        B.APPR_RESULT AS APPR_RESULT,
+					    DECODE(A.APPR_RESULT, '0', '검토중', '1', '승인', '2', '부결', '') AS APPR_RESULT_NM,
+				        C.LID AS LID,
+				        A.EMP_ID AS EMP_ID,
+				        A.JW_ID AS JW_ID,
+				        A.DEPT_ID AS DEPT_ID,
+				        A.COMP_ID AS COMP_ID,
+				        A.APPL_EMP_NM AS APPL_EMP_NM,
+				        A.APPL_JW_NM AS APPL_JW_NM,
+				        A.APPL_DEPT_NM AS APPL_DEPT_NM,
+  			            IP.IO_EMP_ID AS REQ_EMP_ID,
+			            FN_GET_IO_EMP_NM(IP.IO_EMP_ID) AS REQ_EMP_NM,
+			            FN_GET_IO_COMP_KO_NM(IP.IO_COMP_ID) AS REQ_COMP_NM,
+			            TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+			            TO_CHAR(B.APPR_DTM, 'YYYY-MM-DD') AS APPR_DTM,
+			            DECODE(IP.APPLY_GBN,'A0061001','신규발급','A0061002','재발급','A0061003','기간연장',' ') AS APPR_GBN,
+           	            IP.APPLY_GBN AS APPLY_GBN
+			       FROM AP_DOC A,  AP_APPR B, AP_APPR_PORTAL C, CO_EMP D , IO_PASS IP               
+			      WHERE A.DOC_ID = B.DOC_ID
+			        AND A.AP_SEQ >= B.AP_SEQ        
+			        AND A.DOC_ID = C.DOC_ID                
+			        AND A.EMP_ID = D.EMP_ID 
+			        
+			        AND C.DOC_ID = IP.DOC_ID 
+			        AND A.DOC_ID = IP.DOC_ID
+			        AND IP.DOC_ID = B.DOC_ID
+			        AND IP.PASS_APPL_NO = C.LID 
+			        AND IP.DEL_YN = 'N'       
+			              
+			        AND B.EMP_ID = #{empId}          
+			        AND C.APSEQ = '0'
+			        AND A.DEL_YN = 'N'
+			        ]]><if test="not @org.springframework.util.StringUtils@isEmpty(fromDate)"><![CDATA[	
+			        	AND A.CRT_DTM >= TO_DATE(#{fromDate}, 'YYYY-MM-DD' )			            
+			        ]]></if>          
+			        <if test="not @org.springframework.util.StringUtils@isEmpty(toDate)"><![CDATA[
+				        AND A.CRT_DTM < TO_DATE( #{toDate}, 'YYYY-MM-DD' )+1
+			        ]]></if>		
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+						AND A.APPL_EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+					</if>				
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchDocNm)">
+						AND FN_GET_DOC_NM(A.SCHEMA_NM, C.LID) LIKE '%' || #{searchDocNm} || '%'
+					</if>	
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchSchemaNm)">
+						AND A.SCHEMA_NM = #{searchSchemaNm}
+					</if>			
+					<if test="not @org.springframework.util.StringUtils@isEmpty(docType)">
+						FN_GET_DOC_TYPE(A.SCHEMA_NM, C.LID , 'ORDER') = #{docType}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprResult)">
+						AND B.APPR_RESULT = #{searchApprResult}
+						AND IP.APPLY_GBN  = #{searchApprResult}
+					</if>	
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqEmpNm)">
+						AND FN_GET_IO_EMP_NM(IP.IO_EMP_ID) LIKE '%' || #{searchReqEmpNm} || '%'
+					</if>						
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqCompNm)">
+						AND FN_GET_IO_COMP_KO_NM(IP.IO_COMP_ID) LIKE '%' || #{searchReqCompNm} || '%'
+					</if>						
+					ORDER BY A.DOC_ID DESC	
+				)
+			)		
+	</select>	
+		
+	
+</mapper>
+
+

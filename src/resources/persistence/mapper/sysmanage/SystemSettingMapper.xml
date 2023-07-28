@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.SystemSettingRepository">
+
+    <select id="selectThemaList" parameterType="Map" resultType="CamelHashMap">
+    <![CDATA[
+	    /*  SystemSettingRepository.selectThemaList (dmThemeMgr_List) */
+	    SELECT
+			GRP_CD, DETL_CD, DETL_NM, DETL_EN_NM, IDCARD_IF, ETC1, ETC2, ETC3, ETC4, SORT_SEQ, USE_YN, AC_IP, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM, RMRK 
+		FROM CO_CODE_D
+		WHERE GRP_CD = 'Z057'
+		ORDER BY SORT_SEQ
+	]]>
+    </select>
+    
+    <update id="allUpdateThema">
+    <![CDATA[
+    /*  SystemSettingRepository.allUpdateThema (dmThemeMgr_All_Modify) */
+	UPDATE CO_CODE_D
+	SET ETC1 = 'N'
+	WHERE 1=1
+	    AND GRP_CD = 'Z057'
+	]]>
+	</update>
+    
+    <update id="updateThema" parameterType="Map" >
+    <![CDATA[
+	    /*  SystemSettingRepository.updateThema (dmThemeMgr_Modify) */
+		UPDATE CO_CODE_D
+			SET ETC1 = 'Y'
+		WHERE 1=1
+	    AND GRP_CD = 'Z057'
+	    AND DETL_CD = #{detlCd}
+	]]>
+	</update>
+</mapper>

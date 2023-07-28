@@ -1,0 +1,675 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.IoTmpCarReqstRepository">
+	
+	<select id="selectIoTmpCarReqstList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO DESC) AS ROW_NUM
+            ,TB.* FROM
+            (
+                SELECT 
+                    A.TMPCAR_APP_NO
+                    ,A.APPL_GBN
+                    ,FN_GET_CODE('Z035',A.APPL_GBN,'DETL_CD') AS APPL_NM
+                    ,A.COMP_ID
+                    ,A.DEPT_ID
+                    ,A.JW_ID
+                    ,A.EMP_ID
+                    ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+                    ,A.CRT_BY
+				    ,FN_GET_EMP_NM(A.CRT_BY) AS CRT_NM
+                    ,(
+                        SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || ' ~ ' ||
+                        SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)
+                     ) AS IO_DT
+                    /*	    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD IN ('A033', 'A028', 'A029') AND DETL_CD = A.GATE_ID) AS GATE_NM
+				    	청주 차량 관련 방문 주차장 코드화 관련 변경 20190401 HSK */						
+                      , FN_GET_VST_PARK_LOT_LIST( A.GATE_ID, A.SUM_VST_PLC_GATE,'NAME')  AS GATE_NM
+                     /* ,A.GATE_ID */
+                     , FN_GET_VST_PARK_LOT_LIST( A.GATE_ID, A.SUM_VST_PLC_GATE,'CODE')  AS GATE_ID
+                     ,A.APP_RSN
+                     ,FN_GET_CODE('Z036',A.APP_RSN,'DETL_CD') AS APP_NM
+                     ,A.APPL_OBJ
+                     ,A.FILE_CAR
+                     ,A.FILE_MEDICAL
+                     ,A.FILE_FAMILYCERT
+                     ,A.FILE_ORDER
+                     ,A.FILE_PROJECT
+                     ,A.FILE_WEIGHING
+                     ,AD.DOC_ID
+					 ,NVL(AD.APPR_STAT, 'N') AS APPR_STAT
+               	     ,NVL(AD.APPR_RESULT, 'N') AS APPR_RESULT
+           	         ,CASE
+       	                WHEN AD.APPR_STAT = '0' THEN '대기'
+   	                    WHEN AD.APPR_STAT = '10' THEN '진행'
+                        WHEN AD.APPR_STAT = '20' THEN '완료'
+                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+                   	  END AS APPR_STAT_NM
+               	     ,CASE
+           	            WHEN AD.APPR_RESULT = '0' THEN '검토중'
+       	                WHEN AD.APPR_RESULT = '1' THEN '승인'
+   	                    WHEN AD.APPR_RESULT = '2' THEN '반려'
+   	                    WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+                      END AS APPR_RESULT_NM
+					 ,CASE
+                        WHEN A.APP_RSN = 'Z0361001' THEN 'P01040105'
+                        WHEN A.APP_RSN = 'Z0361002' THEN 'P01040105'
+                        ELSE 'P01040102'
+                      END AS MENU_ID
+                FROM
+	                IO_TMPCAR_M A
+	                ,AP_DOC AD
+                WHERE 1=1
+                	AND NVL(A.DEL_YN, 'N') = 'N'
+                	AND AD.DOC_ID = A.DOC_ID
+            	<if	test='not @org.springframework.util.StringUtils@isEmpty(authYn) and "N".equals(authYn)'>
+                	AND A.COMP_ID = #{compId}
+					AND A.EMP_ID = #{searchEmpId}
+					<if	test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+					  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					AND REPLACE(A.END_DT, '-', '') <![CDATA[>=]]> REPLACE(#{searchStrtDt}, '-', '')
+					AND REPLACE(A.STRT_DT, '-', '') <![CDATA[<=]]> REPLACE(#{searchEndDt}, '-', '')
+					</if>
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(authYn) and "Y".equals(authYn)'>
+					<if	test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+					  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					AND REPLACE(A.STRT_DT, '-', '') <![CDATA[>=]]> REPLACE(#{searchStrtDt}, '-', '')
+					AND REPLACE(A.END_DT, '-', '') <![CDATA[<=]]> REPLACE(#{searchEndDt}, '-', '')
+					</if>
+				</if>
+				
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+		 			AND  A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE TMPCAR_APP_NO = A.TMPCAR_APP_NO AND CAR_NO LIKE '%' || #{searchCarNo} || '%')
+				</if>
+					/* 진행상태 */
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+		 			<if test='"10".equals(searchApplStat)'>
+		 			/* 검토중 */
+					AND AD.APPR_STAT = #{searchApplStat}
+		 			</if>
+		 			<if test='"20".equals(searchApplStat)'>
+		 			/* 처리완료 */
+					AND AD.APPR_STAT = #{searchApplStat}
+		 			</if>
+		 			<if test='"1".equals(searchApplStat)'>
+		 			/* 승인 */
+					AND AD.APPR_RESULT = #{searchApplStat}
+		 			</if>
+		 			<if test='"2".equals(searchApplStat)'>
+		 			/* 반려 */
+					AND AD.APPR_RESULT = #{searchApplStat}
+		 			</if>
+				</if>
+            ) TB
+            WHERE 1=1
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		 	AND CRT_NM LIKE '%'||#{searchEmpNm}||'%'
+			</if>
+            <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+            AND 
+            	<foreach collection="searchGateId" item="item" separator="AND" index="index">
+ 				GATE_ID LIKE '%'||#{item}||'%'
+    			</foreach>
+			</if>
+	</select>
+	
+	<select id="selectIoTmpCarReqstView" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+		    TMPCAR_APP_NO
+		    ,APPL_GBN
+		    ,APPL_NM
+		    ,APP_SUB_NM
+		    ,COMP_ID
+		    ,COMP_NM
+		    ,DEPT_ID
+		    ,DEPT_NM
+		    ,JW_ID
+		    ,JW_NM
+		    ,EMP_ID
+		    ,EMP_NM
+		    ,EMP_JW_NM
+		    ,TEL_NO
+		    ,IO_DT
+		    ,IO_DT AS USE_DT
+		    ,STRT_DT
+		    ,END_DT
+		    ,GATE_ID
+		    ,GATE_NM
+		    ,APP_RSN
+		    ,APP_SUB_RSN
+		    ,APP_NM
+		    ,APPL_OBJ
+		    ,FILE_CAR
+			,FILE_MEDICAL
+			,FILE_FAMILYCERT
+			,FILE_ORDER
+			,FILE_PROJECT
+			,FILE_WEIGHING
+		    ,DOC_ID
+		    /* ASIS 첨부파일 */
+		    ,REPLACE(REPLACE(SUBSTR(FILE_CAR, INSTR(FILE_CAR,'\',-1)+1), SUBSTR(FILE_CAR, INSTR(FILE_CAR, ';')+1),''),';','') AS FILE_CAR_ID 
+            ,SUBSTR(FILE_CAR, INSTR(FILE_CAR, ';')+1) AS FILE_CAR_NM
+	        ,SUBSTR(FILE_CAR, 1, INSTR(FILE_CAR,'\',-1)) AS FILE_CAR_ADDR
+		    ,REPLACE(REPLACE(SUBSTR(FILE_MEDICAL, INSTR(FILE_MEDICAL,'\',-1)+1), SUBSTR(FILE_MEDICAL, INSTR(FILE_MEDICAL, ';')+1),''),';','') AS FILE_MEDICAL_ID 
+            ,SUBSTR(FILE_MEDICAL, INSTR(FILE_MEDICAL, ';')+1) AS FILE_MEDICAL_NM
+	        ,SUBSTR(FILE_MEDICAL, 1, INSTR(FILE_MEDICAL,'\',-1)) AS FILE_MEDICAL_ADDR
+		    ,REPLACE(REPLACE(SUBSTR(FILE_FAMILYCERT, INSTR(FILE_FAMILYCERT,'\',-1)+1), SUBSTR(FILE_FAMILYCERT, INSTR(FILE_FAMILYCERT, ';')+1),''),';','') AS FILE_FAMILYCERT_ID 
+            ,SUBSTR(FILE_FAMILYCERT, INSTR(FILE_FAMILYCERT, ';')+1) AS FILE_FAMILYCERT_NM
+	        ,SUBSTR(FILE_FAMILYCERT, 1, INSTR(FILE_FAMILYCERT,'\',-1)) AS FILE_FAMILYCERT_ADDR
+		    ,REPLACE(REPLACE(SUBSTR(FILE_ORDER, INSTR(FILE_ORDER,'\',-1)+1), SUBSTR(FILE_ORDER, INSTR(FILE_ORDER, ';')+1),''),';','') AS FILE_ORDER_ID 
+            ,SUBSTR(FILE_ORDER, INSTR(FILE_ORDER, ';')+1) AS FILE_ORDER_NM
+	        ,SUBSTR(FILE_ORDER, 1, INSTR(FILE_ORDER,'\',-1)) AS FILE_ORDER_ADDR
+		    ,REPLACE(REPLACE(SUBSTR(FILE_PROJECT, INSTR(FILE_PROJECT,'\',-1)+1), SUBSTR(FILE_PROJECT, INSTR(FILE_PROJECT, ';')+1),''),';','') AS FILE_PROJECT_ID 
+            ,SUBSTR(FILE_PROJECT, INSTR(FILE_PROJECT, ';')+1) AS FILE_PROJECT_NM
+	        ,SUBSTR(FILE_PROJECT, 1, INSTR(FILE_PROJECT,'\',-1)) AS FILE_PROJECT_ADDR
+		    ,REPLACE(REPLACE(SUBSTR(FILE_WEIGHING, INSTR(FILE_WEIGHING,'\',-1)+1), SUBSTR(FILE_WEIGHING, INSTR(FILE_WEIGHING, ';')+1),''),';','') AS FILE_WEIGHING_ID 
+            ,SUBSTR(FILE_WEIGHING, INSTR(FILE_WEIGHING, ';')+1) AS FILE_WEIGHING_NM
+	        ,SUBSTR(FILE_WEIGHING, 1, INSTR(FILE_WEIGHING,'\',-1)) AS FILE_WEIGHING_ADDR
+		    ,APPR_RESULT
+		    /* TOBE 첨부파일 */
+			,FILE_CAR_URL       
+			,FILE_MEDICAL_URL   
+			,FILE_FAMILYCERT_URL
+			,FILE_ORDER_URL     
+			,FILE_PROJECT_URL   
+			,FILE_WEIGHING_URL
+			,FILE_CAR_NAME       
+			,FILE_MEDICAL_NAME   
+			,FILE_FAMILYCERT_NAME
+			,FILE_ORDER_NAME     
+			,FILE_PROJECT_NAME   
+			,FILE_WEIGHING_NAME 
+			,SUM_VST_PLC_GATE
+		FROM (	
+			SELECT 
+		         A1.TMPCAR_APP_NO
+		        ,A1.APPL_GBN
+		        ,FN_GET_CODE('Z035',A1.APPL_GBN,'DETL_CD') AS APPL_NM
+		        ,A1.COMP_ID
+		        ,FN_GET_CONAME('COMP','', A1.COMP_ID) AS COMP_NM
+		        ,A1.DEPT_ID
+		        ,FN_GET_CONAME('DEPT', A1.DEPT_ID, COMP_ID) AS DEPT_NM
+		        ,A1.JW_ID
+		        ,FN_GET_CONAME('JW', A1.JW_ID,'') AS JW_NM
+		        ,A1.EMP_ID
+		        ,FN_GET_EMP_NM(A1.EMP_ID) AS EMP_NM
+		        ,FN_GET_EMP_JW_NM(A1.EMP_ID) AS EMP_JW_NM
+		        ,(SELECT TEL_NO2 FROM CO_EMP b WHERE b.EMP_ID = A1.EMP_ID) AS TEL_NO
+		        ,(
+		            SUBSTR(A1.STRT_DT, 1,4) || '-' || SUBSTR(A1.STRT_DT, 5,2) || '-' || SUBSTR(A1.STRT_DT, 7,2) || ' ~ ' ||
+		            SUBSTR(A1.END_DT, 1,4) || '-' || SUBSTR(A1.END_DT, 5,2) || '-' || SUBSTR(A1.END_DT, 7,2)
+		         ) AS IO_DT
+		         ,SUBSTR(A1.STRT_DT, 1,4) || '-' || SUBSTR(A1.STRT_DT, 5,2) || '-' || SUBSTR(A1.STRT_DT, 7,2) AS STRT_DT
+		         ,SUBSTR(A1.END_DT, 1,4) || '-' || SUBSTR(A1.END_DT, 5,2) || '-' || SUBSTR(A1.END_DT, 7,2) AS END_DT
+		         /* ,A1.GATE_ID */
+		         , FN_GET_VST_PARK_LOT_LIST( A1.GATE_ID, A1.SUM_VST_PLC_GATE,'CODE')  AS GATE_ID
+		        /* ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A033', 'A029', 'A028') AND DETL_CD = A1.GATE_ID) AS GATE_NM
+		         	청주 차량 관련 방문 주차장 코드화 관련 변경 20190401 HSK */						
+		          , FN_GET_VST_PARK_LOT_LIST( A1.GATE_ID, A1.SUM_VST_PLC_GATE,'NAME')  AS GATE_NM
+		         ,A1.APP_RSN
+		         ,A1.APP_SUB_RSN
+		         ,FN_GET_CODE('Z036',A1.APP_RSN,'DETL_CD') AS APP_NM
+		         ,FN_GET_CODE('Z036',A1.APP_SUB_RSN,'DETL_CD') AS APP_SUB_NM
+		         ,A1.APPL_OBJ
+		         ,A1.FILE_CAR
+				 ,A1.FILE_MEDICAL
+				 ,A1.FILE_FAMILYCERT
+				 ,A1.FILE_ORDER
+				 ,A1.FILE_PROJECT
+				 ,A1.FILE_WEIGHING
+		         ,A1.DOC_ID
+			     ,(SELECT APPR_RESULT FROM AP_DOC WHERE DOC_ID = A1.DOC_ID) AS APPR_RESULT
+			     ,FILE_CAR_URL       
+			     ,FILE_MEDICAL_URL   
+			     ,FILE_FAMILYCERT_URL
+			     ,FILE_ORDER_URL     
+			     ,FILE_PROJECT_URL   
+			     ,FILE_WEIGHING_URL  
+			     ,FILE_CAR_NAME       
+				 ,FILE_MEDICAL_NAME   
+				 ,FILE_FAMILYCERT_NAME
+				 ,FILE_ORDER_NAME     
+				 ,FILE_PROJECT_NAME   
+				 ,FILE_WEIGHING_NAME
+				 ,SUM_VST_PLC_GATE
+		    FROM IO_TMPCAR_M A1
+		    WHERE 1=1
+		<if	test="not @org.springframework.util.StringUtils@isEmpty(tmpcarAppNo)">
+			AND A1.TMPCAR_APP_NO = #{tmpcarAppNo}
+		</if>
+		<if	test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+			AND A1.DOC_ID = #{docId}
+		</if>
+		)
+	</select>
+
+	<select id="selectIoTmpCarReqstUserList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			 DISTINCT(TMPCAR_APP_NO)
+			,COMP_NM
+			,COMP_GBN
+			,COMP_GBN_NM
+			,DEPT_NM
+			,JW_NM
+			,EMP_ID
+			,EMP_NM
+			,HP_NO
+			,CAR_KND
+			,CAR_NO
+			,COMP_ID
+			,RMK
+	    FROM (
+	        SELECT
+	                ROW_NUMBER() OVER(ORDER BY SEQ ASC) as ROW_NUM
+	                ,A.*
+	            FROM (            
+	                    SELECT 
+	                        D.TMPCAR_APP_NO
+	                        ,D.SEQ
+	                        ,D.COMP_NM
+	                        ,D.COMP_GBN
+	                        ,FN_GET_CODE('A010', D.COMP_GBN, 'DETL_CD') as COMP_GBN_NM
+	                        ,D.DEPT_NM
+	                        ,D.JW_NM
+	                        ,D.EMP_ID
+	                        ,D.EMP_NM
+	                        ,D.HP_NO
+	                        ,D.CAR_KND
+	                        ,D.CAR_NO
+	                        ,D.COMP_ID
+	                        ,D.RMK
+	                    FROM
+	                        IO_TMPCAR_D D, IO_TMPCAR_M A
+	                    WHERE 1=1
+	                    	AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+							AND D.TMPCAR_APP_NO = #{tmpcarAppNo}
+	            ) A
+	    )
+	</select>
+	
+	<select id="selectIoTmpCarInfoForICSpms" parameterType="hashMap" resultType="SendSpmsDTO">
+		SELECT
+		     '2' AS DIVISION
+		    ,FN_GET_CODE_ETC1('Z036',ITM.APP_RSN) AS MEMBERTYPE /* CODE_D Z036 참조*/
+	    	,ITD.TMPCAR_APP_NO AS TMPCAR_APP_NO
+	    	,REPLACE(ITD.CAR_NO,' ','') as VehicleNumber  /* VehicleNumber: 차량번호 */
+	    	,SUBSTRB(ITD.CAR_KND,1,25) as VehicleName /* Vehicle_kind : 차량종류 */
+	    	,ITM.STRT_DT AS EnterDateTime /*EnterDateTime  : 예약시작일시 */ 
+	    	,ITM.END_DT AS NoEntryDatetime /*NoEntryDatetime : 예약종료일시 */ 
+	    	,SUBSTRB(FN_GET_CODE('Z036', ITM.APP_RSN, ''),1,20) as VisitPurpose /*VisitPurpose : 방문목적 */
+	    	,SUBSTRB(FN_GET_DEPT_NM(ITM.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(ITM.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(ITM.JW_ID),1,8) ||')'  as ApproverName  /* ApproverName  : 부서명(신청자명) */
+			,ITD.DEPT_NM ||'('||ITD.EMP_NM ||' ' || ITD.JW_NM ||')' as  VisitorName  /* VisitorName   : 운전자 */    
+	    	,ITD.COMP_NM AS  AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+	    	,ITD.HP_NO AS ContactNumber 	/*방문객휴대전화*/
+	    	,ITM.GATE_ID AS Destination /*SUBSTRB(FN_GET_CODE('A028', ITM.GATE_ID, 'DETL_CD'), 1,50) 	AS Destination	*/ 	/* Destination  : 청주만 방문장소 */
+	    	,ITM.SUM_VST_PLC_GATE AS SumVstPlcGate /*청주 주차장만 비트연산을 위해 	*/ 	/* Destination  : 청주만 방문장소 */
+	    	,'' AS DEPTNAME
+	        ,'' AS LOCATION
+	        ,'' AS BIRTHDAY  
+	    	,'' AS note
+	    	,ITD.EMP_ID as SECURITYID    	
+	      	,DECODE(ITD.COMP_GBN,'A0101002',FN_GET_IDCARD_ID(ITD.EMP_ID),'A0101001', 'H00' || ITD.EMP_ID,NULL) AS UNIONNUMBER
+	    FROM IO_TMPCAR_D ITD, IO_TMPCAR_M ITM
+		WHERE 1=1
+	  		AND ITD.TMPCAR_APP_NO = ITM.TMPCAR_APP_NO
+	  		AND ITM.TMPCAR_APP_NO = #{lid}	  		
+	</select>
+
+	<select id="selectIoVstInfoForGotham" parameterType="hashMap" resultType="SendSpmsDTO">
+		SELECT 
+		    /*이천 일반 방문 차량 */
+		     DISTINCT  IV.VST_APPL_NO /* 승인번호*/
+	        ,IVM.CAR_NO         as VehicleNumber    /* VehicleNumber: 차량번호 */
+	        ,SUBSTRB(IVM.CAR_KND,1,25)  as VehicleName    /* Vehicle_kind : 차량종류 */
+	     
+	        ,IVM.VST_STRT_DT         as EnterDateTime  /* EnterDateTime  : 예약시작일시 */ 
+	        ,IVM.VST_END_DT        as NoEntryDatetime  /* NoEntryDatetime : 예약종료일시 */ 
+	        ,SUBSTRB(FN_GET_CODE('A013', IVM.VST_OBJ, ''),1,20) as VisitPurpose  /* VisitPurpose  : 방문목적 */
+	      
+	        ,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  as ApproverName  /* ApproverName  : 부서명(신청자명) */
+	        ,SUBSTRB((SELECT EMP_NM FROM IO_EMP WHERE IO_EMP_ID = IVM.IO_EMP_ID),1,20) as VisitorName  /* VisitorName   : 운전자 */
+	        ,SUBSTRB(FN_GET_IO_COMP_KO_NM(IVM.IO_COMP_ID),1,100)  as AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+	        ,FN_GET_IO_EMP_HP_NO(IVM.IO_EMP_ID)         AS ContactNumber  /*방문객휴대전화*/
+	        ,SUBSTRB(FN_GET_CODE('A022', IVM.PARKING, ''), 1,50)     AS Destination  /* SUBSTRB(FN_GET_CODE('A028', IVM.VST_PLC, ''), 1,50)  AS Destination  */  /* Destination  : 청주만 방문장소 */      
+	        ,IVM.VST_RSN AS note
+	        ,IVM.IO_EMP_ID as SECURITYID /*행복한 만남 ID*/
+	        ,DECODE(IV.IO_PASS_YN,'Y','1','2') AS MEMBERTYPE /* 1:상시출입증 , 2:방문객 */
+	        ,FN_GET_IDCARD_ID(IVM.IO_EMP_ID) AS UNIONNUMBER /* 상시출입증 통합사번 */
+	     FROM IO_VST IV, IO_VST_MAN IVM 
+	     WHERE 1=1
+	        AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+	        AND IV.APPL_STAT = 'Z0331005' /*승인완료*/
+	        AND IVM.VST_COMP_ID = '1101000001'
+	        AND IVM.CAR_NO IS NOT NULL
+	        AND IVM.VST_APPL_NO = #{lid} /*APPL_NO*/
+	      UNION ALL
+	      /*이천 VIP 방문 차량 */
+	      SELECT
+	    	IV.VST_APPL_NO 
+	    	,IVCI.CAR_NO AS VehicleNumber    /* VehicleNumber: 차량번호 */
+	    	,SUBSTRB(IVCI.CAR_KND,1,25) 	AS VehicleName		/* Vehicle_kind : 차량종류 */
+	    	,IVM.VST_STRT_DT 				AS EnterDateTime 	/* EnterDateTime  : 예약시작일시 */ 
+			,IVM.VST_END_DT 				AS NoEntryDatetime 	/* NoEntryDatetime : 예약종료일시 */ 
+	    	,'VIP'  as VisitPurpose  /* VisitPurpose  : 방문목적 */
+	    	,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  as ApproverName  /* ApproverName  : 부서명(신청자명) */
+			,IVCI.DRIVER_NM as VisitorName  /* VisitorName   : 운전자 */
+			,IV.IO_COMP_ID  as AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+			,IVM.HP_NO 				AS ContactNumber 	/*방문객휴대전화*/
+			,DECODE(IVM.VST_COMP_ID,'1101000001','1101000001','1102000001','1102000001','기타') AS Destination	 	/* Destination  : 청주만 방문장소 */
+	    	/* ,IV.VIP_NM|| '; ' || IV.VIP_VSTRS|| '(' || '방문자수:' || IV.VSTR_CNT || ')' as note 황해섭 요청 20181113*/
+	    	,'' as note  
+	    	,'' as SECURITYID  
+	    	,'1' as MEMBERTYPE
+	        ,'' as UNIONNUMBER
+		FROM IO_VST IV, IO_VST_MAN IVM , IO_VIP_CAR_INFO IVCI
+		WHERE 1=1
+			AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+	  		AND IV.VST_APPL_NO = IVCI.VST_APPL_NO
+	  		AND IVCI.VST_APPL_NO = IVM.VST_APPL_NO
+	  		AND IV.VST_APPL_NO = #{lid}
+	  		AND IV.VIP_GU NOT IN ('J','G','E') /* (고객사 및 관계사, 관공서, 교육 및 지원) 는 LPR연동 하지 않는다. 정문만 연동함. */
+	</select>
+	
+	<select id="selectIoTmpCarInfoForCJSpms" parameterType="hashMap" resultType="SendSpmsDTO">
+		SELECT
+	        DISTINCT(ITD.TMPCAR_APP_NO) AS TMPCAR_APPL_NO      
+	        ,'2' AS DIVISION /* 구성원/상시출입증 소지자 상관없이 모두  임시 '2' 로 사용함 */
+	        ,FN_GET_CODE_ETC1('Z036',ITM.APP_RSN) AS MEMBERTYPE /* CODE_D Z036 참조*/
+	        ,REPLACE(ITD.CAR_NO,' ','') as VehicleNumber  /* VehicleNumber: 차량번호 */
+	        ,SUBSTRB(ITD.CAR_KND,1,25) as VehicleName /* Vehicle_kind : 차량종류 */
+	        ,ITM.STRT_DT AS EnterDateTime /*EnterDateTime  : 예약시작일시 */ 
+	        ,ITM.END_DT AS NoEntryDatetime /*NoEntryDatetime : 예약종료일시 */ 
+	        ,SUBSTRB(FN_GET_CODE('Z036', ITM.APP_RSN, ''),1,20) as VisitPurpose /*VisitPurpose : 방문목적 */
+	        ,SUBSTRB(FN_GET_DEPT_NM(ITM.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(ITM.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(ITM.JW_ID),1,8) ||')'  as ApproverName  /* ApproverName  : 부서명(신청자명) */
+	        ,ITD.DEPT_NM ||'('||ITD.EMP_NM ||' ' || ITD.JW_NM ||')' as  VisitorName  /* VisitorName   : 운전자 */    
+	        ,ITD.COMP_NM AS  AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+	        ,DECODE(FN_GET_IDCARD_MPGBN(ITD.EMP_ID),'M', ITD.DEPT_NM, 'P',NULL,NULL )  AS DeptName   /*업체내의 부서명 - 현재는 Null */
+	        ,ITD.HP_NO AS ContactNumber   /*방문객휴대전화*/
+	        ,ITM.GATE_ID AS Destination /*SUBSTRB(FN_GET_CODE('A028', ITM.GATE_ID, 'DETL_CD'), 1,50)  AS Destination  */  /* Destination  : 청주만 방문장소 */
+	        ,'' AS Birthday
+	        ,ITM.SUM_VST_PLC_GATE AS SumVstPlcGate /*청주 주차장만 비트연산을 위해   */  /* Destination  : 청주만 방문장소 */
+	        ,'' AS note
+	        ,ITD.EMP_ID as SECURITYID
+	        ,DECODE(ITD.COMP_GBN,'A0101002',FN_GET_IDCARD_ID(ITD.EMP_ID),'A0101001', 'H00' || ITD.EMP_ID,NULL) AS UNIONNUMBER
+	    FROM IO_TMPCAR_D ITD, IO_TMPCAR_M ITM
+	    WHERE 1=1
+	        AND ITD.TMPCAR_APP_NO = ITM.TMPCAR_APP_NO
+	        AND ITM.TMPCAR_APP_NO = #{lid}
+	</select>
+	
+	<select id="selectCarPassTempListForSMS" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT DISTINCT
+		    FN_GET_EMP_NM(IM.EMP_ID) as RECEIVE_EMP_NM /*SK HYNIX 구성원 및 협력업체 직원 등록 가능하나 SK hynix 구성원 번호로 연락함. */   
+		    ,  REPLACE(FN_GET_EMP_TEL_NO('TEL_NO1', IM.EMP_ID), '-', '') as SMS_NO
+		    , SUBSTR(STRT_DT,1,4) || '-' || SUBSTR(STRT_DT, 5,2) || '-' || SUBSTR(STRT_DT, 7,2) || 
+		        ' ~ ' 
+		      || SUBSTR(END_DT,1,4) || '-' || SUBSTR(END_DT, 5,2) || '-' || SUBSTR(END_DT, 7,2)  as VISIT_DAY
+		    , REPLACE(FN_GET_EMP_TEL_NO('TEL_NO1', #{apprEmpId}), '-', '') as CALLBACK_NO
+		    , #{apprEmpId} AS SEND_EMP_ID
+		    , FN_GET_DIV_NM(CD.DEPT_ID) AS COMP_NM
+		  /*  , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029') AND DETL_CD = IM.GATE_ID )  AS PARKING_NM */
+		    , FN_GET_VST_PARK_LOT_LIST(IM.GATE_ID,IM.SUM_VST_PLC_GATE,'NAME')  AS PARKING_NM 
+		    , IM.COMP_ID as COMP_ID
+		    , IM.APP_RSN
+		FROM
+		    IO_TMPCAR_D ID
+		    , IO_TMPCAR_M IM
+		    , CO_DEPT CD
+		WHERE 1=1
+		    AND ID.TMPCAR_APP_NO = IM.TMPCAR_APP_NO
+		    AND IM.DEPT_ID = CD.DEPT_ID
+		    AND IM.TMPCAR_APP_NO = #{lid}
+	UNION ALL
+		SELECT DISTINCT
+		    ITD.EMP_NM as RECEIVE_EMP_NM /*SK HYNIX 구성원 및 협력업체 직원 등록 가능하나 SK hynix 구성원 번호로 연락함. */   
+		    ,   ITD.HP_NO as SMS_NO
+		    , SUBSTR(STRT_DT,1,4) || '-' || SUBSTR(STRT_DT, 5,2) || '-' || SUBSTR(STRT_DT, 7,2) || 
+		        ' ~ ' 
+		      || SUBSTR(END_DT,1,4) || '-' || SUBSTR(END_DT, 5,2) || '-' || SUBSTR(END_DT, 7,2)  as VISIT_DAY
+		    , ITD.HP_NO as CALLBACK_NO
+		    , AD.EMP_ID AS SEND_EMP_ID
+		    , ITD.COMP_NM AS COMP_NM
+		  /*  , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029') AND DETL_CD = IM.GATE_ID )  AS PARKING_NM */
+		    , FN_GET_VST_PARK_LOT_LIST( IM.GATE_ID,IM.SUM_VST_PLC_GATE,'NAME')  AS PARKING_NM 
+		    , IM.COMP_ID as COMP_ID
+		    , IM.APP_RSN
+		FROM
+		    IO_TMPCAR_D ITD,
+		    IO_TMPCAR_M IM,
+		    AP_DOC AD
+		WHERE 1=1  
+		    AND IM.TMPCAR_APP_NO = ITD.TMPCAR_APP_NO(+)
+		    AND IM.DOC_ID = AD.DOC_ID
+		    AND AD.APPR_STAT ='20' and AD.APPR_RESULT='1'
+		    AND IM.TMPCAR_APP_NO = #{lid}
+		    AND IM.APPL_GBN ='Z0351001'
+	</select>
+	
+	<update id="updateIoTmpCarReqstDocId" parameterType="hashMap">
+		UPDATE IO_TMPCAR_M 
+		   SET DOC_ID  = #{docId}
+			  ,MOD_BY  = #{modBy}
+			  ,MOD_DTM = SYSDATE
+		 WHERE TMPCAR_APP_NO = #{tmpcarAppNo}
+	</update>
+	
+	<update id="updateIoTmpCarReqstApplWork" parameterType="hashMap">
+		UPDATE IO_TMPCAR_M
+        SET    
+            MOD_BY = #{empId},
+            MOD_DTM = SYSDATE
+        WHERE TMPCAR_APP_NO = #{tmpcarAppNo}
+	</update>
+	
+	<select id="selectIoTmpCarReqstNewSeq" parameterType="hashMap" resultType="Integer">
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and "CAR_PASS_TEMP".equals(schemaNm)'>
+			SELECT SEQ_IO_TMPCAR.NEXTVAL AS TMPCAR_APP_NO FROM DUAL
+		</if>
+	</select>
+
+	<select id="selectIoTmpCarReqstUserNewSeq" parameterType="hashMap" resultType="Integer">
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and "CAR_PASS_TEMP".equals(schemaNm)'>
+			SELECT SEQ_IO_TMPCAR_D.NEXTVAL AS SEQ FROM DUAL
+		</if>
+	</select>
+	
+	<insert id="insertIoTmpCarReqst" parameterType="hashMap">
+	    INSERT
+		  INTO  IO_TMPCAR_M
+		        ( TMPCAR_APP_NO
+		        , APPL_GBN 
+		        , COMP_ID 
+		        , DEPT_ID 
+		        , JW_ID 
+		        , EMP_ID  	
+		        , STRT_DT  	
+		        , END_DT 	
+		        , GATE_ID  	
+		        , APP_RSN
+		    	, APP_SUB_RSN  	
+		        , APPL_OBJ 	
+		        , FILE_CAR_URL 	
+		        , FILE_MEDICAL_URL 	
+		        , FILE_FAMILYCERT_URL 	
+		        , FILE_ORDER_URL 	
+		        , FILE_PROJECT_URL	
+		        , FILE_WEIGHING_URL
+		        , FILE_CAR_NAME 	
+		        , FILE_MEDICAL_NAME 	
+		        , FILE_FAMILYCERT_NAME 	
+		        , FILE_ORDER_NAME 	
+		        , FILE_PROJECT_NAME	
+		        , FILE_WEIGHING_NAME
+		        , DOC_ID	
+		        , DEL_YN 	
+		        , AC_IP 
+		        , CRT_BY 	
+		        , CRT_DTM 
+		        , MOD_BY	
+		        , MOD_DTM
+		        , SUM_VST_PLC_GATE)	
+		VALUES  
+		        ( #{tmpcarAppNo}	
+		        , #{applGbn} 	
+		        , #{compId} 	
+		        , #{deptId} 	
+		        , #{jwId} 	
+		        , #{empId} 	
+		        , REPLACE(#{strtDt}, '-' , '')
+		        , REPLACE(#{endDt}, '-', '')
+		        , #{gateId} 	
+		        , #{appRsn}
+		       	, #{appSubRsn}  	
+		       	, #{applObj} 	
+	        	, #{fileCarUrl}
+	        	, #{fileMedicalUrl}
+	        	, #{fileFamilycertUrl}
+	        	, #{fileOrderUrl}
+	        	, #{fileProjectUrl}
+	        	, #{fileWeighingUrl}
+	        	, #{fileCarName} 	
+		        , #{fileMedicalName} 	
+		        , #{fileFamilycertName} 	
+		        , #{fileOrderName} 	
+		        , #{fileProjectName}	
+		        , #{fileWeighingName}
+		        , NULL 	
+		        , 'N'
+		        , #{acIp} 	
+		        , #{crtBy} 	
+		        , SYSDATE 	
+		        , #{crtBy} 	
+		        , SYSDATE
+		        , #{sumVstPlcGate}
+		        )
+	</insert>
+	
+	<insert id="insertIoTmpCarReqstUser" parameterType="hashMap">
+	    INSERT
+		  INTO  IO_TMPCAR_D
+		        (TMPCAR_APP_NO 	
+		        , SEQ
+		        , IO_DT 	
+		        , COMP_GBN	
+		        , COMP_NM 	
+		        , DEPT_NM 	
+		        , JW_NM	
+		        , EMP_NM
+		        , HP_NO  	
+		        , CAR_KND 	
+		        , CAR_NO
+		        , RMK  	
+		        , DEL_YN 	
+		        , AC_IP 
+		        , CRT_BY 	
+		        , CRT_DTM 	
+		        , MOD_BY	
+		        , MOD_DTM
+		        , EMP_ID 
+		        , COMP_ID)	
+		VALUES  
+		        (#{tmpcarAppNo}	
+		        , #{seq}
+		        , REPLACE(REPLACE(#{ioDt}, '-', ''), ' ', '')
+		        , #{compGbn} 	
+		        , #{compNm} 
+		        , #{deptNm} 
+		        , #{jwNm} 	
+		        , #{empNm} 	
+		        , #{hpNo} 	
+		        , #{carKnd} 
+		        , #{carNo} 	
+		        , #{rmk} 	
+		        , 'N'	
+		        , #{acIp} 	
+		        , #{crtBy} 	
+		        , SYSDATE
+		        , #{crtBy} 	
+		        , SYSDATE
+		        , #{empId}
+		        , #{compId})
+	</insert>
+
+	<select id="selectIoTmpCarReqstListExcel" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT T.*
+			FROM
+		    (SELECT
+		        ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO DESC) as ROW_NUM
+		        ,TB.*
+		     FROM
+		        (
+		            SELECT
+		                A.TMPCAR_APP_NO
+		                ,A.DOC_ID
+		                ,(
+		                    SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || ' ~ ' ||
+		                    SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)
+		                 ) as IO_DT
+		                ,FN_GET_CODE('Z035',A.APPL_GBN,'DETL_CD') as APPL_NM
+		                ,FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as TEAM_DEPT_NM
+		                ,A.EMP_ID AS EMP_ID
+		                ,FN_GET_EMP_NM(A.EMP_ID) as TEAM_EMP_NM
+		                ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+		                 /* ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD = A.GATE_ID) as GATE_NM 
+		              	 청주 차량 관련 방문 주차장 코드화 관련 변경 20190401 HSK */
+		               ,B.COMP_NM AS COMP_NM
+		               ,B.DEPT_NM AS DEPT_NM
+		               ,B.JW_NM AS JW_NM
+		               , B.EMP_NM AS EMP_NM
+		               , B.CAR_KND AS CAR_KND
+		               , B.CAR_NO AS CAR_NO
+		                ,FN_GET_VST_PARK_LOT_LIST( A.GATE_ID,A.SUM_VST_PLC_GATE,'NAME')  AS GATE_NM                       
+		                ,FN_GET_VST_PARK_LOT_LIST( A.GATE_ID,A.SUM_VST_PLC_GATE,'CODE')  AS GATE_ID 
+		                ,FN_GET_CODE('Z036',A.APP_RSN,'DETL_CD') as APP_NM
+		                ,A.APPL_OBJ
+		                ,CASE
+		                    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+		                    WHEN AD.APPR_RESULT = '1' THEN '승인'
+		                    WHEN AD.APPR_RESULT = '2' THEN '반려'
+		                    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+		                 END as APPR_RESULT_NM
+		                 , AD.CANCELETC AS APPR_COMMENT
+		            FROM
+		                IO_TMPCAR_M A
+		              LEFT OUTER JOIN
+		              ( SELECT 
+		                    TMPCAR_APP_NO
+		                    , COMP_NM AS COMP_NM
+		                    , DEPT_NM AS DEPT_NM
+		                    , JW_NM AS JW_NM
+		                    , EMP_NM AS EMP_NM
+		                    , CAR_KND AS CAR_KND
+		                    , CAR_NO AS CAR_NO 
+		               FROM IO_TMPCAR_D
+		               ORDER BY SEQ DESC
+		               ) B ON (
+		                   B.TMPCAR_APP_NO = A.TMPCAR_APP_NO
+		               )  
+		             ,AP_DOC AD
+		        WHERE 1=1
+		          AND NVL(A.DEL_YN, 'N') = 'N'
+		          AND AD.DOC_ID = A.DOC_ID
+		          <if	test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+					  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					AND REPLACE(A.STRT_DT, '-', '') <![CDATA[>=]]> REPLACE(#{searchStrtDt}, '-', '')
+					AND REPLACE(A.END_DT, '-', '') <![CDATA[<=]]> REPLACE(#{searchEndDt}, '-', '')
+				  </if>
+		          <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+		 			AND  A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE TMPCAR_APP_NO = A.TMPCAR_APP_NO AND CAR_NO LIKE '%' || #{searchCarNo} || '%')
+				  </if>
+		        ) TB
+			WHERE 1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		 		AND EMP_NM LIKE '%'||#{searchEmpNm}||'%'
+			</if>
+		    )T
+		    WHERE 1 = 1
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+            AND 
+            	<foreach collection="searchGateId" item="item" separator="AND" index="index">
+ 				GATE_ID LIKE '%'||#{item}||'%'
+    			</foreach>
+			</if>
+	</select>
+
+</mapper>

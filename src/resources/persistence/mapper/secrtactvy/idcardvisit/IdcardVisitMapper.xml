@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.idcardvisit.IdcardVisitRepository">
+
+
+	<update id="dmSecIoEmp_Violation_OutProc_IF" statementType="CALLABLE" parameterType="Map"> 
+	<![CDATA[
+		/* 출문(분실) */
+		exec [dbo].[uSP_SK_Visitor_Insert_DoorOut2] 
+		@card_no =#{cardNo}
+		,@ssn=#{juminNo}
+		,@name=#{name}
+		,@area_code=#{areaCode}
+		,@doorout_at=#{dooroutAt}
+		,@passport=#{passportNo}		
+		,@company_name=#{companyName}
+		,@reason=#{reason}
+		,@building=#{building}
+		]]>
+	</update>
+	
+	<update id="dmPassExcptIF_IoPassExprHist" statementType="CALLABLE" parameterType="Map"> 
+	<![CDATA[
+		exec [dbo].[uSP_SK_IF_IO_PASS_EXPR_HIST] 
+		@EXPR_APPL_NO =#{exprApplNo}
+		,@S_C_GBN=#{sCGbn}
+		,@IDCARD_ID=#{idcardId}
+		,@EXPR_CODE=#{exprCode}
+		,@PTYPE ='N'
+	]]>
+	</update>
+	
+	<!-- 외부인 보안 위규자 상세 > 출입 외부 제한 - 하이스텍 정지신청 하는 I/F Procedure 호출  - callOffLimitsIoPassExprHist (ASIS : dmOffLimits_IoPassExprHist ) -->
+	<update id="callOffLimitsIoPassExprHist" statementType="CALLABLE" parameterType="Map">
+		EXEC [dbo].[uSP_SK_IF_IO_PASS_EXPR_HIST] 
+				@EXPR_APPL_NO =#{exprApplNo}
+				,@S_C_GBN=#{scGbn}
+				,@IDCARD_ID=#{smartIdcard}
+				,@EXPR_CODE=#{exprCode}
+				<if test='"SI".equals(siteType)'>
+				,@PTYPE='8'
+				</if>
+	</update>
+	
+</mapper>

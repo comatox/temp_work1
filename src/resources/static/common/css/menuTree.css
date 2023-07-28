@@ -1,0 +1,22 @@
+.treeview {
+	margin-left : 20px;
+	margin-top : 5px;
+}
+
+.treeview ul {
+	margin: 0px;
+	padding: 0px;
+}
+
+.treeview li {
+	padding-left: 22px;
+	cursor : pointer;
+}
+
+.treeview li.submenu ul {
+	display: none;
+}
+
+.treeview .submenu ul li {
+	cursor: pointer !important;
+}

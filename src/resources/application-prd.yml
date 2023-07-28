@@ -1,0 +1,22 @@
+## Spring boot configuration
+spring:
+  datasource:
+    hikari:
+      pool-name: default-hikari-pool
+      driver-class-name: oracle.jdbc.OracleDriver
+      jdbc-url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(FAILOVER=ON)(LOAD_BALANCE=OFF)(ADDRESS=(PROTOCOL=TCP)(HOST=166.125.7.166)(PORT=1521))(ADDRESS=(PROTOCOL=TCP)(HOST=166.125.7.167)(PORT=1521)))(CONNECT_DATA=(SRVR=DEDICATED)(SERVICE_NAME=GRID2DB)(FAILOVER_MODE=(TYPE=SELECT)(METHOD=BASIC)(RETRIES=5)(DELAY=5))))
+      username: securityadm
+      password: ENC(mX+ozdUWgYOhq/3ND2dvuknfUcV9DnBX)
+      minimum-idle: 2
+      maximum-pool-size: 50
+
+## Logback configuration
+logging:
+  level:
+    root: info
+    jdbc: warn
+    jdbc.sqlonly: off
+    jdbc.sqltiming: off
+    jdbc.resultsettable: off
+    com.zaxxer.hikari: warn
+    com.skshieldus.esecurity: info

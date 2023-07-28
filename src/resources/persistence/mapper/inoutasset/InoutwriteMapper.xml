@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.inoutasset.InoutwriteRepository">
+
+  <select id="selectArticleGroupCodeList" parameterType="hashMap" resultType="CamelHashMap">
+    /* inoutRepository.selectArticleGroupCodeList */
+    SELECT
+      ARTICLEGROUPID AS ARTICLEGROUPID,
+      ARTICLEGROUPNAME AS ARTICLEGROUPNAME
+    FROM ARTICLEGROUP
+    WHERE COMPANYNO = '1101000001'
+    AND ARTICLEKNDNO = #{articlekndno}
+    <if test="not @org.springframework.util.StringUtils@isEmpty(articlenouseyn)">
+      AND ARTICLENOUSEYN = #{articlenouseyn}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(articlegroupid)">
+      AND ARTICLEGROUPID = #{articlegroupid}
+    </if>
+
+    ORDER BY ARTICLEGROUPNAME ASC
+  </select>
+
+  <select id="selectInoutwriteNewSeq" parameterType="hashMap" resultType="CamelHashMap">
+    /* inoutRepository.selectInoutwriteNewSeq */
+    SELECT
+        INOUT_WRITE_SEQ.NEXTVAL AS INOUT_APPL_NO,
+        DECODE(#{companyno}, '1101000001', 'SIC',
+              '1102000001', 'SC1',
+              '1105000001', 'SC2',
+              '1106000001', 'SC3',
+              '1109000001', 'SC4',
+              '1103000001', 'SS1',
+              '1107000001', 'SB1',
+              '1108000001', 'SB2',
+              '1131000001', 'SCF',
+              '1130000001', 'SCW',
+              '1110000001', 'SCW'
+        )
+        || '-' ||
+        DECODE(#{articlekndno}, '1', 'M', '2', 'C', '3', 'D', '4', 'W', '', '5', '6', 'M', 'W')
+        || '-' || TO_CHAR(SYSDATE, 'YYMMDD')
+        || '-' ||
+        (
+            SELECT
+                LPAD((SELECT NVL(MAX(WRITESEQ), 0) + 1 FROM INOUTWRITE WHERE WRITEDATE = TO_CHAR(SYSDATE, 'YYYY-MM-DD')), 5, '0')
+            FROM DUAL
+        ) AS INOUTSERIALNO,
+        TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS WRITEDATE,
+        (
+            SELECT
+                NVL(MAX(WRITESEQ), 0) + 1
+            FROM INOUTWRITE
+            WHERE WRITEDATE = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        ) AS WRITESEQ
+    FROM DUAL
+  </select>
+
+  <update id="mergeInoutwrite" parameterType="hashMap">
+    <![CDATA[
+    MERGE INTO INOUTWRITE A
+      USING DUAL
+      ON (A.INOUT_APPL_NO = #{inoutApplNo})
+
+      WHEN MATCHED THEN
+        UPDATE SET
+          PRNO = #{prno},
+          DEPT_CD = #{deptCd},
+          EMP_NO = #{empNo},
+          EMP_TEL = #{empTel},
+          OUTCOMPANYKND = #{outcompanyknd},
+          MYCOMPANYNO = #{mycompanyno},
+          RETURNCOMPANYAREAKND = #{returncompanyareaknd},
+          SYSTEMPARTNERID = #{systempartnerid},
+          OUTCOMPANYDEPT_CD = #{outcompanydeptCd},
+          INOUTKND = #{inoutknd},
+          OUTREASONID = #{outreasonid},
+          OUTREASONSUBKND = #{outreasonsubknd},
+          OUTDATE = '',
+          INDATE = #{indate},
+          INOUTETC = #{inoutetc},
+          ARTICLEKNDNO = #{articlekndno},
+          ARTICLEGROUPID = #{articlegroupid},
+          DOCUMENTKND = #{documentknd},
+          PUBLISHDEPTCHKYN = #{publishdeptchkyn},
+          LEAVEDEPTCHKYN = #{leavedeptchkyn},
+          LEAVEAPPROVALID = #{leaveapprovalid},
+          APPROVALREQUESTYN = #{approvalrequestyn},
+          /* APPROVALKND = #{approvalknd}, */
+          PUBLISHDEPTOKYN = '0',
+          LEAVEDEPTOKYN = '0',
+          INDATEDELAYKND = #{indatedelayknd},
+          INEMP_NO = #{inempNo},
+          INDEPT_CD = #{indeptCd},
+          LASTUPDATEDATE = TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+          LASTUPDATETIME = TO_CHAR(SYSDATE, 'HH24:MI:SS'),
+          FOREIGN_COMP = #{foreignComp},
+          FINISHED_CHANGE = '0',
+          PARTNER_ETC_NM = #{partnerEtcNm},
+          SEND_YN = NVL(#{sendYn}, 'N'),
+          SEND_FILENAME = #{sendFilename},
+          SEND_FILEID = #{sendFileid},
+          SEND_FILEPATH = #{sendFilepath},
+          SYSTEMPARTNERNM = #{systempartnernm},
+          COP_URL = #{copUrl}
+
+      WHEN NOT MATCHED THEN
+        INSERT (
+          INOUT_APPL_NO,
+          WRITEDATE,
+          WRITESEQ,
+          COMPANYKND,
+          COMPANYAREAKND,
+          COMPANYNO,
+          INOUTSERIALNO,
+          PRNO,
+          COMP_ID,
+          DEPT_CD,
+          EMP_NO,
+          EMP_TEL,
+          OUTCOMPANYKND,
+          MYCOMPANYNO,
+          RETURNCOMPANYAREAKND,
+          SYSTEMPARTNERID,
+          OUTCOMPANYDEPT_CD,
+          INOUTKND,
+          OUTREASONID,
+          OUTREASONSUBKND,
+          OUTDATE,
+          INDATE,
+          REALINDATE,
+          INOUTETC,
+          ARTICLEKNDNO,
+          ARTICLEGROUPID,
+          DOCUMENTKND,
+          PUBLISHDEPTCHKYN,
+          LEAVEDEPTCHKYN,
+          LEAVEAPPROVALID,
+          APPROVALREQUESTYN,
+          APPROVALKND,
+          PUBLISHDEPTOKYN,
+          LEAVEDEPTOKYN,
+          OUTGATEOKYN,
+          INGATEOKYN,
+          ROUTGATEOKYN,
+          RINGATEOKYN,
+          FINISHKND,
+          INDATEDELAYKND,
+          DOCUMENTMOVEKND,
+          NOTINCHANGEKND,
+          OUTGATEETC,
+          INGATEETC,
+          ROUTGATEETC,
+          RINGATEETC,
+          INEMP_NO,
+          INDEPT_CD,
+          FIRSTINPUTDATE,
+          FIRSTINPUTTIME,
+          FOREIGN_COMP,
+          FINISHED_CHANGE,
+          PARTNER_ETC_NM,
+          SEND_YN,
+          SEND_FILENAME,
+          SEND_FILEID,
+          SEND_FILEPATH,
+          SYSTEMPARTNERNM,
+          COP_URL
+        ) VALUES (
+          #{inoutApplNo},
+          #{writedate},
+          #{writeseq},
+          (SELECT ETC3 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+          (SELECT ETC2 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+          #{companyno},
+          #{inoutserialno},
+          #{prno},
+          #{deptCd},
+          #{empNo},
+          #{empTel},
+          #{outcompanyknd},
+          #{mycompanyno},
+          #{returncompanyareaknd},
+          #{systempartnerid},
+          #{outcompanydeptCd},
+          #{inoutknd},
+          #{outreasonid},
+          #{outreasonsubknd},
+          '',
+          #{indate},
+          '',
+          #{inoutetc},
+          #{articlekndno},
+          #{articlegroupid},
+          #{documentknd},
+          #{publishdeptchkyn},
+          #{leavedeptchkyn},
+          #{leaveapprovalid},
+          #{approvalrequestyn},
+          '0',
+          '0',
+          '0',
+          '0',
+          '0',
+          '0',
+          '0',
+          '0',
+          #{indatedelayknd},
+          '0',
+          '0',
+          '',
+          '',
+          '',
+          '',
+          #{inempNo},
+          #{indeptCd},
+          TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+          TO_CHAR(SYSDATE, 'HH24:MI:SS'),
+          #{foreignComp},
+          '0',
+          #{partnerEtcNm},
+          NVL(#{sendYn}, 'N'),
+          #{sendFilename},
+          #{sendFileid},
+          #{sendFilepath},
+          #{systempartnernm},
+          #{copurl},
+          #{compId}
+        )
+    ]]>
+  </update>
+
+  <update id="updateInoutwriteDocId" parameterType="hashMap">
+    <![CDATA[
+    UPDATE INOUTWRITE SET
+        DOC_ID           = #{docId},
+        PUBLISHDEPTCHKYN = #{publishdeptchkyn},
+        LEAVEDEPTCHKYN   = #{leavedeptchkyn},
+        LASTUPDATEDATE   = TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+        LASTUPDATETIME   = TO_CHAR(SYSDATE, 'HH24:MI:SS')
+    WHERE INOUT_APPL_NO = #{inoutApplNo}
+    ]]>
+  </update>
+
+  <insert id="insertArticle" parameterType="hashMap">
+    <selectKey keyProperty="articleid" resultType="Integer" order="BEFORE">
+      SELECT ARTICLE_SEQ.NEXTVAL AS ARTICLEID FROM DUAL
+    </selectKey>
+    <![CDATA[
+    INSERT INTO ARTICLE (
+      ARTICLEID,
+      COMPANYKND,
+      COMPANYAREAKND,
+      COMPANYNO,
+      ARTICLEKNDNO,
+      ARTICLEGROUPID,
+      ARTICLENAME,
+      INEMP_NO,
+      INDEPT_CD,
+      FIRSTINPUTDATE,
+      FIRSTINPUTTIME
+    ) VALUES (
+      #{articleid},
+      (SELECT ETC3 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+      (SELECT ETC2 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+      #{companyno},
+      #{articlekndno},
+      #{articlegroupid},
+      #{articlename},
+      #{empNo},
+      #{deptCd},
+      TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+      TO_CHAR(SYSDATE, 'HH24:MI:SS')
+    )
+    ]]>
+  </insert>
+
+  <update id="insertInoutarticlelist" parameterType="hashMap">
+    <![CDATA[
+    MERGE INTO INOUTARTICLELIST A
+    USING DUAL
+    ON (
+        A.INOUT_APPL_NO = #{inoutApplNo}
+        AND A.WRITEASEQ = #{writeaseq}
+    )
+
+    WHEN MATCHED THEN
+        UPDATE SET
+          ARTICLEKNDNO = #{articlekndno}.
+          ARTICLEGROUPID = #{articlegroupid}.
+          MATERIAL_ID = #{materialId}.
+          ARTICLEID = #{articleid}.
+          ARTICLECOMPUTERIZEID = #{articlecomputerizeid}.
+          SERIALNO = #{serialno}.
+          INOUTCNT = #{inoutcnt}.
+          OUTCNT = #{outcnt}.
+          INCNT = #{incnt}.
+          ROUTCNT = #{routcnt}.
+          RINCNT = #{rincnt}.
+          UNITNAME = #{unitname}.
+          ASIZE = #{asize}.
+          IMAGEPATH = #{imagepath}.
+          INSTALLDEPT = #{installdept}.
+          CHARGENAME = #{chargename}.
+          USENAME = #{usename}.
+          VENDERPN = #{venderpn}.
+          JASANNOKND = #{jasannoknd}.
+          JSNO = #{jsno}.
+          MMNO = #{mmno}.
+          DEPTNAME = #{deptname}.
+          FILEPATH = #{filepath}.
+          FILENAME = #{filename}.
+          FILEID = #{fileid}.
+          PRD_ATTR = #{prdAttr}.
+          ARTICLENAME = #{articlename}
+
+      WHEN NOT MATCHED THEN
+        INSERT (
+          INOUT_APPL_NO,
+          WRITEDATE,
+          WRITESEQ,
+          WRITEASEQ,
+          COMPANYKND,
+          COMPANYAREAKND,
+          COMPANYNO,
+          ARTICLEKNDNO,
+          ARTICLEGROUPID,
+          MATERIAL_ID,
+          ARTICLEID,
+          ARTICLECOMPUTERIZEID,
+          SERIALNO,
+          INOUTCNT,
+          OUTCNT,
+          INCNT,
+          ROUTCNT,
+          RINCNT,
+          UNITNAME,
+          ASIZE,
+          IMAGEPATH,
+          INSTALLDEPT,
+          CHARGENAME,
+          USENAME,
+          VENDERPN,
+          JASANNOKND,
+          JSNO,
+          MMNO,
+          DEPTNAME,
+          FILEPATH,
+          FILENAME,
+          FILEID,
+          PRD_ATTR,
+          ARTICLENAME
+        ) VALUES (
+          #{inoutApplNo},
+          #{writedate},
+          #{writeseq},
+          #{writeaseq},
+          (SELECT ETC3 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+          (SELECT ETC2 FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = #{companyno}),
+          #{companyno},
+          #{articlekndno},
+          #{articlegroupid},
+          #{materialId},
+          #{articleid},
+          #{articlecomputerizeid},
+          #{serialno},
+          #{inoutcnt},
+          '0',
+          '0',
+          '0',
+          '0',
+          #{unitname},
+          #{asize},
+          #{imagepath},
+          #{installdept},
+          #{chargename},
+          #{usename},
+          #{venderpn},
+          #{jasannoknd},
+          #{jsno},
+          #{mmno},
+          #{deptname},
+          #{filepath},
+          #{filename},
+          #{fileid},
+          #{prdAttr},
+          #{articlename}
+        )
+    ]]>
+  </update>
+
+  <delete id="deleteInoutarticlelist" parameterType="Integer">
+    DELETE FROM INOUTARTICLELIST
+    WHERE INOUT_APPL_NO = #{inoutApplNo}
+  </delete>
+
+</mapper>
+
+

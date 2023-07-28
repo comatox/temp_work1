@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityNationalCoreTechRepository">
+
+	<select id="selectSecurityNationalCoreTechChecklist" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+		/*  SecurityNationalCoreTechRepository.selectSecurityNationalCoreTechChecklist */
+		 SELECT A.NCT_CHECKLIST_NO,
+				A.TECH_EXPORT_TYPE,
+				FN_GET_CODE_NM('C082',A.TECH_EXPORT_TYPE) AS TECH_EXPORT_TYPE_NM,
+				A.VERSION,
+				A.FILE_URL1,
+				A.FILE_NAME1,
+				A.AC_IP,
+				A.CRT_BY,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DT,
+				B.EMP_NM AS CRT_NM  
+		  FROM SC_NCT_CHECKLIST A
+		       ,CO_EMP B
+		  WHERE 1=1
+		    AND A.CRT_BY = B.EMP_ID(+)
+		    AND A.DEL_YN='N'
+		    ]]>	<if test="not @org.springframework.util.StringUtils@isEmpty(searchTechExportType)">
+			AND A.TECH_EXPORT_TYPE = #{searchTechExportType}	   
+			</if>	
+			ORDER BY A.NCT_CHECKLIST_NO DESC  		
+	</select>
+
+	<select id="selectSecurityNationalCoreTechChecklistView" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+		/*  SecurityNationalCoreTechRepository.selectSecurityNationalCoreTechChecklistView */
+		 SELECT A.NCT_CHECKLIST_NO,
+				A.TECH_EXPORT_TYPE,
+				FN_GET_CODE_NM('C082',A.TECH_EXPORT_TYPE) AS TECH_EXPORT_TYPE_NM,
+				A.VERSION,
+				A.FILE_URL1,
+				A.FILE_NAME1,
+				A.AC_IP,
+				A.CRT_BY,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DT,
+				B.EMP_NM AS CRT_NM  
+		  FROM SC_NCT_CHECKLIST A
+		       ,CO_EMP B
+		  WHERE 1=1
+		  	AND A.NCT_CHECKLIST_NO = #{nctChecklistNo}	 
+		    AND A.CRT_BY = B.EMP_ID(+)
+		    AND A.DEL_YN='N'
+		    ]]>	<if test="not @org.springframework.util.StringUtils@isEmpty(searchTechExportType)">
+			AND A.TECH_EXPORT_TYPE = #{searchTechExportType}	   
+			</if>			
+	</select>
+	
+	<insert id="insertNationalCoreTechChecklist" parameterType="Map">
+	<![CDATA[
+	/* SecurityNationalCoreTechRepository.insertNationalCoreTechChecklist */
+	INSERT INTO SC_NCT_CHECKLIST 
+			(	NCT_CHECKLIST_NO,
+				TECH_EXPORT_TYPE,
+				VERSION,
+				FILE_URL1,
+				FILE_NAME1,
+				DEL_YN,
+				AC_IP,
+				CRT_BY,
+				CRT_DTM,
+				MOD_BY,
+				MOD_DTM 
+			)
+			VALUES
+			(
+				(SELECT NVL(MAX(NCT_CHECKLIST_NO),0)+1
+					FROM SC_NCT_CHECKLIST
+				)
+				,#{techExportType}
+				,(
+					SELECT NVL(MAX(VERSION),0)+1
+					FROM SC_NCT_CHECKLIST
+					WHERE
+					TECH_EXPORT_TYPE = #{techExportType}
+				)
+				,#{fileUrl1}
+				,#{fileName1}
+				,'N'
+				,#{acIp}
+				,#{crtBy}
+				,SYSDATE
+				,#{crtBy}
+				,SYSDATE
+			)
+	]]>
+	</insert>
+
+	<select id="selectSecurityNationalCoreTechList" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+		/*  SecurityNationalCoreTechRepository.selectSecurityNationalCoreTechList */
+		 SELECT A.NATIONAL_CORE_TECH_NO,
+				A.TECH_EXPORT_TYPE,
+				FN_GET_CODE_NM('C082',A.TECH_EXPORT_TYPE) AS TECH_EXPORT_TYPE_NM,
+				A.DOC_ID,
+				A.APPL_STAT,
+			    CASE WHEN A.APPL_STAT = 'Z0331002' THEN '검토중'
+		             ELSE FN_GET_CODE('Z033',A.APPL_STAT,'') 
+		        END AS APPL_STAT_NM,
+				A.SUBJECT,
+				A.TARGET_DEPT_ID,
+				A.TARGET_DEPT_NM,
+				A.USER_ID,
+				A.USER_NM,
+				A.USER_DEPT_ID,
+				A.USER_DEPT_NM,
+				A.USER_JW_ID,
+				A.USER_JW_NM,
+				A.SCORE,
+				A.OVERVIEW,
+				A.RESULT,
+				A.CHECKLIST_VERSION,
+				A.FILE_URL1,
+				A.FILE_NAME1,
+				A.DEL_YN,
+				A.AC_IP,
+				A.CRT_BY,
+				A.CRT_DTM,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DT
+		   FROM SC_NATIONAL_CORE_TECH A
+		  WHERE 1=1
+		    AND A.DEL_YN='N'
+		    ]]><if test='!"Y".equals(adminYn)'>
+		    	AND A.CRT_BY = #{empId}
+		    </if>
+		    
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)"><![CDATA[
+						AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') >= #{searchStrtDt}
+			]]></if>	
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)"><![CDATA[			
+						AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') <= #{searchEndDt}
+			]]></if>
+						    
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchTechExportType)"><![CDATA[
+			AND A.TECH_EXPORT_TYPE = #{searchTechExportType}	   
+			]]></if>	
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchSubject)">
+					AND A.SUBJECT LIKE '%'|| #{searchSubject} ||'%'
+			</if>	
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+					AND A.USER_NM LIKE '%'|| #{searchEmpNm} ||'%'
+			</if>		
+			
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+					AND A.TARGET_DEPT_NM LIKE '%'|| #{searchDeptNm} ||'%'
+			</if>											
+		    		
+			<if test='!"ALL".equals(searchstat)'><![CDATA[
+			AND CASE WHEN A.APPL_STAT IS NULL THEN '1'				 
+					 WHEN A.APPL_STAT = 'Z0331002' THEN '2'
+					 WHEN A.APPL_STAT = 'Z0331003' THEN '3'
+					 WHEN A.APPL_STAT = 'Z0331004' THEN '3'
+					 ELSE '4'
+	                 END = #{searchstat}
+			]]></if>	
+			ORDER BY A.NATIONAL_CORE_TECH_NO DESC					
+	</select>
+
+	<select id="selectSecurityNationalCoreTechView" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+		/*  SecurityNationalCoreTechRepository.selectSecurityNationalCoreTechView */
+		 SELECT A.NATIONAL_CORE_TECH_NO,
+				A.TECH_EXPORT_TYPE,
+				FN_GET_CODE_NM('C082',A.TECH_EXPORT_TYPE) AS TECH_EXPORT_TYPE_NM,
+				A.DOC_ID,
+				A.APPL_STAT,
+			    CASE WHEN A.APPL_STAT = 'Z0331002' THEN '검토중'
+		             ELSE FN_GET_CODE('Z033',A.APPL_STAT,'') 
+		        END AS APPL_STAT_NM,
+				A.SUBJECT,
+				A.TARGET_DEPT_ID,
+				A.TARGET_DEPT_NM,
+				A.USER_ID,
+				A.USER_NM,
+				A.USER_DEPT_ID,
+				A.USER_DEPT_NM,
+				A.USER_JW_ID,
+				A.USER_JW_NM,
+				A.SCORE,
+				A.OVERVIEW,
+				A.RESULT,
+				A.CHECKLIST_VERSION,
+				A.FILE_URL1,
+				A.FILE_NAME1,
+				A.DEL_YN,
+				A.AC_IP,
+				A.CRT_BY,
+				A.CRT_DTM,
+				TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DT
+		   FROM SC_NATIONAL_CORE_TECH A
+		  WHERE 1=1
+		    AND A.NATIONAL_CORE_TECH_NO = #{nationalCoreTechNo}	
+		    AND A.DEL_YN='N'
+		    ]]>	
+	</select>
+	
+	<insert id="insertNationalCoreTech" parameterType="Map">
+	/* SecurityNationalCoreTechRepository.insertNationalCoreTech */
+	
+		<selectKey keyProperty="nationalCoreTechNo" resultType="Integer" order="BEFORE">
+	        SELECT NVL(MAX(NATIONAL_CORE_TECH_NO),0)+1 AS NATIONAL_CORE_TECH_NO
+					FROM SC_NATIONAL_CORE_TECH
+	    </selectKey><![CDATA[		
+	INSERT INTO SC_NATIONAL_CORE_TECH 
+			(	NATIONAL_CORE_TECH_NO,
+				TECH_EXPORT_TYPE,
+				DOC_ID,
+				APPL_STAT,
+				SUBJECT,
+				TARGET_DEPT_ID,
+				TARGET_DEPT_NM,
+				USER_ID,
+				USER_NM,
+				USER_DEPT_ID,
+				USER_DEPT_NM,
+				USER_JW_ID,
+				USER_JW_NM,
+				SCORE,
+				OVERVIEW,
+				RESULT,
+				CHECKLIST_VERSION,
+				FILE_URL1,
+				FILE_NAME1,
+				DEL_YN,
+				AC_IP,
+				CRT_BY,
+				CRT_DTM,
+				MOD_BY,
+				MOD_DTM
+			)
+			VALUES
+			(
+
+				 #{nationalCoreTechNo}
+				,#{techExportType}
+				,#{docId}
+				,#{applStat}
+				,#{subject}
+				,#{targetDeptId}
+				,#{targetDeptNm}
+				,#{userId}
+				,#{userNm}
+				,#{userDeptId}
+				,#{userDeptNm}
+				,#{userJwId}
+				,#{userJwNm}
+				,#{score}
+				,#{overview}
+				,#{result}
+				,#{checklistVersion}
+				,#{fileUrl1}
+				,#{fileName1}
+				,'N'
+				,#{acIp}
+				,#{crtBy}
+				,SYSDATE
+				,#{crtBy}
+				,SYSDATE
+			)
+	]]>
+	</insert>
+	
+	<select id="selectLastChecklist" parameterType="Map" resultType="CamelHashMap"><![CDATA[
+		/*  SecurityNationalCoreTechRepository.selectLastChecklist */
+		SELECT A.TECH_EXPORT_TYPE,
+		       A.FILE_URL1 ,
+		       A.VERSION
+		  FROM SC_NCT_CHECKLIST A,
+		       (SELECT MAX(VERSION) VERSION,
+		               TECH_EXPORT_TYPE
+		          FROM SC_NCT_CHECKLIST
+		         GROUP BY TECH_EXPORT_TYPE ) B
+		 WHERE A.TECH_EXPORT_TYPE = B.TECH_EXPORT_TYPE
+		   AND A.VERSION = B.VERSION
+		 ORDER BY A.TECH_EXPORT_TYPE
+	]]>		
+	</select>
+	
+		<update id="updateNationalCoreTechDocId" parameterType="Map">
+	/* SecurityNationalCoreTechRepository.updateNationalCoreTechDocId  */
+	UPDATE SC_NATIONAL_CORE_TECH 
+	   SET DOC_ID  = #{docId}
+		  ,MOD_BY  = #{crtBy}
+		  ,MOD_DTM = SYSDATE
+	 WHERE NATIONAL_CORE_TECH_NO = #{nationalCoreTechNo}
+	</update>
+	
+	<update id="updateNationalCoreTechApplWork" parameterType="Map">
+	/* SecurityNationalCoreTechRepository.updateNationalCoreTechApplWork*/
+	UPDATE SC_NATIONAL_CORE_TECH 
+	   SET APPL_STAT = #{applStat}
+		  ,MOD_BY  = #{empId}
+		  ,MOD_DTM = SYSDATE
+	 WHERE NATIONAL_CORE_TECH_NO = #{nationalCoreTechNo}
+	</update>
+	
+	<update id="updateCodeInfo" parameterType="Map">
+	<![CDATA[
+	/*  SecurityNationalCoreTechRepository.updateCodeInfo */
+	
+	UPDATE  CO_CODE_D a
+	SET  
+       a.ETC1 = #{etc1}
+     ,  a.MOD_BY = #{empId}	
+     ,  a.MOD_DTM = SYSDATE
+	WHERE a.GRP_CD = #{grpCd}	
+ 	AND a.DETL_CD = #{detlCd}
+	]]>
+	</update>
+	
+</mapper>

@@ -1,0 +1,4507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityAdminViolationRepository">
+
+	<select id="selectCoEmpInfo" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoEmpInfo (dmSecCoEmp_Violation_EmpId_S) */
+		SELECT
+			A.EMP_ID ,
+	        A.EMP_NM ,
+	        A.COMP_ID ,
+	        X2.COMP_NM ,
+	        A.DEPT_ID ,
+	        X1.DEPT_NM ,
+	        A.EMAIL ,
+	        A.JW_ID ,
+	        X3.JW_NM ,
+	        REPLACE(A.TEL_NO1, '-', '') AS HP_NO
+		FROM CO_EMP A ,
+		  CO_DEPT X1 ,
+		  CO_COMP X2 ,
+		  CO_JW X3
+		WHERE A.HT_CD <> 'T'
+		AND A.DEPT_ID  = X1.DEPT_ID(+)
+		AND A.COMP_ID  = X2.COMP_ID(+)
+		AND A.JW_ID    = X3.JW_ID(+)
+		AND A.EMP_ID = #{searchEmpId}
+		]]>
+	</select>
+
+	<select id="getScDocNo" parameterType="Map" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.getScDocNo (dmSecCoEmp_Violation_Seq_S) */
+		SELECT
+			SEQ_SC_OFFEND_ID.NEXTVAL AS SC_DOC_NO
+		FROM DUAL
+		]]>
+	</select>
+
+	<select id="selectCoViolationExcptCnt1" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoViolationExcptCnt1 (dmSecCoEmpViolation_Excpt_Cnt1) */
+		WITH T AS (
+		    SELECT
+		         TO_CHAR(TRUNC(TO_DATE(REPLACE(#{violationDate}, '-', ''),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT
+		        ,TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(REPLACE(#{violationDate}, '-', ''),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+		    FROM DUAL
+		)
+		SELECT
+		     NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0531011', 1, 0)),0) AS CNT1
+		    ,NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0531010', 1, 0)),0) AS CNT2
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.DEL_YN = 'N'
+		]]>
+	</select>
+
+	<select id="selectCoViolationExcptCnt2" parameterType="Map" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoViolationExcptCnt2 (dmSecCoEmpViolation_Excpt_Cnt2) */
+		WITH T AS (
+		    SELECT
+		         TO_CHAR(TRUNC(TO_DATE(REPLACE(#{violationDate}, '-', ''),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT
+		        ,TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(REPLACE(#{violationDate}, '-', ''),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+		    FROM DUAL
+		)
+		SELECT
+		    COUNT(1) AS CNT
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.OFEND_EMP_ID         = #{ofendEmpId}
+		AND A.OFEND_DETAIL_GBN     = 'C0531010'
+		AND A.MOBILE_FORENSICS_GBN IN ('C0601002', 'C0601003') /* 2차(산업보안팀 정밀검색 의뢰 대상), 모바일 포렌직 미인식(아래에 추정원인 작성) */
+		AND A.DEL_YN = 'N'
+		]]>
+	</select>
+
+	<insert id="coViolationInsert"  parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.coViolationInsert (dmSecCoEmp_Violation_I) */
+		INSERT INTO SC_OFEND
+		(
+		     SC_DOC_NO
+		    ,COMP_ID
+		    ,DEPT_ID
+		    ,JW_ID
+		    ,EMP_ID
+		    ,OFEND_COMP_ID
+		    ,OFEND_DEPT_ID
+		    ,OFEND_JW_ID
+		    ,OFEND_EMP_ID
+		    ,OFEND_TEL_NO
+		    ,OFEND_DT
+		    ,OFEND_TM
+		    ,OFEND_GBN
+		    ,OFEND_DETAIL_GBN
+		    ,CORR_PLAN_SEND_YN
+		    ,DOC_ID
+		    ,AC_IP
+		    ,CRT_BY
+		    ,CRT_DTM
+		    ,MOD_BY
+		    ,MOD_DTM
+		    ,DEL_YN
+		    ,ETC_RSN
+		    ,FILE_PATH
+		    ,OLD_YN
+		    ,ACT_COMP_ID
+		    ,OFEND_SUB_GBN
+		    ,MOBILE_FORENSICS_GBN
+		    ,ACT_BLDG
+		    ,ACT_LOCATE
+		    ,SEC_MAN_NM
+		    ,ACT_GATE
+		    ,DAILY_CERTI_EMPNO
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(defaultActYn)">
+		<![CDATA[
+			,ACT_DO
+			,ACT_BY
+			,ACT_DTM
+		]]>
+		</if>
+		<![CDATA[
+		)
+		VALUES
+		(
+		    #{scDocNo}
+		    ,#{compId}
+		    ,#{deptId}
+		    ,#{jwId}
+		    ,#{empId}
+		    ,#{ofendCompId}
+		    ,#{ofendDeptId}
+		    ,#{ofendJwId}
+		    ,#{ofendEmpId}
+		    ,#{telNo}
+		    ,REPLACE(#{violationDate}, '-', ''),(LPAD(#{violationHour}, 2, '0') || LPAD(#{violationMin}, 2, '0'))
+		    , #{ofendGbn}
+		    , #{ofendDetailGbn}
+		    ,(SELECT ETC3 FROM CO_CODE_D WHERE ETC4 = #{ofendGbn} AND DETL_CD = #{ofendDetailGbn} AND USE_YN = 'Y')
+		    ,#{docId}
+		    ,#{acIp}
+		    ,#{empId}
+		    ,SYSDATE
+		    ,#{empId}
+		    ,SYSDATE
+		    ,'N'
+		    ,#{etcRsn}
+		    ,#{files}
+		    ,'N'
+		    ,#{actCompId}
+		    ,#{ofendSubGbn}
+		    ,#{mobileForensicsGbn}
+		    ,#{actBldg}
+		    ,#{actLocate}
+		    ,#{secManNm}
+		    ,#{actGate}
+		    ,#{dailyCertiEmpno}
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(defaultActYn)">
+		<![CDATA[
+			,#{actDo}
+			,#{empId}
+			,SYSDATE
+		]]>
+		</if>
+		<![CDATA[
+		)
+		]]>
+	</insert>
+
+	<select id="dmSecCoEmp_Violation_SendMail_List_S" parameterType="Map" resultType="CamelHashMap">
+	/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_SendMail_List_S (dmSecCoEmp_Violation_SendMail_List_S) */
+			/* 위규자 */
+			SELECT '1' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+			FROM CO_EMP
+			WHERE EMP_ID = #{ofendEmpId}
+			UNION ALL
+			/* 위규자 팀 팀장 */
+			SELECT '2' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+			FROM CO_EMP
+			WHERE DEPT_ID = #{ofendDeptId}
+				/* 사번/조직변경   AND  (JC_CD = 'F1' OR JC_CD = 'V3') */
+				AND  (JC_CD = 'KA' OR JC_CD = 'DA')
+				/* 레거시 변경 이후 적용 */
+				/*AND JC_CD = 'KA'*/
+			UNION ALL
+			/* 위규자 팀 보안 담당자 */
+			SELECT '3' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+			FROM CO_EMP
+			WHERE EMP_ID IN (SELECT EMP_ID
+											 FROM  SC_DEPT_SEC
+											 WHERE DEL_YN = 'N'
+												 AND DEPT_ID = #{ofendDeptId}
+			)
+	</select>
+
+	<select id="dmSecCoEmp_Discipline_SendMail_List_S" parameterType="Map" resultType="CamelHashMap">
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Discipline_SendMail_List_S (dmSecCoEmp_Discipline_SendMail_List_S) */
+		/* 위규자 */
+		SELECT '1' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+			FROM CO_EMP
+			 WHERE EMP_ID = #{ofendEmpId}
+			 UNION ALL
+		 /* 위규자 팀 팀장 */
+			SELECT '2' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+				FROM CO_EMP
+			 WHERE EMP_ID = #{kaEmpId}
+				UNION ALL
+			 /* 위규자 팀 보안 담당자 */
+			SELECT '3' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+				FROM CO_EMP
+			 WHERE EMP_ID IN (SELECT EMP_ID
+												 FROM  SC_DEPT_SEC
+												WHERE DEL_YN = 'N'
+													AND DEPT_ID = #{ofendDeptId}
+												)
+				 UNION ALL
+			 /* 위규자 사업부장 담당자 */
+			SELECT '4' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+				FROM CO_EMP
+				WHERE EMP_ID = #{gaEmpId}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(actDo)">
+				<if test='"C0280004".equals(actDo)'>
+					 UNION ALL
+				 /* 위규자 대표이사 담당자 */
+				SELECT '5' as GUBUN,EMP_ID,EMP_NM,EMAIL, TEL_NO1 AS HP_NO
+					FROM CO_EMP
+					WHERE EMP_ID = #{aaEmpId}
+				</if>
+		  </if>
+	</select>
+
+	<select id="dmSecCoEmp_Violation_Info" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Info (dmSecCoEmp_Violation_Info) */
+		SELECT A.OFEND_EMP_ID,
+					 (SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.OFEND_EMP_ID) AS OFEND_EMP_NM,
+					 A.OFEND_DEPT_ID,
+					 (SELECT C.DEPT_NM FROM CO_DEPT C WHERE C.DEPT_ID = A.OFEND_DEPT_ID) AS OFEND_DEPT_NM,
+					 A.OFEND_JW_ID,
+					 (SELECT D.JW_NM FROM CO_JW D WHERE D.JW_ID = A.OFEND_JW_ID) AS OFEND_JW_NM,
+					 SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+					 CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+								ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+						 END OFEND_TM,
+					 A.OFEND_GBN,
+					 (SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM,
+					 A.OFEND_DETAIL_GBN AS OFEND_DETAIL_CD,
+					 A.OFEND_SUB_GBN,
+					 (SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_NM,
+					 (SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_SUB_GBN) AS OFEND_SUB_NM,
+					 FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+					,FN_GET_COMP_NM(A.OFEND_COMP_ID) as OFEND_COMP_NM
+					,A.ACT_BLDG
+					,A.ACT_LOCATE
+					,A.ACT_GATE
+					,A.SEC_MAN_NM
+					,FN_GET_COMP_NM(A.ACT_COMP_ID) as ACT_COMP_NM
+					,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_BLDG   AND ETC4 = A.ACT_COMP_ID AND GRP_CD = 'C063') AS ACT_BLDG_NM
+					,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_LOCATE AND ETC4 = A.ACT_BLDG AND GRP_CD = 'C064') AS ACT_LOCATE_NM
+					,TO_CHAR(A.ACT_DTM+13, 'yyyy-MM-dd') AS LIMIT_14_DTM
+					,TO_CHAR(A.ACT_DTM+29, 'yyyy-MM-dd') AS LIMIT_30_DTM
+		FROM SC_OFEND A
+		WHERE A.SC_DOC_NO = #{scDocNo}
+		]]>
+	</select>
+
+	<select id="selectCoEmpViolationOfendCnt" parameterType="Map" resultType="String">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoEmpViolationOfendCnt (dmSecCoEmp_Violation_Ofend_Check_Quaterly) */
+		SELECT NVL(COUNT(*), 0) AS OFEND_CNT
+		FROM SC_OFEND
+		WHERE OFEND_EMP_ID = UPPER(#{ofendEmpId})
+		AND OFEND_GBN = #{ofendGbn}
+		AND OFEND_DT BETWEEN TO_CHAR(TRUNC(SYSDATE, 'Q'), 'YYYYMMDD')
+		AND TO_CHAR(TRUNC(ADD_MONTHS(SYSDATE,3), 'Q')-1, 'YYYYMMDD')
+		]]>
+	</select>
+
+
+	<update id="dmSecCoEmp_Violation_Ofend_U" parameterType="Map">
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Ofend_U (dmSecCoEmp_Violation_Ofend_U) */
+		UPDATE SC_OFEND
+		SET  ACT_DO  = #{actDo}
+		    ,CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+		    ,ACT_BY  = #{empId}
+		    ,ACT_DTM = SYSDATE
+		    ,RMRK    = #{rmrk}
+		    ,MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{empId}
+				<if test="not @org.springframework.util.StringUtils@isEmpty(kaEmpId)">
+					,KA_EMP_ID  = #{kaEmpId}
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(gaEmpId)">
+					,GA_EMP_ID  = #{gaEmpId}
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(aaEmpId)">
+					,AA_EMP_ID  = #{aaEmpId}
+				</if>
+		WHERE SC_DOC_NO = #{scDocNo}
+	</update>
+
+	<insert id="dmSecCoEmp_Violation_Exp_I" parameterType="Map">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Exp_I (dmSecCoEmp_Violation_Exp_I) */
+	MERGE INTO SC_EXP_DO T1
+        USING (
+                SELECT
+                    TO_CHAR(SYSDATE, 'YYYY') AS SC_YEAR
+                    ,A.OFEND_EMP_ID AS EXP_EMP_ID
+                    ,#{actDo} AS ACT_DO
+                FROM SC_OFEND  A
+                WHERE A.SC_DOC_NO = #{scDocNo}
+                  AND A.OLD_YN    = 'N'
+                ) T2
+        ON (T1.SC_YEAR = T2.SC_YEAR AND T1.EXP_EMP_ID = T2.EXP_EMP_ID AND T1.ACT_DO = T2.ACT_DO)
+        WHEN MATCHED THEN
+            UPDATE SET
+                T1.EXP_CNT = T1.EXP_CNT + 1,
+                T1.CHK_CNT = T1.CHK_CNT + 1,
+                T1.MOD_DTM = SYSDATE,
+                T1.MOD_BY  = #{empId}
+        WHEN NOT MATCHED THEN
+            INSERT
+               (  SC_YEAR
+                , EXP_EMP_ID
+                , ACT_DO
+                , EXP_CNT
+                , CHK_CNT
+                , AC_IP
+                , CRT_DTM
+                , CRT_BY
+                , MOD_DTM
+                , MOD_BY
+                )
+        VALUES
+               (  T2.SC_YEAR
+                , T2.EXP_EMP_ID
+                , T2.ACT_DO
+                , 1
+                , 1
+                , #{acIp}
+                , SYSDATE
+                , #{empId}
+                , SYSDATE
+                , #{empId}
+               )]]>
+	</insert>
+
+	<select id="dmSecCoEmp_Violation_Corr_Plan_Seq_S" parameterType="Map" resultType="String">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Corr_Plan_Seq_S (dmSecCoEmp_Violation_Corr_Plan_Seq_S) */
+		SELECT
+			SEQ_SC_CORR_PLAN_NO.NEXTVAL AS SC_CORR_PLAN_NO
+		FROM DUAL
+		]]>
+	</select>
+
+	<insert id="dmSecCoEmp_Violation_Corr_Plan_I" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Corr_Plan_I (dmSecCoEmp_Violation_Corr_Plan_I) */
+		INSERT
+			INTO
+		SC_CORR_PLAN (
+			SC_CORR_PLAN_NO
+			,SC_DOC_NO
+			,COMP_ID
+			,DEPT_ID
+			,JW_ID
+			,EMP_ID
+			,POINT_CONTENT
+			,SC_CONTENT
+			,ETC_CONTENT
+			,IMPR_CONTENT
+			,DOC_ID
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+			,DEL_YN
+			,ACT_DO
+		) VALUES (
+			#{scCorrPlanNo}
+			,#{scDocNo}
+			,#{ofendCompId}
+			,#{ofendDeptId}
+			,#{ofendJwId}
+			,#{ofendEmpId}
+			,#{pointContent}
+			,#{scContent}
+			,#{etcContent}
+			,#{imprContent}
+			,#{docId}
+			,#{acIp}
+			,#{empId}
+			,SYSDATE
+			,#{empId}
+			,SYSDATE
+			,'N'
+			,#{actDo}
+		)
+		]]>
+	</insert>
+
+	<select id="dmSecCoEmpViolation_Accum_S"  parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmpViolation_Accum_S (dmSecCoEmpViolation_Accum_S) */
+		SELECT * FROM
+		(
+			SELECT
+				NVL(ETC1,0) ETC1
+				, NVL(ETC2,0) ETC2
+			FROM CO_CODE_D
+			WHERE GRP_CD = 'C028'
+			AND DETL_CD = #{actDo}
+		) A,
+		(
+			SELECT
+				NVL(EXP_CNT, 0) EXP_CNT
+				, NVL(CHK_CNT, 0) CHK_CNT
+			FROM SC_EXP_DO
+			WHERE SC_YEAR = TO_CHAR(SYSDATE, 'YYYY')
+			AND EXP_EMP_ID = #{ofendEmpId}
+			AND ACT_DO = #{actDo}
+		) B
+		 ]]>
+	</select>
+
+	<insert id="dmSecCoEmp_Violation_Next_I"  parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_Next_I (dmSecCoEmp_Violation_Next_I) */
+		INSERT INTO SC_OFEND
+		(
+			SC_DOC_NO
+			,COMP_ID
+			,DEPT_ID
+			,JW_ID
+			,EMP_ID
+			,OFEND_COMP_ID
+			,OFEND_DEPT_ID
+			,OFEND_JW_ID
+			,OFEND_EMP_ID
+			,OFEND_TEL_NO
+			,OFEND_DT
+			,OFEND_TM
+			,OFEND_GBN
+			,OFEND_DETAIL_GBN
+			,CORR_PLAN_SEND_YN
+			,DOC_ID
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+			,DEL_YN
+			,ETC_RSN
+			,FILE_PATH
+			,OLD_YN
+			,ACT_DO
+			,ACT_DTM
+			,ACT_COMP_ID
+			,RMRK
+		)
+		SELECT
+		 	#{nextScDocNo}
+			, A.COMP_ID
+		 	, A.DEPT_ID
+			, A.JW_ID
+		 	, A.EMP_ID
+			, A.OFEND_COMP_ID
+		 	, A.OFEND_DEPT_ID
+			, A.OFEND_JW_ID
+		 	, A.OFEND_EMP_ID
+			, A.OFEND_TEL_NO
+		 	, A.OFEND_DT
+			, A.OFEND_TM
+		 	, (SELECT ETC4 FROM CO_CODE_D WHERE DETL_CD = #{nextOfendDetailGbn})
+		  , #{nextOfendDetailGbn}
+		 	,''
+		  ,''
+			, #{acIp}
+			, #{crtBy}
+			, SYSDATE
+			, #{crtBy}
+			, SYSDATE
+			, 'N'
+			,''
+			,''
+			, 'N'
+			,''
+			,''
+			, A.ACT_COMP_ID
+			,''
+		FROM SC_OFEND A
+		WHERE SC_DOC_NO = #{scDocNo}
+		]]>
+	</insert>
+
+	<update id="dmSecCoEmpViolation_Accum_Clear_U" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmpViolation_Accum_Clear_U (dmSecCoEmpViolation_Accum_Clear_U) */
+		UPDATE SC_EXP_DO
+		SET CHK_CNT = 0
+		WHERE TO_CHAR(SYSDATE, 'YYYY') = SC_YEAR
+		AND EXP_EMP_ID = #{ofendEmpId} AND ACT_DO = #{actDo}
+		]]>
+	</update>
+
+	<insert id="dmSecCoEmp_ViolationSsm_I" parameterType="Map">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_ViolationSsm_I (dmSecCoEmp_ViolationSsm_I) */
+		INSERT INTO SC_OFEND_SSM
+		(
+		     SC_DOC_NO
+		    ,COMP_ID
+		    ,DEPT_ID
+		    ,JW_ID
+		    ,EMP_ID
+		    ,OFEND_COMP_ID
+		    ,OFEND_DEPT_ID
+		    ,OFEND_JW_ID
+		    ,OFEND_EMP_ID
+		    ,OFEND_TEL_NO
+		    ,OFEND_DT
+		    ,OFEND_TM
+		    ,OFEND_GBN
+		    ,OFEND_DETAIL_GBN
+		    ,CORR_PLAN_SEND_YN
+		    ,DOC_ID
+		    ,AC_IP
+		    ,CRT_BY
+		    ,CRT_DTM
+		    ,MOD_BY
+		    ,MOD_DTM
+		    ,DEL_YN
+		    ,ETC_RSN
+		    ,FILE_PATH
+		    ,OLD_YN
+		    ,ACT_COMP_ID
+		    ,OFEND_SUB_GBN
+		    ,MOBILE_FORENSICS_GBN
+		    ,ACT_BLDG
+		    ,ACT_LOCATE
+		    ,SEC_MAN_NM
+		    ,SEC_MAN_NM2
+		    ,HP_MANUFACTURE
+		    ,HP_GUBUN
+		    ,HP_NAME
+		    ,ACT_GATE
+		)
+		VALUES
+		(
+		    #{scDocNo}
+		    , #{compId}
+		    , #{deptId}
+		    , #{jwId}
+		    , #{empId}
+		    , #{ofendCompId}
+		    , #{ofendDeptId}
+		    , #{ofendJwId}
+		    , #{ofendEmpId}
+		    , #{telNo}
+		    , REPLACE(#{violationDate}, '-', ''),(LPAD(#{violationHour}, 2, '0') || LPAD(#{violationMin}, 2, '0'))
+		    , #{ofendGbn}
+		    , #{ofendDetailGbn}
+		    , (SELECT ETC3 FROM CO_CODE_D WHERE ETC4 = #{ofendGbn} AND DETL_CD = #{ofendDetailGbn} AND USE_YN = 'Y')
+		    , #{docId}
+		    , #{acIp}
+		    , #{empId}
+		    , SYSDATE
+		    , #{empId}
+		    , SYSDATE
+		    , 'Y'
+		    , #{etcRsn}
+		    , #{files}
+		    , 'N'
+		    , #{actCompId}
+		    , #{ofendSubGbn}
+		    , #{mobileForensicsGbn}
+		    , #{actBldg}
+		    , #{actLocate}
+		    , #{secManNm}
+		    , #{secManNm2}
+		    , #{hpManufacture}
+		    , #{hpGubun}
+		    , #{hpName}
+		    , #{actGate}
+		)
+		]]>
+	</insert>
+
+	<select id="selectCoViolationList" parameterType="Map" resultType="CamelHashMap">
+		/*  SecurityAdminViolationRepository.selectCoViolationList (dmSecCoEmp_Violation_List_S) */
+		SELECT
+			TB.*
+		FROM (
+				SELECT
+					ROW_NUMBER() OVER(ORDER BY OFEND_DT DESC, OFEND_TM DESC) AS ROW_NUM
+					/* ROW_NUMBER() OVER(ORDER BY SC_DOC_NO DESC) AS ROW_NUM */
+					,T.*
+					,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = T.ACT_COMP_ID) AS ACT_COMP_ID_NM
+					FROM (
+					SELECT
+					A.SC_DOC_NO
+					,B.SC_CORR_PLAN_NO
+					,A.COMP_ID
+					,A.DEPT_ID
+					,A.JW_ID
+					,A.EMP_ID
+					,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+					,FN_GET_EMP_NM(A.ACT_EMP_ID) as ACT_EMP_NM
+					,A.OFEND_COMP_ID
+					,A.OFEND_DEPT_ID
+					,A.OFEND_JW_ID
+					,A.OFEND_EMP_ID
+					,A.OFEND_TEL_NO
+					,FN_GET_COMP_NM(A.OFEND_COMP_ID) as COMP_NM
+					,FN_GET_DEPT_NM(A.OFEND_DEPT_ID) as DEPT_NM
+					,FN_GET_EMP_NM(A.OFEND_EMP_ID) as EMP_NM
+					,FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) as EMP_JW_NM
+					,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+					,CASE
+					WHEN LENGTH(A.OFEND_TM) = 4
+					THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+					ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+					END OFEND_TM
+					,A.OFEND_GBN
+					,(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+					,A.OFEND_DETAIL_GBN
+					,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+					,A.CORR_PLAN_SEND_YN
+					,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+					,AD.DOC_ID
+					,CASE
+					WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+					THEN '1003'
+					ELSE NVL(AD.APPR_STAT, '99')
+					END as APPR_STAT
+					,CASE
+					WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+					THEN '1003'
+					ELSE NVL(AD.APPR_RESULT, '99')
+					END as APPR_RESULT
+					,CASE
+					WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+					THEN '관련없음'
+					ELSE
+					CASE
+					WHEN AD.APPR_STAT = '0' THEN '대기'
+					WHEN AD.APPR_STAT = '10' THEN '진행'
+					WHEN AD.APPR_STAT = '20' THEN '완료'
+					WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+					END
+					END as APPR_STAT_NM
+					,CASE
+					WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+					THEN '관련없음'
+					ELSE
+					CASE
+					WHEN AD.APPR_RESULT = '0' THEN '검토중'
+					WHEN AD.APPR_RESULT = '1' THEN '승인'
+					WHEN AD.APPR_RESULT = '2' THEN '부결'
+					WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+					WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+					END
+					END as APPR_RESULT_NM
+					,FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+					,A.ACT_COMP_ID
+				FROM
+						(
+						SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+						FROM SC_OFEND A, SC_DETL_EMP D
+						WHERE A.MOBILE_FORENSICS_GBN IS NULL
+						AND D.COMP_ID = A.ACT_COMP_ID
+						AND D.DETL_CD = A.OFEND_DETAIL_GBN
+						<if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+							AND ( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+						</if>
+						UNION
+						SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+						FROM SC_OFEND A, SC_DETL_EMP D
+						WHERE A.MOBILE_FORENSICS_GBN IS NOT NULL
+						AND D.COMP_ID = A.ACT_COMP_ID
+						AND D.DETL_CD = A.MOBILE_FORENSICS_GBN
+						<if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+							AND ( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+						</if>
+						) A
+						,SC_CORR_PLAN B
+						,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+				WHERE
+					A.SC_DOC_NO = B.SC_DOC_NO(+)
+					AND B.DOC_ID = AD.DOC_ID(+)
+					AND A.DEL_YN = 'N'
+					AND A.OLD_YN = 'N'
+					AND B.DEL_YN(+) = 'N'
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+			AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+			<![CDATA[ AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '') ]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">AND
+			A.OFEND_GBN = #{searchOfendGbn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">AND
+			A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+			<choose>
+				<when test='"Y".equals(searchActGbn)'>
+					AND A.ACT_DO IS NOT NULL
+				</when>
+				<when test='"N".equals(searchActGbn)'>
+					AND A.ACT_DO IS NULL
+				</when>
+			</choose>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+			<choose>
+				<when test='"C0101001".equals(corrPlanSendYn)'>
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				</when>
+				<when test='"C0101002".equals(corrPlanSendYn)'>
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				</when>
+				<when test='"C0101003".equals(corrPlanSendYn)'>
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				</when>
+			</choose>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+			/* 진행상태 */
+			<choose>
+				<when test='"10".equals(applStat)'>
+					/* 검토중 */
+					AND AD.APPR_STAT = #{applStat}
+				</when>
+				<when test='"20".equals(applStat)'>
+					/* 처리완료 */
+					AND AD.APPR_STAT = #{applStat}
+				</when>
+				<when test='"1".equals(applStat)'>
+					/* 승인 */
+					AND AD.APPR_RESULT = #{applStat}
+				</when>
+				<when test='"2".equals(applStat)'>
+					/* 부결 */
+					AND AD.APPR_RESULT = #{applStat}
+				</when>
+			</choose>
+		</if>
+		) T
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND	EMP_NM like '%' || #{searchEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+			AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+			<if test='"1003".equals(applStat)'>
+				/* 관련없음 */
+				AND APPR_STAT = #{applStat}
+			</if>
+		</if>
+		) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectCoViolationListCnt" parameterType="Map" resultType="int">
+		/*  SecurityAdminViolationRepository.selectCoViolationListCnt (dmSecCoEmp_Violation_List_Count_S) */
+		SELECT
+			COUNT(1) AS TOT_CNT
+		FROM (
+				SELECT
+					T.*
+				FROM (
+					SELECT
+						A.SC_DOC_NO
+						,B.SC_CORR_PLAN_NO
+						,A.COMP_ID
+						,A.DEPT_ID
+						,A.JW_ID
+						,A.EMP_ID
+						,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+						,A.OFEND_COMP_ID
+						,A.OFEND_DEPT_ID
+						,A.OFEND_JW_ID
+						,A.OFEND_EMP_ID
+						,A.OFEND_TEL_NO
+						,FN_GET_COMP_NM(A.OFEND_COMP_ID) as COMP_NM
+						,FN_GET_DEPT_NM(A.OFEND_DEPT_ID) as DEPT_NM
+						,FN_GET_EMP_NM(A.OFEND_EMP_ID) as EMP_NM
+						,FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) as EMP_JW_NM
+						,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+						,CASE
+						WHEN LENGTH(A.OFEND_TM) = 4
+						THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+						ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+						END OFEND_TM
+						,A.OFEND_GBN
+						,(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+						,A.OFEND_DETAIL_GBN
+						,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+						,A.CORR_PLAN_SEND_YN
+						,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+						,AD.DOC_ID
+						,CASE
+						WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+						THEN '1003'
+						ELSE NVL(AD.APPR_STAT, '99')
+						END as APPR_STAT
+						,CASE
+						WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+						THEN '1003'
+						ELSE NVL(AD.APPR_RESULT, '99')
+						END as APPR_RESULT
+						,CASE
+						WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+						THEN '관련없음'
+						ELSE
+						CASE
+						WHEN AD.APPR_STAT = '0' THEN '대기'
+						WHEN AD.APPR_STAT = '10' THEN '진행'
+						WHEN AD.APPR_STAT = '20' THEN '완료'
+						WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+						END
+						END as APPR_STAT_NM
+						,CASE
+						WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+						THEN '관련없음'
+						ELSE
+						CASE
+						WHEN AD.APPR_RESULT = '0' THEN '검토중'
+						WHEN AD.APPR_RESULT = '1' THEN '승인'
+						WHEN AD.APPR_RESULT = '2' THEN '부결'
+						WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+						WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+						END
+						END as APPR_RESULT_NM
+				FROM
+					(
+					SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+					FROM SC_OFEND A, SC_DETL_EMP D
+					WHERE A.MOBILE_FORENSICS_GBN IS NULL
+					AND D.COMP_ID = A.ACT_COMP_ID
+					AND D.DETL_CD = A.OFEND_DETAIL_GBN
+					<if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+						AND ( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+					</if>
+					UNION
+					SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+					FROM SC_OFEND A, SC_DETL_EMP D
+					WHERE A.MOBILE_FORENSICS_GBN IS NOT NULL
+					AND D.COMP_ID = A.ACT_COMP_ID
+					AND D.DETL_CD = A.MOBILE_FORENSICS_GBN
+					<if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+						AND ( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+					</if>
+					) A
+					,SC_CORR_PLAN B
+					,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+				WHERE
+					A.SC_DOC_NO  = B.SC_DOC_NO(+)
+					AND B.DOC_ID = AD.DOC_ID(+)
+					AND A.DEL_YN = 'N'
+					AND A.OLD_YN = 'N'
+					AND B.DEL_YN(+) = 'N'
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+						AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+						<![CDATA[ AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '') ]]>
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">AND
+						A.OFEND_GBN = #{searchOfendGbn}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">AND
+						A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+						<choose>
+							<when test='"Y".equals(searchActGbn)'>
+								AND A.ACT_DO IS NOT NULL
+							</when>
+							<when test='"N".equals(searchActGbn)'>
+								AND A.ACT_DO IS NULL
+							</when>
+						</choose>
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+						<choose>
+							<when test='"C0101001".equals(corrPlanSendYn)'>
+								AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+							</when>
+							<when test='"C0101002".equals(corrPlanSendYn)'>
+								AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+							</when>
+							<when test='"C0101003".equals(corrPlanSendYn)'>
+								AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+							</when>
+						</choose>
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+						/* 진행상태 */
+						<choose>
+							<when test='"10".equals(applStat)'>
+								/* 검토중 */
+								AND AD.APPR_STAT = #{applStat}
+							</when>
+							<when test='"20".equals(applStat)'>
+								/* 처리완료 */
+								AND AD.APPR_STAT = #{applStat}
+							</when>
+							<when test='"1".equals(applStat)'>
+								/* 승인 */
+								AND AD.APPR_RESULT = #{applStat}
+							</when>
+							<when test='"2".equals(applStat)'>
+								/* 부결 */
+								AND AD.APPR_RESULT = #{applStat}
+							</when>
+						</choose>
+					</if>
+				) T
+			WHERE 1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+				AND	EMP_NM like '%' || #{searchEmpNm} || '%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+				AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+				AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+				<if test='"1003".equals(applStat)'>
+					/* 관련없음 */
+					AND APPR_STAT = #{applStat}
+				</if>
+			</if>
+		) TB
+	</select>
+
+	<select id="selectCoViolationSameHistoryList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoViolationSameHistoryList (dmSecCoEmp_Violation_Detail_Hist_S) */
+		SELECT
+			A.*
+		FROM (
+			SELECT
+			     SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) || ' ' ||
+			     CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ':' ||SUBSTR(A.OFEND_TM, 3,2)
+			     ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ':' || SUBSTR(A.OFEND_TM, 2,2)
+			     END OFEND_DTM
+			    ,(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.OFEND_EMP_ID) AS OFEND_EMP_NM
+			    ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+			    ,(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.CRT_BY) AS CRT_BY_NM
+			    ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'C028' AND F.DETL_CD = A.ACT_DO) AS ACT_DO_NM
+			    ,(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.ACT_BY) AS ACT_BY_NM
+			    ,TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd HH24:MI:SS') AS ACT_DTM
+		        ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT
+			    ,CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ':' ||SUBSTR(A.OFEND_TM, 3,2)
+			     ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ':' || SUBSTR(A.OFEND_TM, 2,2)
+			     END OFEND_TM
+		        ,TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd') AS ACT_DT
+		        ,TO_CHAR(A.ACT_DTM, 'HH24:MI') AS ACT_TM
+			FROM SC_OFEND A
+			WHERE A.OLD_YN         = 'N'
+			AND A.OFEND_EMP_ID     = #{ofendEmpId}
+			AND A.DEL_YN		   = 'N' /* 김용범책임 요청 , 삭제처리된 위규리스트 감추기 20160308*/
+		) A
+		ORDER BY A.OFEND_DTM DESC
+		]]>
+	</select>
+
+	<select id="selectCoViolationActHistoryList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoViolationActHistoryList (dmSecCoEmp_Violation_ActSum_List_S) */
+		WITH T AS (
+		    SELECT
+		         TO_CHAR(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q') || '분기' AS QT_NM
+		        ,SUBSTR(REPLACE(#{ofendDt}, '-', ''),1,4) AS YYYY
+		        ,TO_CHAR(TRUNC(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT
+		        ,TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+		        ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE,'YYYY')-1 || '.09' ELSE TO_CHAR(SYSDATE, 'yyyy')  || '.09' END || ' ~ ' ||
+		         CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE, 'YYYY')  || '.08' ELSE TO_CHAR(SYSDATE,'YYYY')+1 || '.08' END
+		         AS FT_DT
+		        ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE,'YYYY')-1 || '0901' ELSE TO_CHAR(SYSDATE, 'yyyy')  || '0901' END AS FROM_DT
+		        ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE, 'YYYY')  || '0831' ELSE TO_CHAR(SYSDATE,'YYYY')+1 || '0831' END AS TO_DT
+		    FROM DUAL
+		)
+		SELECT
+		     T.YYYY
+		    ,T.FT_DT  AS YQ_GB
+		    ,'전체' AS GB
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280001', 1, 0)),0) AS CNT1
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT2
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280003', 1, 0)),0) AS CNT3
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280004', 1, 0)),0) AS CNT4
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.FROM_DT AND T.TO_DT
+		AND A.ACT_DO IS NOT NULL
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.DEL_YN = 'N'
+		UNION ALL
+		SELECT
+		     T.YYYY
+		    ,T.FT_DT  AS YQ_GB
+		    ,'동일' AS GB
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280001', 1, 0)),0) AS CNT1
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT2
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280003', 1, 0)),0) AS CNT3
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280004', 1, 0)),0) AS CNT4
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.FROM_DT AND T.TO_DT
+		AND A.ACT_DO IS NOT NULL
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.OFEND_DETAIL_GBN = #{ofendDetailGbn}
+		AND A.DEL_YN = 'N'
+		UNION ALL
+		SELECT
+		     T.YYYY
+		    ,T.QT_NM AS YQ_GB
+		    ,'전체' AS GB
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280001', 1, 0)),0) AS CNT1
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT2
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280003', 1, 0)),0) AS CNT3
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280004', 1, 0)),0) AS CNT4
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.ACT_DO IS NOT NULL
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.DEL_YN = 'N'
+		UNION ALL
+		SELECT
+		     T.YYYY
+		    ,T.QT_NM AS YQ_GB
+		    ,'동일' AS GB
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280001', 1, 0)),0) AS CNT1
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT2
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280003', 1, 0)),0) AS CNT3
+		    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280004', 1, 0)),0) AS CNT4
+		FROM SC_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+		AND A.ACT_DO IS NOT NULL
+		AND A.OFEND_EMP_ID = #{ofendEmpId}
+		AND A.OFEND_DETAIL_GBN = #{ofendDetailGbn}
+		AND A.DEL_YN = 'N'
+		]]>
+	</select>
+
+	<select id="selectCoViolationDetail" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.selectCoViolationDetail (dmSecCoEmp_Violation_Detail_S) */
+		SELECT
+			A.OFEND_EMP_ID,
+			A.OFEND_EMP_NM,
+			A.OFEND_COMP_ID,
+			A.OFEND_DEPT_ID,
+			A.OFEND_DEPT_NM,
+			A.OFEND_JW_ID,
+			A.OFEND_JW_NM,
+			A.OFEND_DT,
+			A.OFEND_TM,
+			A.OFEND_GBN,
+			A.OFEND_GBN_NM,
+			A.OFEND_DETAIL_GBN,
+			A.OFEND_DETAIL_GBN_NM,
+			A.COMP_NM,
+			A.OFEND_COMP_NM,
+			A.DEPT_NM,
+			A.EMP_NM,
+			A.EMP_ID,
+			A.JW_NM,
+			A.ETC_RSN,
+			A.OFEND_TEL_NO,
+			A.ACT_COMP_NM,
+			A.FILE_PATH,
+			A.FILE_PATH_NM,
+			REPLACE(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, '\', -1)), '\', '/') AS FILE_PATH_ADDR,
+			SUBSTR(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')-1), INSTR(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')-1), '\', -1)+1) AS FILE_PATH_ID,
+			A.ACT_DO,
+			A.RMRK,
+			A.ACT_COMP_ID,
+			A.ACT_BY,
+			A.OFEND_RMRK,
+			A.OFEND_EMP_EMAIL,
+			A.OFEND_SUB_GBN,
+			A.OFEND_SUB_GBN_NM,
+			A.MOBILE_FORENSICS_GBN,
+			A.MOBILE_FORENSICS_GBN_NM,
+			A.ACT_FILT_LIST,
+			A.ACT_BLDG,
+			A.ACT_LOCATE,
+			A.ACT_GATE,
+			A.SEC_MAN_NM,
+			A.ACT_BLDG_NM,
+			A.ACT_LOCATE_NM,
+			A.DAILY_CERTI_EMPNO,
+			A.KA_EMP_NM,
+			A.GA_EMP_NM,
+			A.AA_EMP_NM,
+			A.KA_EMP_ID,
+			A.GA_EMP_ID,
+			A.AA_EMP_ID
+		FROM (
+					 SELECT A.OFEND_EMP_ID,
+									(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.OFEND_EMP_ID) AS OFEND_EMP_NM,
+									A.OFEND_COMP_ID,
+									A.OFEND_DEPT_ID,
+									(SELECT C.DEPT_NM FROM CO_DEPT C WHERE C.DEPT_ID = A.OFEND_DEPT_ID) AS OFEND_DEPT_NM,
+									A.OFEND_JW_ID,
+									(SELECT D.JW_NM FROM CO_JW D WHERE D.JW_ID = A.OFEND_JW_ID) AS OFEND_JW_NM,
+									SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+									CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+											 ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+										END OFEND_TM,
+									A.OFEND_GBN,
+									(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM,
+									A.OFEND_DETAIL_GBN,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM,
+									FN_GET_COMP_NM(A.COMP_ID) as COMP_NM,
+									FN_GET_COMP_NM(A.OFEND_COMP_ID) as OFEND_COMP_NM,
+									FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM,
+									FN_GET_EMP_NM(A.EMP_ID) as EMP_NM,
+									A.EMP_ID,
+									FN_GET_JW_NM(A.JW_ID) as JW_NM,
+									A.ETC_RSN,
+									A.OFEND_TEL_NO,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'A030' AND F.ETC1 = A.ACT_COMP_ID) AS ACT_COMP_NM,
+									NVL(FILE_PATH, 'N') as FILE_PATH,
+									REPLACE(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')-1 ),'\', '/') AS FILE_PATH_ADDR,
+									SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, #{operateId} )) as FILE_PATH_TMP_NM,
+									SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, ';')+1) AS FILE_PATH_NM,
+									A.ACT_DO,
+									A.RMRK,
+									A.ACT_COMP_ID,
+									A.ACT_BY,
+									(SELECT F.RMRK FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_RMRK,
+									(SELECT E.EMAIL FROM CO_EMP E WHERE E.EMP_ID = A.OFEND_EMP_ID) AS OFEND_EMP_EMAIL,
+									A.OFEND_SUB_GBN,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'C059' AND F.ETC1 = A.OFEND_DETAIL_GBN AND F.DETL_CD = A.OFEND_SUB_GBN) AS OFEND_SUB_GBN_NM
+						 ,A.MOBILE_FORENSICS_GBN
+						 ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당사항없음') AS MOBILE_FORENSICS_GBN_NM
+						 ,(SELECT FF.ETC2 FROM CO_CODE_D FF WHERE FF.DETL_CD = A.OFEND_DETAIL_GBN) AS ACT_FILT_LIST
+						 ,A.ACT_BLDG
+						 ,A.ACT_LOCATE
+						 ,A.ACT_GATE
+						 ,A.SEC_MAN_NM
+						 ,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_BLDG   AND ETC4 = A.ACT_COMP_ID AND GRP_CD = 'C063') AS ACT_BLDG_NM
+						 ,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_LOCATE AND ETC4 = A.ACT_BLDG AND GRP_CD = 'C064') AS ACT_LOCATE_NM
+						 ,A.DAILY_CERTI_EMPNO
+						 ,(SELECT EMP_NM FROM CO_EMP WHERE EMP_ID=A.KA_EMP_ID) AS KA_EMP_NM
+						 ,(SELECT EMP_NM FROM CO_EMP WHERE EMP_ID=A.GA_EMP_ID) AS GA_EMP_NM
+						 ,(SELECT EMP_NM FROM CO_EMP WHERE EMP_ID=A.AA_EMP_ID) AS AA_EMP_NM
+						 ,A.KA_EMP_ID
+						 ,A.GA_EMP_ID
+						 ,A.AA_EMP_ID
+					 FROM SC_OFEND A
+					 WHERE A.SC_DOC_NO = #{scDocNo}
+				 ) A
+	]]>
+	</select>
+
+	<update id="coEmpViolation_Mobile_Act" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.coEmpViolation_Mobile_Act (dmSecCoEmp_Violation_Ofend_Mobile_U) */
+		UPDATE SC_OFEND
+		SET  MOBILE_FORENSICS_ACT = #{actDo}
+		    ,RMRK    = #{rmrk}
+		    ,MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{empId}
+		WHERE SC_DOC_NO = #{scDocNo}
+	    ]]>
+	</update>
+
+	<select id="selectIoEmpInfo" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.selectIoEmpInfo (dmIoEmpList) */
+		SELECT ROW_NUM,
+				IO_EMP_ID,
+		        IO_EMP_NM,
+		        IO_EMP_NM as IO_EMP_NM_HTML,
+		        IO_JW_NM,
+		        IO_HP_NO,
+		        IO_COMP_ID,
+		        IO_EMP_JUMIN_NO,
+		        IO_EMP_JUMIN_NO2,
+		        PASSPORT_NO,
+		        IO_EMP_ADDR,
+		        COMP_KO_NM,
+		        COMP_EN_NM,
+		        BOSS_NM,
+		        COMP_TEL_NO,
+		        COMP_ADDR,
+		        COMP_ZIP1,
+		        COMP_ZIP2,
+		        NATION_NM,
+		        CAR_KND,
+		        CAR_NO,
+		        DENY_YN,
+				DENY_STRT_DT,
+		        DENY_END_DT,
+		        DENY_STRT_DT || ' ~ ' || DENY_END_DT AS DENY_DT,
+		        FILE_PHOTO,
+		        PROCESS_COUNT,
+		        CASE WHEN PROCESS_COUNT > 0 THEN '진행중' ELSE '' END PROCESS_NM,
+		        SUBCONT_YN,
+		        NVL(ESH_DT,'N') AS ESH_DT, NAME_CHK, /* CLEAN_DT : ESH_DT 청정도 서약서 추가 20151217*/
+		        EMAIL_ADDR, PASS_YN, MOVE_YN, EXPR_YN, FN_GET_IDCARD_ID(IO_EMP_ID) IDCARD_ID, IO_EMP_LOC_INFO_AGREE,
+		        SLEEP_YN,
+		        TO_CHAR(LOGIN_DTM+364, 'yyyy-MM-dd') SLEEP_DTM
+			FROM (
+				SELECT ROW_NUM, IO_EMP_ID, IO_EMP_NM, IO_JW_NM, IO_HP_NO, IO_COMP_ID,IO_EMP_JUMIN_NO,
+				       IO_EMP_JUMIN_NO2,  PASSPORT_NO, IO_EMP_ADDR, COMP_KO_NM, COMP_EN_NM, BOSS_NM,
+				       COMP_TEL_NO, COMP_ADDR, COMP_ZIP1, COMP_ZIP2, NATION_NM, CAR_KND, CAR_NO,
+				       DENY_YN, DENY_STRT_DT, DENY_END_DT, FILE_PHOTO, PROCESS_COUNT, SUBCONT_YN,
+				       ESH_DT, NAME_CHK, EMAIL_ADDR, PASS_YN, MOVE_YN, EXPR_YN, IO_EMP_LOC_INFO_AGREE,
+				       SLEEP_YN, LOGIN_DTM
+		          FROM (
+					SELECT
+						ROW_NUMBER() OVER ( ORDER BY A.IO_EMP_ID ASC ) AS ROW_NUM,
+				        A.IO_EMP_ID AS IO_EMP_ID,
+				        A.EMP_NM AS IO_EMP_NM,
+				        A.JW_NM AS IO_JW_NM,
+				        CASE WHEN #{site}='EXT' THEN RPAD(SUBSTR(A.HP_NO,1,7),12,'*')
+				             ELSE A.HP_NO
+				         END AS IO_HP_NO,
+				        A.IO_COMP_ID AS IO_COMP_ID,
+				        CASE WHEN A.NATION = 'Z0011001' THEN SUBSTR(A.JUMIN_NO,1,6)
+		        			 ELSE RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO,
+				        A.JUMIN_NO AS IO_EMP_JUMIN_NO2,
+				        A.PASSPORT_NO AS PASSPORT_NO,
+				        A.ADDR AS IO_EMP_ADDR,
+				        B.COMP_KO_NM AS COMP_KO_NM,
+				        B.COMP_EN_NM AS COMP_EN_NM,
+				        B.BOSS_NM AS BOSS_NM,
+				        B.TEL_NO AS COMP_TEL_NO,
+				        B.ADDR AS COMP_ADDR,
+				        B.ZIP1 AS COMP_ZIP1,
+				        B.ZIP2 AS COMP_ZIP2,
+				        CASE WHEN A.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', A.NATION, '')
+				         	 ELSE FN_GET_CODE_EN('Z001', A.NATION, '') END AS NATION_NM,
+				        A.CAR_KND,
+				        A.CAR_NO,
+		        		CASE WHEN X.DENY_STRT_DT IS NULL THEN 'N'
+							 WHEN TO_CHAR(SYSDATE,'YYYY-MM-DD') >= X.DENY_STRT_DT AND TO_CHAR(SYSDATE,'YYYY-MM-DD') <= X.DENY_END_DT THEN 'Y'
+				             ELSE 'N'
+				        END AS DENY_YN,
+				        X.DENY_STRT_DT,
+						X.DENY_END_DT,
+		        		A.FILE_PHOTO AS FILE_PHOTO,
+		        		CASE WHEN B.SUBCONT_YN = 'Y' THEN '도급'
+		        		     ELSE ''
+		        		 END SUBCONT_YN,
+		        		(
+		        			SELECT
+								COUNT(*) AS PROCESS_COUNT
+							FROM IO_PASS C
+							WHERE A.IO_EMP_ID = C.IO_EMP_ID
+					]]>
+
+						<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+						<choose>
+							<when test='"1102000001".equals(compId)'>
+								<![CDATA[
+								/*C.COMP_ID IN ('1102000001', '1105000001', '1106000001')*/
+								]]>
+							</when>
+							<otherwise>
+								<![CDATA[
+								/*C.COMP_ID NOT IN ('1102000001', '1105000001', '1106000001') */
+								]]>
+							</otherwise>
+						</choose>
+						</if>
+
+						<![CDATA[
+							AND  C.APPL_STAT IN ( 'Z0331001', 'Z0331002', 'Z0331005' )
+							AND (  C.STATUS IS NULL OR  C.STATUS IN ( 'A0091001', 'A0091002', 'A0091003', 'A0091004' )
+							AND C.PASS_APPL_NO = (SELECT MAX(AA.PASS_APPL_NO ) FROM IO_PASS AA WHERE AA.IO_EMP_ID = A.IO_EMP_ID AND AA.DEL_YN ='N' AND AA.USE_YN ='Y') )
+		       			) AS PROCESS_COUNT,
+		       			NVL(A.CLEAN_DT,'N') as ESH_DT, NAME_CHK,
+
+						]]>
+
+						<choose>
+							<when test='"HS".equals(siteType)'>
+								<![CDATA[
+								A.EMAIL AS EMAIL_ADDR,
+								]]>
+							</when>
+							<otherwise>
+								<![CDATA[
+								A.EMAIL_ADDR,
+								]]>
+							</otherwise>
+						</choose>
+
+						<![CDATA[
+		       			CASE WHEN ( SELECT COUNT(IO_EMP_ID) CNT  FROM IO_PASS
+						             WHERE CARD_NO IS NOT NULL
+						               AND DEL_YN = 'N'
+						               AND ALTEMP_GBN = 'A0071001'
+						               AND USE_YN = 'Y'
+						               AND IDCARD_ID IS NOT NULL
+						               AND APPL_STAT = 'Z0331005'
+						               AND NVL(IO_END_DT,EXTN_END_DT) >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+						               AND IO_EMP_ID = A.IO_EMP_ID
+						             GROUP BY IO_EMP_ID ) > 0 THEN 'Y' ELSE 'N' END AS PASS_YN,
+		                CASE WHEN NVL(C.EXPR_YN,'N') = 'N' THEN 'N' ELSE 'Y' END AS EXPR_YN,
+						CASE WHEN ( SELECT COUNT(CMM.IO_EMP_ID) CNT  FROM IO_EMP_COM_MOVE CM, IO_EMP_COM_MOVE_MAN CMM
+		                             WHERE CM.MOVE_APPL_NO= CMM.MOVE_APPL_NO
+		                               AND CM.APPL_STAT='Z0331001'
+		                               AND CMM.IO_EMP_ID=A.IO_EMP_ID
+		                               AND CMM.MOV_DT IS NULL
+		                          ) > 0 THEN 'Y' ELSE 'N' END AS MOVE_YN,
+		                NVL(D.UNPERMITTED_LOC_AGREE_YN, 'N') AS IO_EMP_LOC_INFO_AGREE,
+		                A.SLEEP_YN,
+		                A.LOGIN_DTM
+					FROM IO_EMP A, IO_COMP B,
+						(
+							SELECT IO_EMP_ID, PERMITTED_LOC_AGREE_YN, UNPERMITTED_LOC_AGREE_YN
+								    FROM IO_EMP_LOC_INFO_AGREE
+								    WHERE CRT_DTM =
+								      ( SELECT MAX(CRT_DTM) FROM IO_EMP_LOC_INFO_AGREE WHERE UPPER(IO_EMP_ID) = #{ioEmpId})
+								      AND UPPER(IO_EMP_ID) = #{ioEmpId}
+						) D,
+						 ( SELECT IP.IO_EMP_ID ,
+					              CASE
+					                  WHEN INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||IPE.STOP_YN_05|| IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||IPE.STOP_YN_09||IPE.STOP_YN_10||IPE.STOP_YN_11,'Y') > 0
+					                  THEN 'Y'
+					                  ELSE 'N'
+					              END AS EXPR_YN
+					         FROM IO_PASS IP,
+					              IO_PASS_EXPR IPE
+					        WHERE IP.IO_EMP_ID = IPE.IO_EMP_ID
+					              AND IP.CARD_NO = IPE.CARD_NO
+					              AND IP.CARD_NO IS NOT NULL
+					              AND IP.DEL_YN = 'N'
+					              AND IP.ALTEMP_GBN = 'A0071001'
+					              AND IP.USE_YN = 'Y'
+					              AND IP.IDCARD_ID IS NOT NULL
+					              AND IP.APPL_STAT = 'Z0331005'
+					              /* 정지 출입증에 대한 정보에 대한 최종 출입증 정보를 가지고 판단해야함.*/
+					              AND IP.PASS_APPL_NO = (SELECT MAX(AA.PASS_APPL_NO) FROM IO_PASS AA WHERE AA.STATUS in ('A0091005','A0091004') AND AA.IO_EMP_ID = IP.IO_EMP_ID AND NVL(AA.IO_END_DT,AA.EXTN_END_DT) >= TO_CHAR(SYSDATE, 'YYYYMMDD'))
+		      		              AND NVL(IP.IO_END_DT,IP.EXTN_END_DT) >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+					       ) C,
+							(
+								 SELECT	X.*	FROM (
+										SELECT
+											 ROW_NUMBER() OVER ( PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC ) AS ROW_NUM
+											,X.*
+										FROM  IO_EMP_DENY X
+										WHERE NVL(DEL_YN,'N') = 'N'
+								 ) X
+								 WHERE X.ROW_NUM = 1
+							) X
+					WHERE A.IO_COMP_ID = B.IO_COMP_ID
+					  AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+					  AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+					  AND A.IO_EMP_ID = D.IO_EMP_ID(+)
+					  AND NVL(A.DEL_YN,'N') = 'N'
+
+					]]>
+
+					<if test="@org.springframework.util.StringUtils@isEmpty(searchDeliveryYn)">
+					<![CDATA[
+					  AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS', 'DELIVERY')
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeliveryYn)">
+						<choose>
+							<when test='"Y".equals(searchDeliveryYn)'>
+								<![CDATA[
+					  			AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+								]]>
+							</when>
+							<otherwise>
+								<![CDATA[
+								AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS', 'DELIVERY')
+								]]>
+							</otherwise>
+						</choose>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+					<![CDATA[
+						AND UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+					<![CDATA[
+						AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+					<![CDATA[
+						AND A.IO_COMP_ID = #{ioCompId}
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+					<![CDATA[
+						AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(ioempnm)">
+					<![CDATA[
+						AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioempnm}) || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(iocompnm)">
+					<![CDATA[
+						AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{iocompnm}) || '%'
+					]]>
+					</if>
+
+					<if test="not @org.springframework.util.StringUtils@isEmpty(passYnList)">
+						<if test='"Y".equals(passYnList)'>
+						<![CDATA[
+		               /* 외부인검색시 현재 사용중인 출입증 소지자만 검색되도록 개선함(청주 차량 관제 정신환 요청). 20180404 HSK */
+		                 AND EXISTS
+		                 	(
+		                 		SELECT
+		                 			CARD_NO, IO_EMP_ID
+		                        FROM IO_PASS P
+		                        WHERE P.IO_EMP_ID = A.IO_EMP_ID
+		                        AND (IO_EMP_ID,PASS_APPL_NO) IN
+                                	( SELECT
+                                		IO_EMP_ID, MAX(A.PASS_APPL_NO)
+                                     FROM IO_PASS A
+                                     WHERE CARD_NO IS NOT NULL
+                                         AND NVL(DEL_YN, 'N') = 'N'
+                                         AND A.ALTEMP_GBN = 'A0071001'
+                                         AND A.STATUS IN ('A0091004'
+                                                        , 'A0091005'
+                                                        , 'A0091009'
+                                                        , 'A0091010')
+                                         AND A.IDCARD_ID IS NOT NULL
+                                         AND A.TAG_GBN <> '2'
+                                       	GROUP BY A.IO_EMP_ID
+                                       	)
+										AND NOT EXISTS
+											(
+			                                    SELECT *
+			                                      FROM IO_PASS_EXPR IPE
+			                                     WHERE IPE.IO_EMP_ID = P.IO_EMP_ID
+			                                       AND IPE.CARD_NO = P.CARD_NO
+			                                       AND INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04
+		                                       				||IPE.STOP_YN_05||IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08
+		                                       				||IPE.STOP_YN_09||IPE.STOP_YN_10||IPE.STOP_YN_11,'Y') > 0
+		                              		)
+							)
+						]]>
+						</if>
+					</if>
+		<![CDATA[
+					)
+					ORDER BY IO_EMP_NM
+				)
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(rowPerPage)">
+			<if test='!"-1".equals(rowPerPage)'>
+			<![CDATA[
+				WHERE ROW_NUM
+				BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+			]]>
+			</if>
+		</if>
+	</select>
+
+	<select id="selectIoEmpSubInfo" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.selectIoEmpSubInfo (dmIoEmpSubcontList) */
+   SELECT Z.ROW_NUM,
+		Z.IO_EMP_ID,
+		(SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = Z.IO_EMP_ID) AS IDCARD_ID,
+        Z.IO_EMP_NM,
+        Z.IO_EMP_NM as IO_EMP_NM_HTML,
+        Z.IO_JW_NM,
+        Z.IO_HP_NO,
+        Z.IO_COMP_ID,
+        Z.IO_EMP_JUMIN_NO,
+        Z.IO_EMP_JUMIN_NO2,
+        Z.PASSPORT_NO,
+        Z.IO_EMP_ADDR,
+        Z.COMP_KO_NM,
+        Z.COMP_EN_NM,
+        Z.BOSS_NM,
+        Z.COMP_TEL_NO,
+        Z.COMP_ADDR,
+        Z.COMP_ZIP1,
+        Z.COMP_ZIP2,
+        Z.NATION_NM,
+        Z.CAR_KND,
+        Z.CAR_NO,
+        Z.DENY_YN,
+        '' AS DENY_DT,
+        Z.FILE_PHOTO,
+        Z.PROCESS_COUNT,
+        CASE WHEN Z.PROCESS_COUNT > 0 THEN '진행중' ELSE '' END PROCESS_NM,
+        Z.SUBCONT_YN,
+        NVL(Z.ESH_DT,'N') AS ESH_DT, Z.NAME_CHK, /* CLEAN_DT : ESH_DT 청정도 서약서 추가 20151217*/
+        Z.EMAIL_ADDR, Z.PASS_YN, Z.MOVE_YN, Z.EXPR_YN
+        ,IEO.APPLY_DT as IEO_APPLY_DT
+   		,IEO.STATUS as IEO_STATUS
+      	,IEO.APPLY_GBN as IEO_APPLY_GBN
+      	,Z.SLEEP_YN
+      	,TO_CHAR(Z.LOGIN_DTM+364, 'yyyy-MM-dd') SLEEP_DTM
+	FROM (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY A.IO_EMP_ID ASC ) AS ROW_NUM,
+		        A.IO_EMP_ID AS IO_EMP_ID,
+		        A.EMP_NM AS IO_EMP_NM,
+		        A.JW_NM AS IO_JW_NM,
+		        A.HP_NO AS IO_HP_NO,
+		        A.IO_COMP_ID AS IO_COMP_ID,
+		        CASE WHEN A.NATION = 'Z0011001' THEN SUBSTR(A.JUMIN_NO,1,6)
+        			 ELSE RPAD(SUBSTR(A.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO,
+		        A.JUMIN_NO AS IO_EMP_JUMIN_NO2,
+		        A.PASSPORT_NO AS PASSPORT_NO,
+		        A.ADDR AS IO_EMP_ADDR,
+		        B.COMP_KO_NM AS COMP_KO_NM,
+		        B.COMP_EN_NM AS COMP_EN_NM,
+		        B.BOSS_NM AS BOSS_NM,
+		        B.TEL_NO AS COMP_TEL_NO,
+		        B.ADDR AS COMP_ADDR,
+		        B.ZIP1 AS COMP_ZIP1,
+		        B.ZIP2 AS COMP_ZIP2,
+		        CASE WHEN A.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', A.NATION, '')
+		         	 ELSE FN_GET_CODE_EN('Z001', A.NATION, '') END AS NATION_NM,
+		        A.CAR_KND,
+		        A.CAR_NO,
+		        'N' AS DENY_YN,
+        		A.FILE_PHOTO AS FILE_PHOTO,
+        		CASE WHEN B.SUBCONT_YN = 'Y' THEN '도급'
+        		     ELSE ''
+        		 END SUBCONT_YN,
+				0 AS PROCESS_COUNT,
+       			NVL(A.CLEAN_DT,'N') as ESH_DT, NAME_CHK, A.EMAIL_ADDR,
+				'Y' AS PASS_YN,
+				'N' AS EXPR_YN,
+				'N' AS MOVE_YN,
+				A.SLEEP_YN,
+				A.LOGIN_DTM
+			FROM IO_EMP A, IO_COMP B
+			WHERE A.IO_COMP_ID = B.IO_COMP_ID
+   			  AND NVL(B.SUBCONT_YN,'N') = 'Y'
+			  AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+			  AND NVL(A.DEL_YN,'N') = 'N'
+
+			]]>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+			<![CDATA[
+				AND UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			<![CDATA[
+				AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+			<![CDATA[
+				AND A.IO_COMP_ID = #{ioCompId}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+			<![CDATA[
+				AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+			]]>
+			</if>
+
+	<![CDATA[
+		) Z
+	    LEFT OUTER JOIN
+        ( SELECT EMPCARD_APPL_NO, IO_EMP_ID, STATUS, FN_GET_CODE_NM('A051', APPLY_GBN ) as APPLY_GBN, APPLY_DT,
+                 ROW_NUMBER() OVER ( PARTITION BY EMP_ID ORDER BY  EMPCARD_APPL_NO DESC) AS SNUM
+              FROM IO_EMPCARD_ONEDAY
+              WHERE 1=1 AND DEL_YN = 'N' AND STATUS ='I' AND EMP_GBN='P'
+	    ) IEO ON (IEO.IO_EMP_ID = Z.IO_EMP_ID AND SNUM =1)
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(rowPerPage)">
+		<if test='!"-1".equals(rowPerPage)'>
+		<![CDATA[
+			WHERE ROW_NUM
+			BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+		]]>
+		</if>
+	</if>
+	</select>
+
+
+	<select id="selectIoEmpInfoCnt" parameterType="Map" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoEmpInfoCnt (dmIoEmpCount) */
+		/* IO: 김현진,2019-12-02T17:51:50(김현진,2019-12-02T16:57:46) */
+		SELECT
+		        COUNT(*) AS TOTAL_COUNT
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND NVL(A.DEL_YN,'N') = 'N'
+		AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+		<![CDATA[
+			AND UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+		<![CDATA[
+			AND A.IO_COMP_ID = #{ioCompId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+		<![CDATA[
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		<![CDATA[
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioempnm)">
+		<![CDATA[
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioempnm}) || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(iocompnm)">
+		<![CDATA[
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{iocompnm}) || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(passYnList)">
+			<if test='"Y".equals(passYnList)'>
+				<![CDATA[
+               /* 외부인검색시 현재 사용중인 출입증 소지자만 검색되도록 개선함(청주 차량 관제 정신환 요청). 20180404 HSK */
+                 AND EXISTS( SELECT CARD_NO, IO_EMP_ID
+                                FROM IO_PASS P
+                               WHERE P.IO_EMP_ID = A.IO_EMP_ID
+                                 AND (IO_EMP_ID,PASS_APPL_NO) IN ( SELECT IO_EMP_ID, MAX(A.PASS_APPL_NO)
+                                                                    FROM IO_PASS A
+                                                                   WHERE CARD_NO IS NOT NULL
+                                                                     AND NVL(DEL_YN, 'N') = 'N'
+                                                                     AND A.ALTEMP_GBN = 'A0071001'
+                                                                     AND A.STATUS IN ('A0091004'
+                                                                                    , 'A0091005'
+                                                                                    , 'A0091009'
+                                                                                    , 'A0091010')
+                                                                     AND A.IDCARD_ID IS NOT NULL
+                                                                     AND A.TAG_GBN <> '2'
+                                                                   GROUP BY A.IO_EMP_ID)
+                                AND NOT EXISTS(
+                                    SELECT *
+                                      FROM IO_PASS_EXPR IPE
+                                     WHERE IPE.IO_EMP_ID = P.IO_EMP_ID
+                                       AND IPE.CARD_NO = P.CARD_NO
+                                       AND INSTR(IPE.STOP_YN_01||IPE.STOP_YN_02||IPE.STOP_YN_03||IPE.STOP_YN_04||
+                                                            IPE.STOP_YN_05||IPE.STOP_YN_06||IPE.STOP_YN_07||IPE.STOP_YN_08||
+                                                            IPE.STOP_YN_09||IPE.STOP_YN_10||IPE.STOP_YN_11,'Y') > 0  )
+                           )
+				]]>
+			</if>
+		</if>
+	</select>
+
+	<select id="selectIoEmpSubInfoCnt" parameterType="Map" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoEmpSubInfoCnt (dmIoEmpSubcontCount) */
+		SELECT
+		        COUNT(*) AS TOTAL_COUNT
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND NVL(A.DEL_YN,'N') = 'N'
+		AND NVL(B.SUBCONT_YN,'N') = 'Y'
+		AND A.IO_COMP_ID NOT IN ('FAMILY', 'VIP', 'GS')
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+		<![CDATA[
+			AND UPPER(A.IO_EMP_ID) = UPPER(#{ioEmpId})
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		<![CDATA[
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+		<![CDATA[
+			AND A.IO_COMP_ID = #{ioCompId}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+		<![CDATA[
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || UPPER(#{ioCompNm}) || '%'
+		]]>
+		</if>
+	</select>
+
+	<select id="selectIoViolationInterviewerList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoViolationInterviewerList (dmSecIoEmp_Violation_MeetList_S) */
+		SELECT
+			A.COMP_ID
+				 ,A.EMP_ID
+				 ,A.DEPT_ID
+				 ,A.JW_ID
+				 ,A.EMP_NM
+				 ,FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+				 ,FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		FROM
+			CO_EMP A,
+			(
+				SELECT
+					B.EMP_ID
+				FROM
+					VW_IO_PASS_MST2 A
+					 ,IO_PASS B
+					WHERE A.IO_EMP_ID = #{ioEmpId}
+					AND A.PASS_APPL_NO = B.PASS_APPL_NO
+				UNION
+				SELECT
+					B.EMP_ID
+				FROM IO_VST_MAN A, IO_VST B, IO_VST_MAN_GATE_IO C
+					WHERE A.IO_EMP_ID = #{ioEmpId}
+					AND A.VST_APPL_NO = B.VST_APPL_NO
+					AND A.VST_APPL_NO = C.VST_APPL_NO
+					AND C.IN_DT IS NOT NULL
+					AND C.VST_DT = REPLACE(#{vstDt},'-','')
+			) B
+		WHERE A.EMP_ID = B.EMP_ID
+		]]>
+	</select>
+
+	<select id="getScIoDocNo" parameterType="Map" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.getScIoDocNo (dmSecIoEmp_Violation_Seq_S) */
+		SELECT
+			SEQ_SC_IO_OFEND_DOC_NO.NEXTVAL AS SC_IO_OFEND_DOC_NO
+		FROM DUAL
+		]]>
+	</select>
+
+	<insert id="ioViolationInsert"  parameterType="Map" >
+		/*  SecurityAdminViolationRepository.ioViolationInsert (dmSecIoEmp_Violation_I) */
+		INSERT INTO SC_IO_OFEND (
+			SC_IO_DOC_NO
+			,COMP_ID
+			,DEPT_ID
+			,JW_ID
+			,EMP_ID
+			,OFEND_COMP_ID
+			,OFEND_EMP_ID
+			,OFEND_TEL_NO
+			,OFEND_DT
+			,OFEND_TM
+			,OFEND_GBN
+			,OFEND_DETAIL_GBN
+			,CORR_PLAN_SEND_YN
+			,DOC_ID
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+			,DEL_YN
+			,OLD_YN
+			,ACT_COMP_ID
+			,OFEND_SUB_GBN
+			,MOBILE_FORENSICS_GBN
+			,ETC_RSN
+			,FILE_PATH
+			,ACT_BLDG
+			,ACT_LOCATE
+			,SEC_MAN_NM
+			,ACT_GATE
+			,VISIT_EMPNO
+			<if test="not @org.springframework.util.StringUtils@isEmpty(defaultActYn)">
+				<![CDATA[
+				,ACT_DO
+				,ACT_BY
+				,ACT_DTM
+				]]>
+			</if>
+		<![CDATA[
+		) values (
+			#{scIoOfendDocNo}
+			,#{compId}
+			,#{deptId}
+			,#{jwId}
+			,#{empId}
+			,#{ofendCompId}
+			,#{ofendEmpId}
+			,#{telNo}
+			,REPLACE(#{violationDate}, '-', '')
+			,(LPAD(TRIM(#{violationHour}), 2, '0') || LPAD(TRIM(#{violationMin}), 2, '0'))
+			,#{ofendGbn}
+			,#{ofendDetailGbn}
+			,#{corrPlanSendYn}
+			,#{docId}
+			,#{acIp}
+			,#{crtBy}
+			,SYSDATE
+			,#{crtBy}
+			,SYSDATE
+			,'N'
+			,'N'
+			,#{actCompId}
+			,#{ofendSubGbn}
+			,#{mobileForensicsGbn}
+			,#{etcRsn}
+			,#{filePath}
+			,#{actBldg}
+			,#{actLocate}
+			,#{secManNm}
+			,#{actGate}
+			,#{visitEmpno}
+			]]>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(defaultActYn)">
+				<![CDATA[
+				,#{actDo}
+				,#{empId}
+				,SYSDATE
+				]]>
+			</if>
+		)
+	</insert>
+
+	<insert id="ioViolationInterviewerInsert" parameterType="Map">
+		/*  SecurityAdminViolationRepository.ioViolationInterviewerInsert (dmSecIoEmp_Violation_Meet_I) */
+		<![CDATA[
+		INSERT INTO SC_IO_OFEND_MEET
+		(
+		   SC_IO_DOC_NO
+		   ,EMP_ID
+		   ,COMP_ID
+		   ,DEPT_ID
+		   ,JW_ID
+		   ,AC_IP
+		   ,CRT_BY
+		   ,CRT_DTM
+		   ,MOD_BY
+		   ,MOD_DTM
+		   ,DEL_YN
+		)
+		VALUES
+		(
+		 #{scIoDocNo}
+		 ,#{empId}
+		 ,#{compId}
+		 ,#{deptId}
+		 ,#{jwId}
+		 ,#{acIp}
+		 ,#{empId}
+		 ,SYSDATE
+		 ,#{empId}
+		 ,SYSDATE
+		 ,'N'
+		)
+		]]>
+	</insert>
+
+	<select id="dmSecIoEmpViolation_Excpt_Cnt1" parameterType="Map"  resultType="Integer">
+		<![CDATA[
+			/*  SecurityAdminViolationRepository.dmSecIoEmpViolation_Excpt_Cnt1 (dmSecIoEmpViolation_Excpt_Cnt1) */
+			SELECT NVL(SUM(DECODE(A.OFEND_DETAIL_GBN, 'C0581015', 1, 0)),0) AS CNT1
+			FROM SC_IO_OFEND A
+			WHERE A.OFEND_DT BETWEEN TO_CHAR(TRUNC(SYSDATE,'q'),'yyyymmdd')
+			    AND TO_CHAR(ADD_MONTHS(TRUNC(SYSDATE,'q')-1, 3), 'yyyymmdd')
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.DEL_YN = 'N'
+		]]>
+	</select>
+
+
+	<select id="dmSecIoEmp_Violation_Ofend_Check_Quaterly" parameterType="Map"  resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Ofend_Check_Quaterly (dmSecIoEmp_Violation_Ofend_Check_Quaterly) */
+			SELECT NVL(COUNT(*), 0) AS OFEND_CNT
+			FROM SC_IO_OFEND
+			WHERE OFEND_EMP_ID = UPPER(#{ofendEmpId})
+			AND OFEND_GBN = #{ofendGbn}
+			AND OFEND_DT BETWEEN TO_CHAR(TRUNC(SYSDATE, 'Q'), 'YYYYMMDD')
+	        AND TO_CHAR(TRUNC(ADD_MONTHS(SYSDATE,3), 'Q')-1, 'YYYYMMDD')
+	    ]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_Filtered_ActionList_S" parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+			/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Filtered_ActionList_S (dmSecIoEmp_Violation_Filtered_ActionList_S) */
+			SELECT ETC2 FROM CO_CODE_D WHERE DETL_CD = #{ofendDetailGbn}
+		]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_ActSum_Yearly_S"  parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+			/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_ActSum_Yearly_S (dmSecIoEmp_Violation_ActSum_Yearly_S) */
+			WITH T AS (
+			    SELECT
+			        CASE WHEN TO_CHAR(SYSDATE, 'MM') <= '08'
+			             THEN TO_CHAR(SYSDATE,'YYYY')-1 || '0901'
+			             ELSE TO_CHAR(SYSDATE, 'YYYY')  || '0901'
+			        END AS FROM_DT
+			       ,CASE WHEN TO_CHAR(SYSDATE, 'MM') <= '08'
+			             THEN TO_CHAR(SYSDATE, 'YYYY')  || '0831'
+			             ELSE TO_CHAR(SYSDATE,'YYYY')+1 || '0831'
+			        END AS TO_DT
+			    FROM DUAL
+			)
+			SELECT NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT_C0280002
+			    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280006', 1, 0)),0) AS CNT_C0280006
+			    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280008', 1, 0)),0) AS CNT_C0280008
+			    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280007', 1, 0)),0) AS CNT_C0280007
+			    ,NVL(SUM(DECODE(A.ACT_DO, 'C0280012', 1, 0)),0) AS CNT_C0280012
+			FROM SC_IO_OFEND A, T T
+			WHERE A.OFEND_DT BETWEEN T.FROM_DT AND T.TO_DT
+			AND A.ACT_DO IS NOT NULL
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.DEL_YN = 'N'
+			AND A.OFEND_DETAIL_GBN NOT IN ('C0651001', 'C0651003')
+		]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_Info"  parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Info (dmSecIoEmp_Violation_Info) */
+		SELECT A.OFEND_EMP_ID,
+					 B.EMP_NM,
+					 B.JW_NM,
+					 C.COMP_KO_NM,
+					 SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+					 CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+								ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+						 END OFEND_TM,
+					 (SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM,
+					 (SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_NM,
+					 B.HP_NO,
+					 FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM,
+					 ( SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = A.ACT_COMP_ID) AS ACT_COMP_NM,
+					 ( SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_BLDG   AND ETC4 = A.ACT_COMP_ID AND GRP_CD = 'C063') AS ACT_BLDG_NM,
+					 ( SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_LOCATE AND ETC4 = A.ACT_BLDG AND GRP_CD = 'C064') AS ACT_LOCATE_NM,
+					 A.ACT_GATE,
+					 TO_CHAR(TO_DATE(A.DENY_STRT_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS DENY_STRT_DT,
+					 TO_CHAR(TO_DATE(A.DENY_END_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS DENY_END_DT,
+					 TO_CHAR(A.ACT_DTM+13, 'yyyy-MM-dd') AS LIMIT_14_DTM,
+					 TO_CHAR(A.ACT_DTM+29, 'yyyy-MM-dd') AS LIMIT_30_DTM
+		FROM  SC_IO_OFEND A,
+					IO_EMP B,
+					IO_COMP C
+		WHERE A.OFEND_EMP_ID = B.IO_EMP_ID
+			AND B.IO_COMP_ID   = C.IO_COMP_ID
+			AND SC_IO_DOC_NO   = #{scIoOfendDocNo}
+			]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_SendMail_List_S" parameterType="Map"  resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_SendMail_List_S (dmSecIoEmp_Violation_SendMail_List_S) */
+		SELECT '1' as GUBUN,
+		       IO_EMP_ID as EMP_ID,
+		       EMP_NM,
+		       EMAIL,
+		       HP_NO
+		  FROM IO_EMP
+		 WHERE IO_EMP_ID = #{ofendEmpId}
+	     UNION ALL
+	    SELECT '2' as GUBUN,
+	           EMP_ID,
+	           EMP_NM,
+	           EMAIL,
+	           '' AS HP_NO
+	      FROM CO_EMP
+	     WHERE EMP_ID IN
+	     	(
+	     		SELECT EMP_ID
+	            FROM IO_VST
+	            WHERE VST_APPL_NO IN
+	            	(
+	            		SELECT VST_APPL_NO
+	                    FROM IO_VST_MAN_GATE_IO
+	                    WHERE IO_EMP_ID = #{ofendEmpId}
+	                    AND IN_DT IS NOT NULL
+	                    AND VST_DT = REPLACE(#{violationDate}, '-', '')
+	                )
+	        )
+	     UNION ALL
+	    SELECT '3' as GUBUN,
+	           EMP_ID,
+	           EMP_NM,
+	           EMAIL,
+	           '' AS HP_NO
+	     FROM  CO_EMP
+	    WHERE  EMP_ID = (SELECT GBN_VAL
+	                       FROM AP_APPR_DEF
+	                      WHERE MENU_ID = 'P03010405'
+	                        AND COMP_ID = #{compId}
+	                        AND APPR_DEPT_GBN = '2'
+	                     )
+	     UNION ALL
+		/* 대표관리자 (정) */
+	    SELECT '4' AS GUBUN,
+	           IO_EMP_ID AS EMP_ID,
+	           EMP_NM,
+	           EMAIL,
+	           HP_NO
+	      FROM IO_EMP
+	     WHERE IO_EMP_ID = (SELECT A.ADMIN1_EMAIL
+	                          FROM IO_COMP A,
+	                               IO_EMP B
+	                         WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	                           AND A.IO_COMP_ID != 'PERSONAL'
+	                           AND A.ADMIN1_EMAIL IS NOT NULL
+	                           AND B.IO_EMP_ID = #{ofendEmpId}
+	                       )
+	       AND DEL_YN = 'N'
+	     UNION ALL
+	     /* 위반내용 사업장 보안담당자 */
+		SELECT
+	       '5' AS GUBUN
+	        ,A.EMP_ID
+	        ,B.EMP_NM
+	        ,B.EMAIL
+	        ,'' AS HP_NO
+		FROM SC_DETL_EMP A, CO_EMP B
+	    WHERE 1=1
+		]]>
+		<choose>
+			<when test="not @org.springframework.util.StringUtils@isEmpty(mobileForensicsGbn)">
+			 <![CDATA[
+				AND A.DETL_CD = #{mobileForensicsGbn}
+			]]>
+			</when>
+			<otherwise>
+			<![CDATA[
+				AND A.DETL_CD = #{ofendDetailGbn}
+			]]>
+			</otherwise>
+		</choose>
+
+		<![CDATA[
+		AND A.COMP_ID   = #{actCompId}
+		AND A.EMP_ID    = B.EMP_ID
+		UNION ALL
+		/* 대표관리자 (부) */
+	    SELECT '6' AS GUBUN,
+	           IO_EMP_ID AS EMP_ID,
+	           EMP_NM,
+	           EMAIL,
+	           HP_NO
+	      FROM IO_EMP
+	     WHERE IO_EMP_ID = (SELECT A.ADMIN2_EMAIL
+	                          FROM IO_COMP A,
+	                               IO_EMP B
+	                         WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	                           AND A.IO_COMP_ID != 'PERSONAL'
+	                           AND A.ADMIN2_EMAIL IS NOT NULL
+	                           AND B.IO_EMP_ID = #{ofendEmpId}
+	                       )
+	       AND DEL_YN = 'N'
+		UNION ALL
+		/* 현업부서 접견자 정보 */
+		SELECT
+			'7' AS GUBUN,
+			B.EMP_ID AS EMP_ID,
+			B.EMP_NM,
+			B.EMAIL AS EMAIL,
+			'' AS HP_NO
+		FROM SC_IO_OFEND_MEET A, CO_EMP B
+		WHERE A.EMP_ID = B.EMP_ID
+		AND A.SC_IO_DOC_NO = #{scIoDocNo}
+	    ]]>
+	</select>
+
+	<update id="dmSecIoEmp_Violation_Ofend_U" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Ofend_U (dmSecIoEmp_Violation_Ofend_U) */
+		UPDATE SC_IO_OFEND
+		SET  ACT_DO  = #{actDo}
+		    ,CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+		    ,ACT_BY  = #{crtBy}
+		    ,ACT_DTM = SYSDATE
+		    ,RMRK    = #{rmrk}
+		    ,MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{modBy}
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(actDo)">
+			<choose>
+				<when test='"C0280007".equals(actDo)'>
+				<![CDATA[
+		            ,DENY_STRT_DT = TO_CHAR(SYSDATE, 'yyyyMMdd')
+		            ,DENY_END_DT  = '99991231'
+				]]>
+				</when>
+				<when test='"C0280008".equals(actDo)'>
+				<![CDATA[
+		            ,DENY_STRT_DT = TO_CHAR(SYSDATE,    'yyyyMMdd')
+		            ,DENY_END_DT  = TO_CHAR(SYSDATE+29, 'yyyyMMdd')
+				]]>
+				</when>
+			</choose>
+		</if>
+		<![CDATA[
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	    ]]>
+	</update>
+
+	<insert id="dmSecIoEmp_Violation_Exp_I" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Exp_I (dmSecIoEmp_Violation_Exp_I) */
+		MERGE INTO SC_EXP_DO T1
+        USING (
+                SELECT
+                    TO_CHAR(SYSDATE, 'YYYY') AS SC_YEAR
+                    ,A.OFEND_EMP_ID AS EXP_EMP_ID
+                    ,#{actDo} AS ACT_DO
+                FROM SC_IO_OFEND  A
+                WHERE A.SC_IO_DOC_NO = #{scIoDocNo}
+                  AND A.OLD_YN    = 'N'
+                ) T2
+        ON (T1.SC_YEAR = T2.SC_YEAR AND T1.EXP_EMP_ID = T2.EXP_EMP_ID AND T1.ACT_DO = T2.ACT_DO)
+        WHEN MATCHED THEN
+            UPDATE SET
+                T1.EXP_CNT = T1.EXP_CNT + 1,
+                T1.CHK_CNT = T1.CHK_CNT + 1,
+                T1.MOD_DTM = SYSDATE,
+                T1.MOD_BY  = #{crtBy}
+        WHEN NOT MATCHED THEN
+            INSERT
+               (  SC_YEAR
+                , EXP_EMP_ID
+                , ACT_DO
+                , EXP_CNT
+                , CHK_CNT
+                , AC_IP
+                , CRT_DTM
+                , CRT_BY
+                , MOD_DTM
+                , MOD_BY
+                )
+        VALUES
+               (  T2.SC_YEAR
+                , T2.EXP_EMP_ID
+                , T2.ACT_DO
+                , 1
+                , 1
+                , #{acIp}
+                , SYSDATE
+                , #{crtBy}
+                , SYSDATE
+                , #{crtBy}
+               )
+		]]>
+	</insert>
+
+	<insert id="dmSecIoEmp_Violation_Deny_I" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Deny_I (dmSecIoEmp_Violation_Deny_I) */
+		INSERT INTO IO_EMP_DENY
+		(
+		     DENY_NO
+		   , IO_EMP_ID
+		   , DENY_STRT_DT
+		   , DENY_END_DT
+		   , DENY_CTG_CD
+		   , DENY_RSN
+		   , DEL_YN
+		   , AC_IP
+		   , CRT_DTM
+		   , CRT_BY
+		   , MOD_BY
+		   , MOD_DTM
+		)
+		SELECT
+		    #{denyNo}
+		   ,#{ofendEmpId}
+		   ,CASE WHEN #{actDo} = 'C0280007' THEN TO_CHAR(SYSDATE, 'yyyy-MM-dd')
+		         WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE, 'yyyy-MM-dd')
+		         WHEN #{actDo} = 'C0280012' THEN TO_CHAR(SYSDATE, 'yyyy-MM-dd')
+		         ELSE ''
+		    END
+		   ,CASE WHEN #{actDo} = 'C0280007' THEN '9999-12-31'
+		         WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE+29, 'yyyy-MM-dd')
+		         WHEN #{actDo} = 'C0280012' THEN TO_CHAR(SYSDATE+179, 'yyyy-MM-dd')
+		         ELSE ''
+		    END
+		    ,#{actDo}
+		    ,NVL( (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = #{actDo}), '')
+		    ,''
+		    ,#{acIp}
+		    ,SYSDATE
+		    ,#{crtBy}
+		    ,#{modBy}
+		    ,SYSDATE
+		FROM DUAL
+		]]>
+	</insert>
+
+	<select id="dmSecIoEmp_Violation_PassExprHist_Seq_S" resultType="Integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_PassExprHist_Seq_S (dmSecIoEmp_Violation_PassExprHist_Seq_S) */
+		SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL AS EXPR_APPL_NO FROM DUAL
+		]]>
+	</select>
+
+	<insert id="dmSecIoEmp_Violation_PassExprHist_I" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_PassExprHist_I (dmSecIoEmp_Violation_PassExprHist_I) */
+		INSERT INTO IO_PASS_EXPR_HIST
+		(
+		  EXPR_APPL_NO
+		, EXPR_GBN
+		, IO_COMP_ID
+		, IO_EMP_ID
+		, IDCARD_ID
+		, CARD_NO
+		, COMP_ID
+		, DEPT_ID
+		, JW_ID
+		, EMP_ID
+		, EXPR_IO_COMP_ID
+		, EXPR_IO_EMP_ID
+		, EXPR_RSN
+		, EXPR_STRT_DT
+		, EXPR_END_DT
+		, AC_IP
+		, CRT_BY
+		, CRT_DTM
+		, MOD_BY
+		, MOD_DTM
+		)
+		SELECT
+			 #{exprApplNo}
+			,DECODE(#{actDo}, 'C0280007', 'A0460007', 'C0280008', 'A0460008')
+			,A.OFEND_COMP_ID
+			,A.OFEND_EMP_ID
+			,B.SMART_IDCARD
+			,B.CARD_NO
+			,A.COMP_ID
+			,A.DEPT_ID
+			,A.JW_ID
+			,A.EMP_ID
+			,A.OFEND_COMP_ID
+			,(	SELECT	A.ADMIN1_EMAIL
+				FROM	IO_COMP A,
+						IO_EMP B
+				WHERE	A.IO_COMP_ID = B.IO_COMP_ID
+				AND		A.IO_COMP_ID != 'PERSONAL'
+				AND		A.ADMIN1_EMAIL IS NOT NULL
+				AND		B.IO_EMP_ID = #{ofendEmpId}
+		     )
+			,NVL( (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = #{actDo}), '')
+			,CASE	WHEN #{actDo} = 'C0280007' THEN TO_CHAR(SYSDATE, 'yyyyMMdd')
+					WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE, 'yyyyMMdd')
+					ELSE ''
+			 END
+			,CASE	WHEN #{actDo} = 'C0280007' THEN '99991231'
+					WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE+29, 'yyyyMMdd')
+					ELSE ''
+			 END
+		    ,#{acIp}
+		    ,#{crtBy}
+		    ,SYSDATE
+		    ,#{crtBy}
+		    ,SYSDATE
+		FROM SC_IO_OFEND A, VW_IO_PASS_MST2 B
+		WHERE A.SC_IO_DOC_NO = #{scIoDocNo}
+		AND A.OFEND_EMP_ID   = B.IO_EMP_ID
+		]]>
+	</insert>
+
+	<select id="dmSecIoEmp_Violation_Idcard_Info" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Idcard_Info (dmSecIoEmp_Violation_Idcard_Info) */
+		SELECT
+		  NVL(MAX(B.SMART_IDCARD), '')  AS IDCARD_ID
+		 FROM SC_IO_OFEND  A, VW_IO_PASS_MST2 B
+		WHERE A.SC_IO_DOC_NO = #{scIoDocNo}
+		AND A.OFEND_EMP_ID = B.IO_EMP_ID
+		]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_Corr_Plan_Seq_S"  parameterType="Map" resultType="integer">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Corr_Plan_Seq_S (dmSecIoEmp_Violation_Corr_Plan_Seq_S) */
+		SELECT
+			SEQ_SC_IO_CORR_PLAN_NO.NEXTVAL AS SC_IO_CORR_PLAN_NO
+		FROM DUAL
+		]]>
+	</select>
+
+	<insert id="dmSecIoEmp_Violation_CorrPlan_I" parameterType="Map" >
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_CorrPlan_I (dmSecIoEmp_Violation_Corr_Plan_I) */
+		INSERT
+			INTO
+		SC_IO_CORR_PLAN (
+			SC_IO_CORR_PLAN_NO
+			,SC_IO_DOC_NO
+			,COMP_ID
+			,IO_EMP_ID
+			,POINT_CONTENT
+			,SC_CONTENT
+			,ETC_CONTENT
+			,IMPR_CONTENT
+			,DOC_ID
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+			,APPR_GBN
+			,DEL_YN
+			,ACT_DO
+		) values (
+			#{scIoCorrPlanNo}
+			,#{scIoOfendDocNo}
+			,#{ofendCompId}
+			,#{ofendEmpId}
+			,#{pointContent}
+			,#{scContent}
+			,#{etcContent}
+			,#{imprContent}
+			,#{docId}
+			,#{acIp}
+			,#{crtBy}
+			,SYSDATE
+			,#{crtBy}
+			,SYSDATE
+			,'Z0401004'
+			,'N'
+			,#{actDo}
+		)
+		]]>
+	</insert>
+
+	<insert id="dmSecIoEmp_Violation_ssm_I" parameterType="Map" >
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_ssm_I (dmSecIoEmp_Violation_ssm_I) */
+		INSERT INTO SC_IO_OFEND (
+			SC_IO_DOC_NO
+			,COMP_ID
+			,DEPT_ID
+			,JW_ID
+			,EMP_ID
+			,OFEND_COMP_ID
+			,OFEND_EMP_ID
+			,OFEND_TEL_NO
+			,OFEND_DT
+			,OFEND_TM
+			,OFEND_GBN
+			,OFEND_DETAIL_GBN
+			,CORR_PLAN_SEND_YN
+			,DOC_ID
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+			,DEL_YN
+			,OLD_YN
+			,ACT_COMP_ID
+			,OFEND_SUB_GBN
+			,MOBILE_FORENSICS_GBN
+			,ETC_RSN
+			,FILE_PATH
+			,FILE_PATH2
+	        ,ACT_BLDG
+	        ,ACT_LOCATE
+	        ,SEC_MAN_NM
+	        ,SEC_MAN_NM2
+	        ,HP_MANUFACTURE
+	        ,HP_GUBUN
+	        ,HP_NAME
+	        ,ACT_GATE
+	        ,FILE_URL
+	        ,FILE_URL2
+	        ,FILE_NAME
+	        ,FILE_NAME2
+		) values (
+			#{scIoDocNo}
+			,#{compId}
+			,#{deptId}
+			,#{jwId}
+			,#{empId}
+			,#{ofendCompId}
+			,#{ofendEmpId}
+			,#{telNo}
+			,REPLACE(#{violationDate}, '-', '')
+			,(LPAD(TRIM(#{violationHour}), 2, '0') || LPAD(TRIM(#{violationMin}), 2, '0'))
+			,#{ofendGbn}
+			,#{ofendDetailGbn}
+			,#{corrPlanSendYn}
+			,#{docId}
+			,#{acIp}
+			,#{empId}
+			,SYSDATE
+			,#{empId}
+			,SYSDATE
+			,'Y'
+			,'N'
+			,#{actCompId}
+			,#{ofendSubGbn}
+			,#{mobileForensicsGbn}
+			,#{etcRsn}
+			,#{filePath0}
+	    	,#{filePath1}
+	        ,#{actBldg}
+	        ,#{actLocate}
+	        ,#{secManNm}
+	        ,#{secManNm2}
+	        ,#{hpManufacture}
+	        ,#{hpGubun}
+	        ,#{hpName}
+	        ,#{actGate}
+	        ,#{fileUrl}
+	        ,#{fileUrl2}
+	        ,#{fileName}
+	        ,#{fileName2}
+	        )
+		]]>
+	</insert>
+
+	<select id="selectIoViolationList" parameterType="Map" resultType="CamelHashMap">
+		/*  SecurityAdminViolationRepository.selectIoViolationList (dmSecIoEmp_Violation_List_S) */
+		SELECT
+		    TB.*
+		FROM
+		     (
+          SELECT
+            ROW_NUMBER() OVER(ORDER BY OFEND_DT DESC, OFEND_TM DESC) AS ROW_NUM
+            /* ROW_NUMBER() OVER(ORDER BY SC_IO_DOC_NO DESC) AS ROW_NUM */
+            ,T.*
+            ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = T.ACT_COMP_ID) AS ACT_COMP_ID_NM
+            FROM (
+            SELECT
+            A.SC_IO_DOC_NO
+            ,B.SC_IO_CORR_PLAN_NO
+            ,A.COMP_ID
+            ,A.DEPT_ID
+            ,A.JW_ID
+            ,A.EMP_ID
+            ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+            ,FN_GET_EMP_NM(A.ACT_EMP_ID) as ACT_EMP_NM
+            ,A.OFEND_COMP_ID
+            ,A.OFEND_EMP_ID
+            ,A.OFEND_TEL_NO
+            ,FN_GET_IO_COMP_KO_NM(A.OFEND_COMP_ID) as COMP_NM
+            ,FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM
+            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+            ,CASE
+            WHEN LENGTH(A.OFEND_TM) = 4
+            THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+            ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+            END OFEND_TM
+            ,A.OFEND_GBN
+            ,FN_GET_CODE('C052', A.OFEND_GBN, '') as OFEND_GBN_NM
+            ,A.OFEND_DETAIL_GBN
+            ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+            ,A.CORR_PLAN_SEND_YN
+            ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+            ,AD.DOC_ID
+            ,CASE
+            WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+            THEN '1003'
+            ELSE NVL(AD.APPR_STAT, '99')
+            END as APPR_STAT
+            ,CASE
+            WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+            THEN '1003'
+            ELSE NVL(AD.APPR_RESULT, '99')
+            END as APPR_RESULT
+            ,CASE
+            WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+            THEN '관련없음'
+            ELSE
+            CASE
+            WHEN AD.APPR_STAT = '0' THEN '대기'
+            WHEN AD.APPR_STAT = '10' THEN '진행'
+            WHEN AD.APPR_STAT = '20' THEN '완료'
+            WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+            END
+            END as APPR_STAT_NM
+            ,CASE
+            WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+            THEN '관련없음'
+            ELSE
+            CASE
+            WHEN AD.APPR_RESULT = '0' THEN '검토중'
+            WHEN AD.APPR_RESULT = '1' THEN '승인'
+            WHEN AD.APPR_RESULT = '2' THEN '부결'
+            WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+            WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+            END
+            END as APPR_RESULT_NM
+            ,A.ACT_COMP_ID
+            ,FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+            ,A.MOBILE_FORENSICS_GBN
+            ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당사항없음') AS MOBILE_FORENSICS_GBN_NM
+		      FROM
+		            (
+                  SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+                  FROM SC_IO_OFEND A, SC_DETL_EMP D
+                  WHERE A.MOBILE_FORENSICS_GBN IS NULL
+                  AND D.COMP_ID = A.ACT_COMP_ID
+                  AND D.DETL_CD = A.OFEND_DETAIL_GBN
+                  <if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+                    AND( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+                  </if>
+                  UNION
+                  SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+                  FROM SC_IO_OFEND A, SC_DETL_EMP D
+                  WHERE A.MOBILE_FORENSICS_GBN IS NOT NULL
+                  AND D.COMP_ID = A.ACT_COMP_ID
+                  AND D.DETL_CD = A.MOBILE_FORENSICS_GBN
+                  <if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+                    AND( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+                  </if>
+                ) A
+                ,SC_IO_CORR_PLAN B
+                ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+		      WHERE A.SC_IO_DOC_NO = B.SC_IO_DOC_NO(+)
+          AND B.DOC_ID = AD.DOC_ID(+)
+          AND A.DEL_YN = 'N'
+          AND A.OLD_YN = 'N'
+          AND B.DEL_YN(+) = 'N'
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+            AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+            <![CDATA[ AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '') ]]>
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+		        AND A.OFEND_GBN = #{searchOfendGbn}
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+		        AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+		        <choose>
+              <when test='"Y".equals(searchActGbn)'>
+                AND A.ACT_DO IS NOT NULL
+              </when>
+              <when test='"N".equals(searchActGbn)'>
+                AND A.ACT_DO IS NULL
+              </when>
+            </choose>
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+            <if test='"C0101001".equals(corrPlanSendYn)'>
+		          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+            </if>
+            <if test='"C0101002".equals(corrPlanSendYn)'>
+		          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+            </if>
+            <if test='"C0101003".equals(corrPlanSendYn)'>
+		          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+            </if>
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+            /* 진행상태 */
+            <choose>
+              <when test='"10".equals(applStat)'>
+                /* 검토중 */
+                AND AD.APPR_STAT = #{applStat}
+              </when>
+              <when test='"20".equals(applStat)'>
+                /* 처리완료 */
+                AND AD.APPR_STAT = #{applStat}
+              </when>
+              <when test='"1".equals(applStat)'>
+                /* 승인 */
+                AND AD.APPR_RESULT = #{applStat}
+              </when>
+              <when test='"2".equals(applStat)'>
+                /* 부결 */
+                AND AD.APPR_RESULT = #{applStat}
+              </when>
+            </choose>
+          </if>
+          ) T
+          WHERE 1=1
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+            AND	OFEND_EMP_NM like '%' || #{searchEmpNm} || '%'
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+            AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+            AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+          </if>
+          <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+            <if test='"1003".equals(applStat)'>
+              /* 관련없음 */
+              AND APPR_STAT = #{applStat}
+            </if>
+          </if>
+		    ) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectIoViolationListCnt" parameterType="Map" resultType="Integer">
+		/*  SecurityAdminViolationRepository.selectIoViolationListCnt (dmSecIoEmp_Violation_List_S_Cnt) */
+		SELECT
+		    COUNT(1) AS TOT_CNT
+		FROM (
+		    SELECT
+		        T.*
+		    FROM (
+		        SELECT
+              A.SC_IO_DOC_NO
+              ,B.SC_IO_CORR_PLAN_NO
+              ,A.COMP_ID
+              ,A.DEPT_ID
+              ,A.JW_ID
+              ,A.EMP_ID
+              ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+              ,A.OFEND_COMP_ID
+              ,A.OFEND_EMP_ID
+              ,A.OFEND_TEL_NO
+              ,FN_GET_IO_COMP_KO_NM(A.OFEND_COMP_ID) as COMP_NM
+              ,FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM
+              ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+              ,CASE
+              WHEN LENGTH(A.OFEND_TM) = 4
+              THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+              ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+              END OFEND_TM
+              ,A.OFEND_GBN
+              ,FN_GET_CODE('C052', A.OFEND_GBN, '') as OFEND_GBN_NM
+              ,A.OFEND_DETAIL_GBN
+              ,CASE
+              WHEN A.OFEND_GBN = 'C0521001'
+              THEN FN_GET_CODE('C058', A.OFEND_DETAIL_GBN, '')
+              WHEN A.OFEND_GBN = 'C0521002'
+              THEN FN_GET_CODE('C065', A.OFEND_DETAIL_GBN, '')
+              WHEN A.OFEND_GBN = 'C0521003'
+              THEN FN_GET_CODE('C066', A.OFEND_DETAIL_GBN, '')
+              WHEN A.OFEND_GBN = 'C0521004'
+              THEN FN_GET_CODE('C067', A.OFEND_DETAIL_GBN, '')
+              WHEN A.OFEND_GBN = 'C0521005'
+              THEN FN_GET_CODE('C068', A.OFEND_DETAIL_GBN, '')
+              END as OFEND_DETAIL_GBN_NM
+              ,A.CORR_PLAN_SEND_YN
+              ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+              ,AD.DOC_ID
+              ,CASE
+              WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+              THEN '1003'
+              ELSE NVL(AD.APPR_STAT, '99')
+              END as APPR_STAT
+              ,CASE
+              WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+              THEN '1003'
+              ELSE NVL(AD.APPR_RESULT, '99')
+              END as APPR_RESULT
+              ,CASE
+              WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+              THEN '관련없음'
+              ELSE
+              CASE
+              WHEN AD.APPR_STAT = '0' THEN '대기'
+              WHEN AD.APPR_STAT = '10' THEN '진행'
+              WHEN AD.APPR_STAT = '20' THEN '완료'
+              WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+              END
+              END as APPR_STAT_NM
+              ,CASE
+              WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+              THEN '관련없음'
+              ELSE
+              CASE
+              WHEN AD.APPR_RESULT = '0' THEN '검토중'
+              WHEN AD.APPR_RESULT = '1' THEN '승인'
+              WHEN AD.APPR_RESULT = '2' THEN '부결'
+              WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+              WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+              END
+              END as APPR_RESULT_NM
+		        FROM
+		            (
+                  SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+                  FROM SC_IO_OFEND A, SC_DETL_EMP D
+                  WHERE A.MOBILE_FORENSICS_GBN IS NULL
+                  AND D.COMP_ID = A.ACT_COMP_ID
+                  AND D.DETL_CD = A.OFEND_DETAIL_GBN
+                  <if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+                    AND( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+                  </if>
+                    UNION
+                  SELECT A.*, D.EMP_ID AS ACT_EMP_ID
+                  FROM SC_IO_OFEND A, SC_DETL_EMP D
+                  WHERE A.MOBILE_FORENSICS_GBN IS NOT NULL
+                  AND D.COMP_ID = A.ACT_COMP_ID
+                  AND D.DETL_CD = A.MOBILE_FORENSICS_GBN
+                  <if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+                    AND( D.EMP_ID = #{empId} OR D.SUB_EMP_ID = #{empId} )
+                  </if>
+                ) A
+		            ,SC_IO_CORR_PLAN B
+		            ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+		        WHERE
+              A.SC_IO_DOC_NO  = B.SC_IO_DOC_NO(+)
+              AND B.DOC_ID = AD.DOC_ID(+)
+              AND A.DEL_YN = 'N'
+              AND A.OLD_YN = 'N'
+              AND B.DEL_YN(+) = 'N'
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+			AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+    <![CDATA[ AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '') ]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+      AND A.OFEND_GBN = #{searchOfendGbn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+		  AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+      <choose>
+        <when test='"Y".equals(searchActGbn)'>
+          AND A.ACT_DO IS NOT NULL
+        </when>
+        <when test='"N".equals(searchActGbn)'>
+		      AND A.ACT_DO IS NULL
+        </when>
+      </choose>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+      <choose>
+        <when test='("C0101001").equals(corrPlanSendYn)'>
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+        <when test='("C0101002").equals(corrPlanSendYn)'>
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+        <when test='("C0101003").equals(corrPlanSendYn)'>
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+      </choose>
+		</if>
+    /* 진행상태 */
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+      <choose>
+        <when test='("10").equals(applStat)'>
+          /* 검토중 */
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+        <when test='("20").equals(APPL_STAT)'>
+          /* 처리완료 */
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+        <when test='("1").equals(APPL_STAT)'>
+          /* 승인 */
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+        <when test='("2").equals(APPL_STAT)'>
+          /* 부결 */
+          AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+        </when>
+      </choose>
+		</if>
+		) T
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND	OFEND_EMP_NM like '%' || #{searchEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+			AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+			<if test='("1003").equals(applStat)'>
+				/* 관련없음 */
+				AND APPR_STAT = #{applStat}
+			</if>
+		</if>
+		) TB
+	</select>
+
+	<select id="selectIoViolationDetail" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoViolationDetail (dmSecIoEmp_Violation_Detail_S) */
+		SELECT
+			AA.OFEND_EMP_ID,
+			AA.OFEND_EMP_NM,
+			AA.OFEND_EMP_NM2,
+			AA.OFEND_COMP_ID,
+			AA.OFEND_DT,
+			AA.OFEND_TM,
+			AA.OFEND_GBN,
+			AA.OFEND_GBN_NM,
+			AA.OFEND_DETAIL_GBN,
+			AA.OFEND_DETAIL_GBN_NM,
+			AA.COMP_NM,
+			AA.OFEND_COMP_NM,
+			AA.DEPT_NM,
+			AA.EMP_NM,
+			AA.EMP_ID,
+			AA.JW_NM,
+			AA.OFEND_TEL_NO,
+			AA.ACT_COMP_NM,
+			AA.ACT_DO,
+			AA.RMRK,
+			AA.ACT_COMP_ID,
+			AA.ACT_BY,
+			AA.OFEND_RMRK,
+			AA.OFEND_EMP_EMAIL,
+			AA.OFEND_SUB_GBN,
+			AA.OFEND_SUB_GBN_NM,
+			AA.MOBILE_FORENSICS_GBN,
+			AA.MOBILE_FORENSICS_GBN_NM,
+			AA.ETC_RSN,
+			AA.FILE_PATH,
+			AA.FILE_PATH_NM,
+			REPLACE(SUBSTR(AA.FILE_PATH, 1, INSTR(AA.FILE_PATH, '\', -1)), '\', '/') AS FILE_PATH_ADDR,
+			SUBSTR(SUBSTR(AA.FILE_PATH, 1, INSTR(AA.FILE_PATH, ';')-1), INSTR(SUBSTR(AA.FILE_PATH, 1, INSTR(AA.FILE_PATH, ';')-1), '\', -1)+1) AS FILE_PATH_ID,
+			AA.ACT_FILT_LIST,
+			AA.ACT_BLDG,
+			AA.ACT_LOCATE,
+			AA.ACT_GATE,
+			AA.SEC_MAN_NM,
+			AA.ACT_BLDG_NM,
+			AA.ACT_LOCATE_NM,
+			AA.ACT_DO_NM,
+			AA.VISIT_EMPNO
+		FROM (
+					 SELECT A.OFEND_EMP_ID,
+									FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM,
+									FN_GET_IO_EMP_NM2(A.OFEND_EMP_ID) as OFEND_EMP_NM2,
+									A.OFEND_COMP_ID,
+									SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+									CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+											 ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+										END OFEND_TM,
+									A.OFEND_GBN,
+									(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM,
+									A.OFEND_DETAIL_GBN,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM,
+									FN_GET_COMP_NM(A.COMP_ID) as COMP_NM,
+									FN_GET_IO_COMP_KO_NM(A.OFEND_COMP_ID) as OFEND_COMP_NM,
+									FN_GET_DEPT_NM(A.DEPT_ID) as DEPT_NM,
+									FN_GET_EMP_NM(A.EMP_ID) as EMP_NM,
+									A.EMP_ID,
+									FN_GET_JW_NM(A.JW_ID) as JW_NM,
+									A.OFEND_TEL_NO,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'A030' AND F.ETC1 = A.ACT_COMP_ID) AS ACT_COMP_NM,
+									A.ACT_DO,
+									A.RMRK,
+									A.ACT_COMP_ID,
+									A.ACT_BY,
+									(SELECT F.RMRK FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_RMRK,
+									(SELECT E.EMAIL FROM CO_EMP E WHERE E.EMP_ID = A.OFEND_EMP_ID) AS OFEND_EMP_EMAIL,
+									A.OFEND_SUB_GBN,
+									(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'C059' AND F.ETC1 = A.OFEND_DETAIL_GBN AND F.DETL_CD = A.OFEND_SUB_GBN) AS OFEND_SUB_GBN_NM
+						 ,A.MOBILE_FORENSICS_GBN
+						 ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당사항없음') AS MOBILE_FORENSICS_GBN_NM
+						 ,A.ETC_RSN
+						 ,NVL(FILE_PATH, 'N') as FILE_PATH
+						 ,REPLACE(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')-1 ),'\', '/') AS FILE_PATH_ADDR
+						 ,SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, #{operateId})) as FILE_PATH_TMP_NM
+						 ,SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, ';')+1) AS FILE_PATH_NM
+						 ,(SELECT FF.ETC2 FROM CO_CODE_D FF WHERE FF.DETL_CD = A.OFEND_DETAIL_GBN) AS ACT_FILT_LIST
+						 ,A.ACT_BLDG
+						 ,A.ACT_LOCATE
+						 ,A.ACT_GATE
+						 ,A.SEC_MAN_NM
+						 ,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_BLDG   AND ETC4 = A.ACT_COMP_ID AND GRP_CD = 'C063') AS ACT_BLDG_NM
+						 ,(SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = A.ACT_LOCATE AND ETC4 = A.ACT_BLDG AND GRP_CD = 'C064') AS ACT_LOCATE_NM
+						 ,FN_GET_CODE('C028', A.ACT_DO,'') AS ACT_DO_NM
+						 ,A.VISIT_EMPNO
+					 FROM SC_IO_OFEND A
+					 WHERE A.SC_IO_DOC_NO = #{scIoDocNo}
+				 ) AA
+    	]]>
+	</select>
+
+	<select id="selectIoViolationDetailInterviewerList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoViolationDetailInterviewerList (dmSecIoEmp_Violation_ViewMeetList_S) */
+			SELECT
+				 A.COMP_ID
+				,A.DEPT_ID
+				,A.JW_ID
+				,A.EMP_ID
+				,B.EMP_NM
+				,FN_GET_JW_NM(A.JW_ID) AS JW_NM
+				,FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+			FROM SC_IO_OFEND_MEET A, CO_EMP B
+			WHERE A.SC_IO_DOC_NO = #{scIoDocNo}
+			AND A.EMP_ID = B.EMP_ID
+		]]>
+	</select>
+
+	<select id="selectIoViolationSameHistoryList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoViolationSameHistoryList (dmSecIoEmp_Violation_Detail_Hist_S) */
+		SELECT
+			A.*
+		FROM (
+			SELECT
+			     SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) || ' ' ||
+			     CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ':' ||SUBSTR(A.OFEND_TM, 3,2)
+			     ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ':' || SUBSTR(A.OFEND_TM, 2,2)
+			     END OFEND_DTM
+			    ,FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM
+			    ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+			    ,(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.CRT_BY) AS CRT_BY_NM
+			    ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.GRP_CD = 'C028' AND F.DETL_CD = A.ACT_DO) AS ACT_DO_NM
+			    ,(SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.ACT_BY) AS ACT_BY_NM
+			    ,TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd HH24:MI:SS') AS ACT_DTM
+		        ,DECODE(A.OFEND_DETAIL_GBN, 'C0651001', '집계제외', 'C0651003', '집계제외', '') AS BIGO
+		        ,TO_CHAR(TO_DATE(A.OFEND_DT,'yyyy-mm-dd'),'q') AS QT
+		        ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT
+			    ,CASE WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1,2) || ':' ||SUBSTR(A.OFEND_TM, 3,2)
+			     ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ':' || SUBSTR(A.OFEND_TM, 2,2)
+			     END OFEND_TM
+		        ,TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd') AS ACT_DT
+		        ,TO_CHAR(A.ACT_DTM, 'HH24:MI') AS ACT_TM
+			FROM SC_IO_OFEND A
+			WHERE A.OLD_YN            = 'N'
+			AND UPPER(A.OFEND_EMP_ID) = UPPER(#{ofendEmpId})
+			AND A.DEL_YN 			  = 'N' /* 김용범책임 요청 , 삭제처리된 위규리스트 감추기 20160308*/
+		) A
+		ORDER BY A.OFEND_DTM DESC
+		]]>
+	</select>
+
+	<select id="selectIoViolationActHistoryList" parameterType="Map" resultType="CamelHashMap">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.selectIoViolationActHistoryList (dmSecIoEmp_Violation_ActSum_List_S) */
+		WITH T AS (
+			SELECT
+					TO_CHAR(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q') || '분기' AS QT_NM
+					 ,SUBSTR(REPLACE(#{ofendDt}, '-', ''),1,4) AS YYYY
+					 ,TO_CHAR(TRUNC(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q'),'yyyymmdd') AS S_QT
+					 ,TO_CHAR(ADD_MONTHS(TRUNC(TO_DATE(REPLACE(#{ofendDt}, '-', ''),'yyyymmdd'),'q')-1, 3), 'yyyymmdd') AS E_QT
+					 ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE,'YYYY')-1 || '.09' ELSE TO_CHAR(SYSDATE, 'yyyy')  || '.09' END || ' ~ ' ||
+						CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE, 'YYYY')  || '.08' ELSE TO_CHAR(SYSDATE,'YYYY')+1 || '.08' END
+				AS FT_DT
+					 ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE,'YYYY')-1 || '0901' ELSE TO_CHAR(SYSDATE, 'yyyy')  || '0901' END AS FROM_DT
+					 ,CASE WHEN TO_CHAR(SYSDATE, 'mm') <= '08' THEN TO_CHAR(SYSDATE, 'YYYY')  || '0831' ELSE TO_CHAR(SYSDATE,'YYYY')+1 || '0831' END AS TO_DT
+			FROM DUAL
+		)
+		SELECT
+			T.YYYY
+				 ,T.FT_DT  AS YQ_GB
+				 ,'전체' AS GB
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT1
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280006', 1, 0)),0) AS CNT2
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280008', 1, 0)),0) AS CNT3
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280007', 1, 0)),0) AS CNT4
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280011', 1, 0)),0) AS CNT5
+		FROM SC_IO_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.FROM_DT AND T.TO_DT
+			AND A.ACT_DO IS NOT NULL
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.DEL_YN = 'N'
+			AND A.OFEND_DETAIL_GBN NOT IN ('C0651001', 'C0651003')
+		UNION ALL
+		SELECT
+			T.YYYY
+				 ,T.FT_DT  AS YQ_GB
+				 ,'동일' AS GB
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT1
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280006', 1, 0)),0) AS CNT2
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280008', 1, 0)),0) AS CNT3
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280007', 1, 0)),0) AS CNT4
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280011', 1, 0)),0) AS CNT5
+		FROM SC_IO_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.FROM_DT AND T.TO_DT
+			AND A.ACT_DO IS NOT NULL
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.OFEND_DETAIL_GBN = #{ofendDetailGbn}
+			AND A.DEL_YN = 'N'
+		UNION ALL
+		SELECT
+			T.YYYY
+				 ,T.QT_NM AS YQ_GB
+				 ,'전체' AS GB
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT1
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280006', 1, 0)),0) AS CNT2
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280008', 1, 0)),0) AS CNT3
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280007', 1, 0)),0) AS CNT4
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280011', 1, 0)),0) AS CNT5
+		FROM SC_IO_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+			AND A.ACT_DO IS NOT NULL
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.DEL_YN = 'N'
+			AND A.OFEND_DETAIL_GBN NOT IN ('C0651001', 'C0651003')
+		UNION ALL
+		SELECT
+			T.YYYY
+				 ,T.QT_NM AS YQ_GB
+				 ,'동일' AS GB
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280002', 1, 0)),0) AS CNT1
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280006', 1, 0)),0) AS CNT2
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280008', 1, 0)),0) AS CNT3
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280007', 1, 0)),0) AS CNT4
+				 ,NVL(SUM(DECODE(A.ACT_DO, 'C0280011', 1, 0)),0) AS CNT5
+		FROM SC_IO_OFEND A, T T
+		WHERE A.OFEND_DT BETWEEN T.S_QT AND T.E_QT
+			AND A.ACT_DO IS NOT NULL
+			AND A.OFEND_EMP_ID = #{ofendEmpId}
+			AND A.OFEND_DETAIL_GBN = #{ofendDetailGbn}
+			AND A.DEL_YN = 'N']]>
+	</select>
+
+	<update id="dmSecIoEmp_Violation_Mobile_Ofend_U" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Mobile_Ofend_U (dmSecIoEmp_Violation_Mobile_Ofend_U) */
+		UPDATE SC_IO_OFEND
+		SET  MOBILE_FORENSICS_ACT  = #{actDo}
+		    ,RMRK    = #{rmrk}
+		    ,MOD_DTM = sysdate
+		    ,MOD_BY  = #{crtBy}
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	    ]]>
+	</update>
+
+	<select id="dmSecCoEmp_Violation_List_Sec_S" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_List_Sec_S (dmSecCoEmp_Violation_List_Sec_S) */
+	SELECT
+	    TB.*
+	FROM (
+	    SELECT
+	        ROW_NUMBER() OVER(ORDER BY OFEND_DT DESC, OFEND_TM DESC) AS ROW_NUM
+	        /* ROW_NUMBER() OVER(ORDER BY SC_DOC_NO DESC) AS ROW_NUM */
+	        ,T.*
+			,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = T.ACT_COMP_ID) AS ACT_COMP_ID_NM
+	    FROM (
+	        SELECT
+	             A.SC_DOC_NO
+	            ,B.SC_CORR_PLAN_NO
+	            ,A.COMP_ID
+	            ,A.DEPT_ID
+	            ,A.JW_ID
+	            ,A.EMP_ID
+	            ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+	            ,FN_GET_EMP_NM(D.EMP_ID) as ACT_EMP_NM
+	            ,A.OFEND_COMP_ID
+	            ,A.OFEND_DEPT_ID
+	            ,A.OFEND_JW_ID
+	            ,A.OFEND_EMP_ID
+	            ,A.OFEND_TEL_NO
+	            ,FN_GET_COMP_NM(A.OFEND_COMP_ID) as COMP_NM
+	            ,FN_GET_DEPT_NM(A.OFEND_DEPT_ID) as DEPT_NM
+	            ,FN_GET_EMP_NM(A.OFEND_EMP_ID) as EMP_NM
+	            ,FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) as EMP_JW_NM
+	            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+	            ,CASE
+	                WHEN LENGTH(A.OFEND_TM) = 4
+	                THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+	                ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+	            END OFEND_TM
+	            ,A.OFEND_GBN
+	            ,(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+	            ,A.OFEND_DETAIL_GBN
+	            ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+	            ,A.CORR_PLAN_SEND_YN
+	            ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+	            ,AD.DOC_ID
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_STAT, '99')
+	             END as APPR_STAT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_RESULT, '99')
+	             END as APPR_RESULT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_STAT = '0' THEN '대기'
+	                        WHEN AD.APPR_STAT = '10' THEN '진행'
+	                        WHEN AD.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_STAT_NM
+	             ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                        WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                        WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                        WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+	                        WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_RESULT_NM
+	             ,FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+	             ,A.ACT_COMP_ID
+	             ,A.MOBILE_FORENSICS_GBN
+	             ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당사항없음') AS MOBILE_FORENSICS_GBN_NM
+	        FROM
+	            SC_OFEND A
+	            ,SC_CORR_PLAN B
+	            ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+	            ,SC_DETL_EMP D
+	        WHERE
+	            A.SC_DOC_NO = B.SC_DOC_NO(+)
+	            AND B.DOC_ID = AD.DOC_ID(+)
+	            AND A.DEL_YN = 'N'
+	            AND A.OLD_YN = 'N'
+	            AND B.DEL_YN(+) = 'N'
+				AND D.COMP_ID = A.ACT_COMP_ID
+				AND D.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+				]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+						<![CDATA[
+							AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+						]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					<![CDATA[
+						AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '')
+					]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+				<![CDATA[
+					AND A.OFEND_GBN = #{searchOfendGbn}
+				]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+				<![CDATA[
+					AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+				]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+					<choose>
+						<when test='"Y".equals(searchActGbn)'>
+						<![CDATA[
+							AND A.ACT_DO IS NOT NULL
+						]]>
+						</when>
+						<when test='"N".equals(searchActGbn)'>
+						<![CDATA[
+							AND A.ACT_DO IS NULL
+						]]>
+						</when>
+					</choose>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+					<choose>
+						<when test='"C0101001".equals(corrPlanSendYn)'>
+						<![CDATA[
+							AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+						]]>
+						</when>
+						<when test='"C0101002".equals(corrPlanSendYn)'>
+						<![CDATA[
+							AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+						]]>
+						</when>
+						<when test='"C0101003".equals(corrPlanSendYn)'>
+						<![CDATA[
+							AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+						]]>
+						</when>
+					</choose>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+				<![CDATA[
+					/* 진행상태 */
+					]]>
+					<choose>
+						<when test='"10".equals(applStat)'>
+						<![CDATA[
+							/* 검토중 */
+							AND AD.APPR_STAT = #{applStat}
+						]]>
+						</when>
+						<when test='"20".equals(applStat)'>
+						<![CDATA[
+							/* 처리완료 */
+							AND AD.APPR_STAT = #{applStat}
+						]]>
+						</when>
+						<when test='"1".equals(applStat)'>
+						<![CDATA[
+							/* 승인 */
+							AND AD.APPR_RESULT = #{applStat}
+						]]>
+						</when>
+						<when test='"2".equals(applStat)'>
+						<![CDATA[
+							/* 부결 */
+							AND AD.APPR_RESULT = #{applStat}
+						]]>
+						</when>
+					</choose>
+				</if>
+			<![CDATA[
+	             ) T
+			WHERE 1=1
+			]]>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			<![CDATA[
+	        	AND	EMP_NM like '%' || #{searchEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegEmpNm)">
+			<![CDATA[
+	        	AND	REG_EMP_NM like '%' || #{searchRegEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+			<![CDATA[
+	        	AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+			]]>
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+				<![CDATA[
+							AND	DEPT_NM like '%' || #{searchDeptNm} || '%'
+				]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+					<if test='"1003".equals(applStat)'>
+					<![CDATA[
+					/* 관련없음 */
+						AND APPR_STAT = #{applStat}
+					]]>
+					</if>
+			</if>
+    ) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="dmSecCoEmp_Violation_List_Sec_Count_S" parameterType="Map" resultType="int">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_List_Sec_Count_S (dmSecCoEmp_Violation_List_Sec_Count_S) */
+	SELECT
+	    COUNT(*)
+	FROM (
+	    SELECT
+	        ROW_NUMBER() OVER(ORDER BY OFEND_DT DESC, OFEND_TM DESC) AS ROW_NUM
+	        /* ROW_NUMBER() OVER(ORDER BY SC_DOC_NO DESC) AS ROW_NUM */
+	        ,T.*
+			,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = T.ACT_COMP_ID) AS ACT_COMP_ID_NM
+	    FROM (
+	        SELECT
+	             A.SC_DOC_NO
+	            ,B.SC_CORR_PLAN_NO
+	            ,A.COMP_ID
+	            ,A.DEPT_ID
+	            ,A.JW_ID
+	            ,A.EMP_ID
+	            ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+	            ,FN_GET_EMP_NM(D.EMP_ID) as ACT_EMP_NM
+	            ,A.OFEND_COMP_ID
+	            ,A.OFEND_DEPT_ID
+	            ,A.OFEND_JW_ID
+	            ,A.OFEND_EMP_ID
+	            ,A.OFEND_TEL_NO
+	            ,FN_GET_COMP_NM(A.OFEND_COMP_ID) as COMP_NM
+	            ,FN_GET_DEPT_NM(A.OFEND_DEPT_ID) as DEPT_NM
+	            ,FN_GET_EMP_NM(A.OFEND_EMP_ID) as EMP_NM
+	            ,FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) as EMP_JW_NM
+	            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+	            ,CASE
+	                WHEN LENGTH(A.OFEND_TM) = 4
+	                THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+	                ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+	            END OFEND_TM
+	            ,A.OFEND_GBN
+	            ,(SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+	            ,A.OFEND_DETAIL_GBN
+	            ,(SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN) AS OFEND_DETAIL_GBN_NM
+	            ,A.CORR_PLAN_SEND_YN
+	            ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+	            ,AD.DOC_ID
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_STAT, '99')
+	             END as APPR_STAT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_RESULT, '99')
+	             END as APPR_RESULT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_STAT = '0' THEN '대기'
+	                        WHEN AD.APPR_STAT = '10' THEN '진행'
+	                        WHEN AD.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_STAT_NM
+	             ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                        WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                        WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                        WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+	                        WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_RESULT_NM
+	             ,FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+	             ,A.ACT_COMP_ID
+	             ,A.MOBILE_FORENSICS_GBN
+	             ,NVL(FN_GET_CODE('C060',A.MOBILE_FORENSICS_GBN,''),'해당사항없음') AS MOBILE_FORENSICS_GBN_NM
+	        FROM
+	            SC_OFEND A
+	            ,SC_CORR_PLAN B
+	            ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+	            ,SC_DETL_EMP D
+	        WHERE
+	            A.SC_DOC_NO = B.SC_DOC_NO(+)
+	            AND B.DOC_ID = AD.DOC_ID(+)
+	            AND A.DEL_YN = 'N'
+	            AND A.OLD_YN = 'N'
+	            AND B.DEL_YN(+) = 'N'
+				AND D.COMP_ID = A.ACT_COMP_ID
+				AND D.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+				]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+					<![CDATA[
+						AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+					]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					<![CDATA[
+						AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '')
+					]]>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+					<![CDATA[
+							AND A.OFEND_GBN = #{searchOfendGbn}
+						]]>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+					<![CDATA[
+							AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+						]]>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+					<choose>
+						<when test='"Y".equals(searchActGbn)'>
+							<![CDATA[
+									AND A.ACT_DO IS NOT NULL
+								]]>
+						</when>
+						<when test='"N".equals(searchActGbn)'>
+							<![CDATA[
+									AND A.ACT_DO IS NULL
+								]]>
+						</when>
+					</choose>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+					<choose>
+						<when test='"C0101001".equals(corrPlanSendYn)'>
+							<![CDATA[
+									AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+								]]>
+						</when>
+						<when test='"C0101002".equals(corrPlanSendYn)'>
+							<![CDATA[
+									AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+								]]>
+						</when>
+						<when test='"C0101003".equals(corrPlanSendYn)'>
+							<![CDATA[
+									AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+								]]>
+						</when>
+					</choose>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+					<![CDATA[
+							/* 진행상태 */
+							]]>
+					<choose>
+						<when test='"10".equals(applStat)'>
+							<![CDATA[
+									/* 검토중 */
+									AND AD.APPR_STAT = #{applStat}
+								]]>
+						</when>
+						<when test='"20".equals(applStat)'>
+							<![CDATA[
+									/* 처리완료 */
+									AND AD.APPR_STAT = #{applStat}
+								]]>
+						</when>
+						<when test='"1".equals(applStat)'>
+							<![CDATA[
+									/* 승인 */
+									AND AD.APPR_RESULT = #{applStat}
+								]]>
+						</when>
+						<when test='"2".equals(applStat)'>
+							<![CDATA[
+									/* 부결 */
+									AND AD.APPR_RESULT = #{applStat}
+								]]>
+						</when>
+					</choose>
+				</if>
+				<![CDATA[
+									 ) T
+					WHERE 1=1
+					]]>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+					<![CDATA[
+								AND	EMP_NM like '%' || #{searchEmpNm} || '%'
+					]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegEmpNm)">
+					<![CDATA[
+								AND	REG_EMP_NM like '%' || #{searchRegEmpNm} || '%'
+					]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+					<![CDATA[
+								AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+					]]>
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+					<![CDATA[
+									AND	DEPT_NM like '%' || #{searchDeptNm} || '%'
+						]]>
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+					<if test='"1003".equals(applStat)'>
+						<![CDATA[
+							/* 관련없음 */
+								AND APPR_STAT = #{applStat}
+							]]>
+					</if>
+				</if>
+				) TB
+	</select>
+
+	<update id="dmSecrtCorrPan_OFEND_D"  parameterType="Map">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecrtCorrPan_OFEND_D (dmSecrtCorrPan_OFEND_D) */
+		UPDATE
+			SC_OFEND
+		SET
+			 DEL_YN = 'Y'
+			,DEL_RSN = NVL(#{delRsn}, '')
+			,AC_IP = #{acIp}
+			,MOD_BY = #{empId}
+			,MOD_DTM = SYSDATE
+		WHERE 1=1
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(scDocNo)">
+		<![CDATA[
+			AND SC_DOC_NO = #{scDocNo}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+		<![CDATA[
+			AND DOC_ID = #{docId}
+		]]>
+		</if>
+	</update>
+
+	<select id="dmSecIoEmp_Violation_List_Sec_S" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_List_Sec_S (dmSecIoEmp_Violation_List_Sec_S) */
+	SELECT
+	    TB.*
+	FROM (
+	    SELECT
+	        ROW_NUMBER() OVER(ORDER BY OFEND_DT DESC, OFEND_TM DESC) AS ROW_NUM
+	        /* ROW_NUMBER() OVER(ORDER BY SC_IO_DOC_NO DESC) AS ROW_NUM */
+	        ,T.*
+			,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = T.ACT_COMP_ID) AS ACT_COMP_ID_NM
+	    FROM (
+	        SELECT
+	             A.SC_IO_DOC_NO
+	            ,B.SC_IO_CORR_PLAN_NO
+	            ,A.COMP_ID
+	            ,A.DEPT_ID
+	            ,A.JW_ID
+	            ,A.EMP_ID
+	            ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+	            ,FN_GET_EMP_NM(D.EMP_ID) as ACT_EMP_NM
+	            ,A.OFEND_COMP_ID
+	            ,A.OFEND_EMP_ID
+	            ,A.OFEND_TEL_NO
+	            ,FN_GET_IO_COMP_KO_NM(A.OFEND_COMP_ID) as COMP_NM
+	            ,FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM
+	            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+	            ,CASE
+	                WHEN LENGTH(A.OFEND_TM) = 4
+	                THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+	                ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+	            END OFEND_TM
+	            ,A.OFEND_GBN
+	            ,(SELECT T.DETL_NM FROM CO_CODE_D T WHERE T.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+	            ,A.OFEND_DETAIL_GBN
+	            ,CASE
+	                WHEN A.OFEND_GBN = 'C0521001'
+	                THEN FN_GET_CODE('C058', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521002'
+	                THEN FN_GET_CODE('C065', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521003'
+	                THEN FN_GET_CODE('C066', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521004'
+	                THEN FN_GET_CODE('C067', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521005'
+	                THEN FN_GET_CODE('C068', A.OFEND_DETAIL_GBN, '')
+	            END as OFEND_DETAIL_GBN_NM
+	            ,A.CORR_PLAN_SEND_YN
+	            ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+	            ,AD.DOC_ID
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_STAT, '99')
+	             END as APPR_STAT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_RESULT, '99')
+	             END as APPR_RESULT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_STAT = '0' THEN '대기'
+	                        WHEN AD.APPR_STAT = '10' THEN '진행'
+	                        WHEN AD.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_STAT_NM
+	             ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                        WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                        WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                        WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+	                        WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_RESULT_NM
+	             ,FN_GET_CODE('C028', A.ACT_DO, '') as ACT_DO_NM
+	             ,A.ACT_COMP_ID
+	        FROM
+	            SC_IO_OFEND A
+	            ,SC_IO_CORR_PLAN B
+	            ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+				,SC_DETL_EMP D
+	        WHERE
+	            A.SC_IO_DOC_NO = B.SC_IO_DOC_NO(+)
+	            AND B.DOC_ID = AD.DOC_ID(+)
+	            AND A.DEL_YN = 'N'
+	            AND A.OLD_YN = 'N'
+	            AND B.DEL_YN(+) = 'N'
+				AND D.COMP_ID = A.ACT_COMP_ID
+				AND D.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+		]]>
+
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		<![CDATA[
+			AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		<![CDATA[
+			AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '')
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+		<![CDATA[
+			AND A.OFEND_GBN = #{searchOfendGbn}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+		<![CDATA[
+			AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+			<choose>
+				<when test='"Y".equals(searchActGbn)'>
+				<![CDATA[
+					AND A.ACT_DO IS NOT NULL
+				]]>
+				</when>
+				<when test='"N".equals(searchActGbn)'>
+				<![CDATA[
+					AND A.ACT_DO IS NULL
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+			<choose>
+				<when test='"C0101001".equals(corrPlanSendYn)'>
+				<![CDATA[
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				]]>
+				</when>
+				<when test='"C0101002".equals(corrPlanSendYn)'>
+				<![CDATA[
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				]]>
+				</when>
+				<when test='"C0101003".equals(corrPlanSendYn)'>
+				<![CDATA[
+					AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		<![CDATA[
+			/* 진행상태 */
+			]]>
+			<choose>
+				<when test='"10".equals(applStat)'>
+				<![CDATA[
+					/* 검토중 */
+					AND AD.APPR_STAT = #{applStat}
+				]]>
+				</when>
+				<when test='"20".equals(applStat)'>
+				<![CDATA[
+					/* 처리완료 */
+					AND AD.APPR_STAT = #{applStat}
+				]]>
+				</when>
+				<when test='"1".equals(applStat)'>
+				<![CDATA[
+					/* 승인 */
+					AND AD.APPR_RESULT = #{applStat}
+				]]>
+				</when>
+				<when test='"2".equals(applStat)'>
+				<![CDATA[
+					/* 부결 */
+					AND AD.APPR_RESULT = #{applStat}
+				]]>
+				</when>
+			</choose>
+		</if>
+
+		<![CDATA[
+             ) T
+		WHERE 1=1
+		]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		<![CDATA[
+        	AND	OFEND_EMP_NM like '%' || #{searchEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegEmpNm)">
+		<![CDATA[
+        	AND	REG_EMP_NM like '%' || #{searchRegEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+		<![CDATA[
+        	AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		<![CDATA[
+			AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+        	<if test='"1003".equals(applStat)'>
+        	<![CDATA[
+			/* 관련없음 */
+				AND APPR_STAT = #{applStat}
+			]]>
+        	</if>
+		</if>
+		) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="dmSecIoEmp_Violation_List_Sec_Count_S" parameterType="Map" resultType="int">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_List_Sec_Count_S (dmSecIoEmp_Violation_List_Sec_Count_S) */
+	SELECT
+	   	NVL(MAX(ROW_NUM),0) as TOT_CNT
+	FROM (
+	    SELECT
+	        ROW_NUMBER() OVER(ORDER BY SC_IO_DOC_NO DESC) AS ROW_NUM
+	        ,T.*
+	    FROM (
+	        SELECT
+	            A.SC_IO_DOC_NO
+	            ,B.SC_IO_CORR_PLAN_NO
+	            ,A.COMP_ID
+	            ,A.DEPT_ID
+	            ,A.JW_ID
+	            ,A.EMP_ID
+	            ,FN_GET_EMP_NM(A.EMP_ID) as REG_EMP_NM
+	            ,A.OFEND_COMP_ID
+	            ,A.OFEND_EMP_ID
+	            ,A.OFEND_TEL_NO
+	            ,FN_GET_IO_COMP_KO_NM(A.OFEND_COMP_ID) as COMP_NM
+	            ,FN_GET_IO_EMP_NM(A.OFEND_EMP_ID) as OFEND_EMP_NM
+	            ,SUBSTR(A.OFEND_DT, 1,4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) as OFEND_DT
+	            ,CASE
+	                WHEN LENGTH(A.OFEND_TM) = 4
+	                THEN SUBSTR(A.OFEND_TM, 1,2) || ' : ' ||SUBSTR(A.OFEND_TM, 3,2)
+	                ELSE '0' || SUBSTR(A.OFEND_TM, 1,1) || ' : ' || SUBSTR(A.OFEND_TM, 2,2)
+	            END OFEND_TM
+	            ,A.OFEND_GBN
+	            ,(SELECT T.DETL_NM FROM CO_CODE_D T WHERE T.DETL_CD = A.OFEND_GBN) AS OFEND_GBN_NM
+	            ,A.OFEND_DETAIL_GBN
+	            ,CASE
+	                WHEN A.OFEND_GBN = 'C0521001'
+	                THEN FN_GET_CODE('C058', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521002'
+	                THEN FN_GET_CODE('C065', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521003'
+	                THEN FN_GET_CODE('C066', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521004'
+	                THEN FN_GET_CODE('C067', A.OFEND_DETAIL_GBN, '')
+	                WHEN A.OFEND_GBN = 'C0521005'
+	                THEN FN_GET_CODE('C068', A.OFEND_DETAIL_GBN, '')
+	            END as OFEND_DETAIL_GBN_NM
+	            ,A.CORR_PLAN_SEND_YN
+	            ,FN_GET_CODE('C010', A.CORR_PLAN_SEND_YN, '') as CORR_PLAN_SEND_YN_NM
+	            ,AD.DOC_ID
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_STAT, '99')
+	             END as APPR_STAT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '1003'
+	                ELSE NVL(AD.APPR_RESULT, '99')
+	             END as APPR_RESULT
+	            ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_STAT = '0' THEN '대기'
+	                        WHEN AD.APPR_STAT = '10' THEN '진행'
+	                        WHEN AD.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_STAT_NM
+	             ,CASE
+	                WHEN A.CORR_PLAN_SEND_YN = 'C0101003'
+	                THEN '관련없음'
+	                ELSE
+	                    CASE
+	                        WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	                        WHEN AD.APPR_RESULT = '1' THEN '승인'
+	                        WHEN AD.APPR_RESULT = '2' THEN '부결'
+	                        WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+	                        WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '미작성'
+	                     END
+	             END as APPR_RESULT_NM
+	        FROM
+	            SC_IO_OFEND A
+	            ,SC_IO_CORR_PLAN B
+	            ,(SELECT DOC_ID, APPR_RESULT, APPR_STAT FROM AP_DOC ) AD
+				,SC_DETL_EMP D
+	        WHERE
+	            A.SC_IO_DOC_NO  = B.SC_IO_DOC_NO(+)
+	            AND B.DOC_ID = AD.DOC_ID(+)
+	            AND A.DEL_YN = 'N'
+	            AND A.OLD_YN = 'N'
+	            AND B.DEL_YN(+) = 'N'
+				AND D.COMP_ID = A.ACT_COMP_ID
+				AND D.DETL_CD = NVL(A.MOBILE_FORENSICS_GBN, A.OFEND_DETAIL_GBN)
+	            ]]>
+	             <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+			<![CDATA[
+				AND REPLACE(A.OFEND_DT, '-', '') >= REPLACE(#{searchStrtDt}, '-', '')
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+			<![CDATA[
+				AND REPLACE(A.OFEND_DT, '-', '') <= REPLACE(#{searchEndDt}, '-', '')
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendGbn)">
+			<![CDATA[
+				AND A.OFEND_GBN = #{searchOfendGbn}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchOfendDetailGbn)">
+			<![CDATA[
+				AND A.OFEND_DETAIL_GBN = #{searchOfendDetailGbn}
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchActGbn)">
+				<choose>
+					<when test='"Y".equals(searchActGbn)'>
+					<![CDATA[
+						AND A.ACT_DO IS NOT NULL
+					]]>
+					</when>
+					<when test='"N".equals(searchActGbn)'>
+					<![CDATA[
+						AND A.ACT_DO IS NULL
+					]]>
+					</when>
+				</choose>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(corrPlanSendYn)">
+				<choose>
+					<when test='"C0101001".equals(corrPlanSendYn)'>
+					<![CDATA[
+						AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+					]]>
+					</when>
+					<when test='"C0101002".equals(corrPlanSendYn)'>
+					<![CDATA[
+						AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+					]]>
+					</when>
+					<when test='"C0101003".equals(corrPlanSendYn)'>
+					<![CDATA[
+						AND A.CORR_PLAN_SEND_YN = #{corrPlanSendYn}
+					]]>
+					</when>
+				</choose>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+			<![CDATA[
+				/* 진행상태 */
+				]]>
+				<choose>
+					<when test='"10".equals(applStat)'>
+					<![CDATA[
+						/* 검토중 */
+						AND AD.APPR_STAT = #{applStat}
+					]]>
+					</when>
+					<when test='"20".equals(applStat)'>
+					<![CDATA[
+						/* 처리완료 */
+						AND AD.APPR_STAT = #{applStat}
+					]]>
+					</when>
+					<when test='"1".equals(applStat)'>
+					<![CDATA[
+						/* 승인 */
+						AND AD.APPR_RESULT = #{applStat}
+					]]>
+					</when>
+					<when test='"2".equals(applStat)'>
+					<![CDATA[
+						/* 부결 */
+						AND AD.APPR_RESULT = #{applStat}
+					]]>
+					</when>
+				</choose>
+			</if>
+
+			<![CDATA[
+	             ) T
+			WHERE 1=1
+			]]>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			<![CDATA[
+	        	AND	OFEND_EMP_NM like '%' || #{searchEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegEmpNm)">
+			<![CDATA[
+	        	AND	REG_EMP_NM like '%' || #{searchRegEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchInputEmpNm)">
+			<![CDATA[
+	        	AND	REG_EMP_NM like '%' || #{searchInputEmpNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			<![CDATA[
+				AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+			]]>
+			</if>
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+	        	<if test='"1003".equals(applStat)'>
+	        	<![CDATA[
+				/* 관련없음 */
+					AND APPR_STAT = #{applStat}
+				]]>
+	        	</if>
+			</if>
+
+	<![CDATA[
+    ) TB
+    ]]>
+	</select>
+
+	<update id="dmSecrtIoCorrPlan_OFEND_D" parameterType="Map">
+	<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecrtIoCorrPlan_OFEND_D (dmSecrtIoCorrPlan_OFEND_D) */
+	UPDATE
+		SC_IO_OFEND
+	SET
+		 DEL_YN = 'Y'
+		,DEL_RSN = NVL(#{delRsn}, '')
+		,AC_IP = #{acIp}
+		,MOD_BY = #{empId}
+		,MOD_DTM = SYSDATE
+	WHERE 1=1
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(scIoDocNo)">
+	<![CDATA[
+		AND SC_IO_DOC_NO = #{scIoDocNo}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+	<![CDATA[
+		AND DOC_ID = #{docId}
+	]]>
+	</if>
+	</update>
+
+	<select id="selectAutoActYn" parameterType="Map" resultType="String">
+	<![CDATA[
+	 /* 위규산정기간 전년도 10월1일~당해년도 9월30일까지 자동징구가 3차례 이상이면 자동징구 불가 */
+	 /* 자동징구가능 = "Y" 자동징구불가 = "N" */
+	SELECT
+	CASE WHEN A.CNT < 3 THEN 'Y'
+	     ELSE 'N'
+	END
+	FROM
+	(
+	SELECT COUNT(*) CNT FROM SC_IO_OFEND
+	WHERE RMRK = '자동위규/징구처리'
+	AND OFEND_EMP_ID = #{ofendEmpId}
+	AND CRT_DTM >= TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12), 'YYYY') || '-10-01', 'YYYY-MM-DD')
+	AND CRT_DTM <= TO_DATE(TO_CHAR(SYSDATE, 'YYYY') || '-09-30', 'YYYY-MM-DD')
+	) A
+	]]>
+	</select>
+
+	<select id="dmPassExcptGetExprApplNo" resultType="Integer" >
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.dmPassExcptGetExprApplNo (IO_PASS_EXPR_HIST_SEQ) */
+	SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL  AS EXPR_APPL_NO FROM DUAL
+	]]>
+	</select>
+
+	<select id="dmSecIoEmp_Violation_Deny_Seq_S" resultType="Integer">
+	<![CDATA[
+	/*  SecurityAdminViolationRepository.dmSecIoEmp_Violation_Deny_Seq_S (dmSecIoEmp_Violation_Deny_Seq_S) */
+	SELECT
+		SEQ_IO_EMP_DENY.NEXTVAL AS DENY_NO
+	FROM DUAL
+	]]>
+	</select>
+
+	<update id="ioEmpViolationOfendUpdate" parameterType="Map">
+	<![CDATA[
+		UPDATE SC_IO_OFEND
+		SET
+		    MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{crtBy}
+	]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(actDo)">
+			,ACT_DO  = #{actDo}
+		    ,ACT_BY  = #{crtBy}
+		    ,ACT_DTM = SYSDATE
+		    ,AC_IP	 = #{acIp}
+		    ,RMRK    = #{rmrk}
+		</if>
+	<![CDATA[
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	]]>
+	</update>
+
+	<select id="getIoEmpViolationInfo" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		SELECT
+			SC_IO_DOC_NO
+			, OFEND_EMP_ID
+			, OFEND_SUB_GBN
+			, MOBILE_FORENSICS_GBN
+			, ACT_COMP_ID
+			, ACT_DO
+			, AC_IP
+			, RMRK
+			, CRT_BY AS EMP_ID
+		FROM SC_IO_OFEND
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	]]>
+	</select>
+
+	<select id="getCoEmpViolationInfo" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+		SELECT
+			SC_DOC_NO
+			, OFEND_EMP_ID
+			, OFEND_SUB_GBN
+			, MOBILE_FORENSICS_GBN
+			, ACT_COMP_ID
+			, ACT_DO
+			, AC_IP
+			, RMRK
+			, CRT_BY AS EMP_ID
+		FROM SC_OFEND
+		WHERE SC_DOC_NO = #{scDocNo}
+	]]>
+	</select>
+
+	<update id="resetEmpViolationInfo" parameterType="Map" >
+	<![CDATA[
+		UPDATE SC_IO_OFEND
+		SET
+			ACT_DO  = NULL
+		    ,ACT_BY  = NULL
+		    ,ACT_DTM = NULL
+		    ,AC_IP	 = NULL
+		    ,RMRK    = NULL
+		    ,MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{empId}
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	]]>
+	</update>
+
+	<update id="resetCoEmpViolationInfo" parameterType="Map" >
+	<![CDATA[
+		UPDATE SC_OFEND
+		SET
+			ACT_DO  = NULL
+		    ,ACT_BY  = NULL
+		    ,ACT_DTM = NULL
+		    ,AC_IP	 = NULL
+		    ,RMRK    = NULL
+		    ,MOD_DTM = SYSDATE
+		    ,MOD_BY  = #{empId}
+		WHERE SC_DOC_NO = #{scDocNo}
+	]]>
+	</update>
+
+	<insert id="insertScIoOfendDoc" parameterType="Map">
+		INSERT INTO SC_IO_OFEND_DOC (
+			SC_IO_DOC_NO,
+			SC_IO_DOC_SEQ,
+			ACT_DO,
+			ACT_BY,
+		    RMRK,
+			DOC_ID,
+			CANCELETC,
+			APPL_STAT,
+			INSPECT_RESULT,
+			INSPECT_REVIEW,
+			INSPECT_FILE_ID,
+			INSPECT_FILE_URL,
+			INSPECT_FILE_NAME,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM
+		) VALUES (
+			#{scIoDocNo},
+			(SELECT NVL(MAX(SC_IO_DOC_SEQ), 0) + 1 AS SC_IO_DOC_SEQ FROM SC_IO_OFEND_DOC T WHERE T.SC_IO_DOC_NO = #{scIoDocNo}),
+			#{actDo},
+			#{crtBy},
+			#{rmrk},
+			#{docId},
+			#{canceletc},
+			#{applStat},
+			#{inspectResult},
+			#{inspectReview},
+			#{inspectFileId},
+			#{inspectFileUrl},
+			#{inspectFileName},
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<update id="updateScIoOfendDoc" parameterType="Map">
+		UPDATE SC_IO_OFEND_DOC SET
+			<if test="not @org.springframework.util.StringUtils@isEmpty(canceletc)">
+				CANCELETC = #{canceletc},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+				APPL_STAT = #{applStat},
+			</if>
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(scIoDocNo)">
+			AND SC_IO_DOC_NO = #{scIoDocNo}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(scIoDocSeq)">
+			AND SC_IO_DOC_SEQ = #{scIoDocSeq}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+			AND DOC_ID = #{docId}
+		</if>
+	</update>
+
+	<select id="selectIoViolationApprList"  parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.SC_IO_DOC_NO,
+			A.SC_IO_DOC_SEQ,
+			A.ACT_DO,
+			A.ACT_BY,
+		    A.RMRK,
+			A.DOC_ID,
+			A.CANCELETC,
+			A.APPL_STAT,
+			A.INSPECT_RESULT,
+            A.INSPECT_REVIEW,
+            A.INSPECT_FILE_ID,
+            A.INSPECT_FILE_URL,
+            A.INSPECT_FILE_NAME,
+			A.AC_IP,
+			A.CRT_BY,
+			A.CRT_DTM,
+			A.MOD_BY,
+			A.MOD_DTM
+		FROM SC_IO_OFEND_DOC A
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+		ORDER BY SC_IO_DOC_SEQ DESC
+	</select>
+
+	<select id="selectIoViolationApprByDocId"  parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.SC_IO_DOC_NO,
+			A.SC_IO_DOC_SEQ,
+			A.ACT_DO,
+			A.ACT_BY,
+		    A.RMRK,
+			A.DOC_ID,
+			A.CANCELETC,
+			A.APPL_STAT,
+			A.INSPECT_RESULT,
+            A.INSPECT_REVIEW,
+            A.INSPECT_FILE_ID,
+            A.INSPECT_FILE_URL,
+            A.INSPECT_FILE_NAME,
+			A.AC_IP,
+			A.CRT_BY,
+			A.CRT_DTM,
+			A.MOD_BY,
+			A.MOD_DTM
+		FROM SC_IO_OFEND_DOC A
+		WHERE A.DOC_ID = #{docId}
+	</select>
+
+	<update id="updateScIoOfendActInfo" parameterType="Map">
+		UPDATE SC_IO_OFEND SET
+			ACT_DO = #{actDo},
+			ACT_BY = #{actBy},
+		    ACT_DTM = SYSDATE,
+		    RMRK = #{rmrk},
+		    AC_IP = #{acIp},
+		    MOD_BY  = #{crtBy},
+		    MOD_DTM = SYSDATE
+		WHERE SC_IO_DOC_NO = #{scIoDocNo}
+	</update>
+
+	<!-- 구성원위규 결제생성 -->
+	<insert id="insertScOfendDoc" parameterType="Map">
+		INSERT INTO SC_OFEND_DOC (
+			SC_DOC_NO,
+			SC_DOC_SEQ,
+			ACT_DO,
+			ACT_BY,
+		    RMRK,
+			DOC_ID,
+			CANCELETC,
+			APPL_STAT,
+			INSPECT_RESULT,
+			INSPECT_REVIEW,
+			INSPECT_FILE_ID,
+			INSPECT_FILE_URL,
+			INSPECT_FILE_NAME,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM
+		) VALUES (
+			#{scDocNo},
+			(SELECT NVL(MAX(SC_DOC_SEQ), 0) + 1 AS SC_DOC_SEQ FROM SC_OFEND_DOC T WHERE T.SC_DOC_NO = #{scDocNo}),
+			#{actDo},
+			#{crtBy},
+			#{rmrk},
+			#{docId},
+			#{canceletc},
+			#{applStat},
+			#{inspectResult},
+			#{inspectReview},
+			#{inspectFileId},
+			#{inspectFileUrl},
+			#{inspectFileName},
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<update id="updateScOfendDoc" parameterType="Map">
+		UPDATE SC_OFEND_DOC SET
+			<if test="not @org.springframework.util.StringUtils@isEmpty(canceletc)">
+				CANCELETC = #{canceletc},
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+				APPL_STAT = #{applStat},
+			</if>
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(scDocNo)">
+			AND SC_DOC_NO = #{scDocNo}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(scDocSeq)">
+			AND SC_DOC_SEQ = #{scDocSeq}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+			AND DOC_ID = #{docId}
+		</if>
+	</update>
+
+	<select id="selectCoViolationApprByDocId"  parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.SC_DOC_NO,
+			A.SC_DOC_SEQ,
+			A.ACT_DO,
+			A.ACT_BY,
+		    A.RMRK,
+			A.DOC_ID,
+			A.CANCELETC,
+			A.APPL_STAT,
+			A.INSPECT_RESULT,
+            A.INSPECT_REVIEW,
+            A.INSPECT_FILE_ID,
+            A.INSPECT_FILE_URL,
+            A.INSPECT_FILE_NAME,
+			A.AC_IP,
+			A.CRT_BY,
+			A.CRT_DTM,
+			A.MOD_BY,
+			A.MOD_DTM
+		FROM SC_OFEND_DOC A
+		WHERE A.DOC_ID = #{docId}
+	</select>
+
+	<update id="updateScOfendActInfo" parameterType="Map">
+		UPDATE SC_OFEND SET
+			ACT_DO = #{actDo},
+			ACT_BY = #{actBy},
+		    ACT_DTM = SYSDATE,
+		    RMRK = #{rmrk},
+		    AC_IP = #{acIp},
+		    MOD_BY  = #{crtBy},
+		    MOD_DTM = SYSDATE
+		WHERE SC_DOC_NO = #{scDocNo}
+	</update>
+
+	<select id="selectMainScCoOfendList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CONCAT(A.OFEND_DT, A.OFEND_TM) DESC ) AS RNUM,
+				A.SC_DOC_NO,
+				ACT_COMP_ID,
+			    ( SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = ACT_COMP_ID ) AS ACT_COMP_ID_NM,
+			    ( SELECT E.DETL_NM FROM CO_CODE_D E WHERE E.DETL_CD = A.OFEND_GBN  ) AS OFEND_GBN_NM,
+			    ( SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN ) AS OFEND_DETAIL_GBN_NM,
+			    SUBSTR(A.OFEND_DT, 1, 4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+			    CASE
+			    	WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1, 2) || ' : ' || SUBSTR(A.OFEND_TM, 3, 2)
+			    	ELSE '0' || SUBSTR(A.OFEND_TM, 1, 1) || ' : ' || SUBSTR(A.OFEND_TM, 2, 2)
+			    END OFEND_TM,
+			    A.OFEND_DEPT_ID AS DEPT_ID,
+			    FN_GET_DEPT_NM(A.OFEND_DEPT_ID) AS DEPT_NM,
+			    A.OFEND_EMP_ID AS EMP_ID,
+			    FN_GET_EMP_NM(A.OFEND_EMP_ID) AS EMP_NM,
+			    FN_GET_EMP_JW_NM(A.OFEND_EMP_ID) AS EMP_JW_NM,
+			    FN_GET_CODE('C028', A.ACT_DO, '') AS ACT_DO_NM,
+			    C.SC_CORR_PLAN_NO,
+			    A.OFEND_EMP_ID,
+			    A.OFEND_DETAIL_GBN,
+			    A.DOC_ID,
+			    CASE WHEN A.CORR_PLAN_SEND_YN = 'C0101003' THEN '1003'
+                    ELSE NVL(AD.APPR_STAT, '99')
+                END AS APPR_STAT,
+                CASE WHEN A.CORR_PLAN_SEND_YN = 'C0101003' THEN '1003'
+                    ELSE NVL(AD.APPR_RESULT, '99')
+                END AS APPR_RESULT,
+                A.CORR_PLAN_SEND_YN
+			FROM SC_OFEND A, CO_EMP B, SC_CORR_PLAN C, AP_DOC AD
+			WHERE A.OFEND_DT <![CDATA[ >= ]]> TO_CHAR(SYSDATE , 'YYYY') || '0101'
+		    AND A.OFEND_DT <![CDATA[ <= ]]> TO_CHAR(SYSDATE - 1, 'YYYYMMDD')
+		    AND A.DEL_YN = 'N'
+		    AND A.OLD_YN = 'N'
+		    AND A.OFEND_EMP_ID = B.EMP_ID
+		    AND B.HT_CD != 'T'
+		    AND A.SC_DOC_NO = C.SC_DOC_NO(+)
+		    AND C.DEL_YN(+) = 'N'
+		    AND A.DOC_ID = AD.DOC_ID(+)
+			<if test="not @org.springframework.util.StringUtils@isEmpty(teamType)">
+				<if test='teamType.equals("p")'>
+		    		AND B.EMP_ID =  #{empId}
+				</if>
+				<if test='teamType.equals("t")'>
+		    		AND B.DEPT_ID =  #{deptId}
+				</if>
+		    </if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectMainScCoOfendListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM SC_OFEND A, CO_EMP B
+		WHERE A.OFEND_DT <![CDATA[ >= ]]> TO_CHAR(SYSDATE , 'YYYY') || '0101'
+	    AND A.OFEND_DT <![CDATA[ <= ]]> TO_CHAR(SYSDATE - 1, 'YYYYMMDD')
+	    AND A.DEL_YN = 'N'
+	    AND A.OLD_YN = 'N'
+	    AND A.OFEND_EMP_ID = B.EMP_ID
+	    AND B.HT_CD != 'T'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(teamType)">
+			<if test='teamType.equals("p")'>
+	    		AND B.EMP_ID =  #{empId}
+			</if>
+			<if test='teamType.equals("t")'>
+	    		AND B.DEPT_ID =  #{deptId}
+			</if>
+	    </if>
+	</select>
+
+	<select id="selectMainScIoOfendList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CONCAT(A.OFEND_DT, A.OFEND_TM) DESC ) AS RNUM,
+				A.SC_IO_DOC_NO,
+				ACT_COMP_ID,
+				( SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A030' AND ETC1 = ACT_COMP_ID ) AS ACT_COMP_ID_NM,
+				FN_GET_CODE('C052', A.OFEND_GBN, '') AS OFEND_GBN_NM,
+				( SELECT F.DETL_NM FROM CO_CODE_D F WHERE F.DETL_CD = A.OFEND_DETAIL_GBN ) AS OFEND_DETAIL_GBN_NM,
+				SUBSTR(A.OFEND_DT, 1, 4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' || SUBSTR(A.OFEND_DT, 7, 2) AS OFEND_DT,
+			    CASE
+			    	WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1, 2) || ' : ' || SUBSTR(A.OFEND_TM, 3, 2)
+			    	ELSE '0' || SUBSTR(A.OFEND_TM, 1, 1) || ' : ' || SUBSTR(A.OFEND_TM, 2, 2)
+			    END OFEND_TM,
+			    FN_GET_IO_EMP_NM2(A.OFEND_EMP_ID) AS OFEND_EMP_NM,
+			    FN_GET_EMP_NM(A.EMP_ID) AS REG_EMP_NM,
+			    FN_GET_CODE('C028', A.ACT_DO, '') AS ACT_DO_NM,
+			    C.SC_IO_CORR_PLAN_NO,
+			    A.OFEND_EMP_ID,
+			    A.CORR_PLAN_SEND_YN,
+			    NVL(AD.APPR_STAT, '99') AS APPR_STAT,
+		        NVL(AD.APPR_RESULT, '99') AS APPR_RESULT,
+		        C.APPR_GBN,
+		        A.DOC_ID,
+		        A.OFEND_DETAIL_GBN
+			FROM SC_IO_OFEND A, CO_EMP B, SC_IO_CORR_PLAN C, AP_DOC AD
+			WHERE A.OFEND_DT <![CDATA[ >= ]]> TO_CHAR(SYSDATE , 'YYYY') || '0101'
+			AND A.OFEND_DT <![CDATA[ <= ]]> TO_CHAR(SYSDATE - 1, 'YYYYMMDD')
+			AND A.DEL_YN = 'N'
+		    AND A.OLD_YN = 'N'
+		    AND A.EMP_ID = B.EMP_ID
+		    AND B.HT_CD != 'T'
+		    AND A.SC_IO_DOC_NO = C.SC_IO_DOC_NO(+)
+		    AND C.DEL_YN(+) = 'N'
+		    AND A.DOC_ID = AD.DOC_ID(+)
+			<if test="not @org.springframework.util.StringUtils@isEmpty(teamType)">
+				<if test='teamType.equals("p")'>
+		    		AND B.EMP_ID =  #{empId}
+				</if>
+				<if test='teamType.equals("t")'>
+		    		AND B.DEPT_ID =  #{deptId}
+				</if>
+		    </if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectMainScIoOfendListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM SC_IO_OFEND A, CO_EMP B
+		WHERE A.OFEND_DT <![CDATA[ >= ]]> TO_CHAR(SYSDATE , 'YYYY') || '0101'
+		AND A.OFEND_DT <![CDATA[ <= ]]> TO_CHAR(SYSDATE - 1, 'YYYYMMDD')
+		AND A.DEL_YN = 'N'
+	    AND A.OLD_YN = 'N'
+	    AND A.EMP_ID = B.EMP_ID
+	    AND B.HT_CD != 'T'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(teamType)">
+			<if test='teamType.equals("p")'>
+	    		AND B.EMP_ID =  #{empId}
+			</if>
+			<if test='teamType.equals("t")'>
+	    		AND B.DEPT_ID =  #{deptId}
+			</if>
+	    </if>
+	</select>
+
+	<update id="dmSecCoEmp_Violation_ActDo2ChaMail_U" parameterType="Map">
+		<![CDATA[
+		/*  SecurityAdminViolationRepository.dmSecCoEmp_Violation_ActDo2ChaMail_U */
+		UPDATE SC_OFEND
+		SET
+		    EXCEED_MAIL_SEND_YN = 'Y'
+		WHERE SC_DOC_NO = #{scDocNo}
+		]]>
+	</update>
+
+</mapper>

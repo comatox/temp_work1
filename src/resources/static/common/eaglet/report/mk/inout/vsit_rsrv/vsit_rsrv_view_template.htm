@@ -1,0 +1,240 @@
+<!-- REPORTHEADER-BEGIN -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>&lt;전산저장장치 반입 신청서&gt;</title>
+<link rel="stylesheet" href="{{ER_EagletReportUrl}}/lib/report.css">
+</head>
+<body>
+<!-- REPORTHEADER-END -->
+<!-- REPORTTITLE-BEGIN -->
+<!-- REPORTTITLE-END -->
+<!-- PAGEHEADER-BEGIN -->
+<!-- 타이틀에 표현할 logo와 조건의 이름이 위치하는 영역(모든페이지의 앞에 표기된다.) -->
+<table width="650"  border="0" bordercolor="#142B6D" style="border-collapse:collapse;" align="center">
+  <tr>
+    <td width="167" height="17" align="left" style="padding-bottom:1px;" class="font4"><img src="{{ER_EagletReportUrl}}/images/logo.gif"/></td>
+    <td width="316" align="center" class="font5">방문예약 신청 상세내역</td>
+    <td width="" height="17" align="right" style="padding-bottom:1px;" class="font4"> Page : {{ER_Page}} of {{ER_TotalPage}}</td>
+  </tr>
+</table>
+<table width="690" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td><!-- PAGEHEADER-END -->
+      <!-- TABLEHEADER1-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+      <table width="700" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td colspan="100%" class="top_bg1 center pd1">예약자 정보</td>
+        </tr>
+        <tr>
+          <td width="15%" class="top_bg1 center pd1">업체명</td>
+          <td width="35%" class="cell pd1">[[COMPANYNAME]]</td>
+          <td width="15%" class="top_bg1 center pd1">부서</td>
+          <td width="35%" class="cell pd1">[[DEPT_NAME]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">예약자</td>
+          <td class="cell pd1">[[EMP_NAME]]&nbsp;[[JW_NAME]]</td>
+          <td class="top_bg1 center pd1">사내번호</td>
+          <td class="cell pd1">[[INNO]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">실접견자</td>
+          <td colspan="3"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <td width="15%" class="sub_bg1 center pd1">부서명</td>
+                <td width="35%" class="cell pd1">[[REAL_DEPT_NAME]]</td>
+                <td width="15%" class="sub_bg1 center pd1">사원명</td>
+                <td width="35%" class="cell pd1">[[REAL_EMP_NAME]]</td>
+              </tr>
+            </table></td>
+        </tr>
+        <tr>
+          <td height="35"></td>
+        </tr>
+      </table>
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td colspan="100%" class="top_bg1 center pd1">방문객 정보</td>
+        </tr>
+        <tr>
+          <td width="15%" class="top_bg1 center pd1">방문자명</td>
+          <td width="35%" class="cell pd1">[[VISITOR_NAME]]</td>
+          <td width="15%" class="top_bg1 center pd1">업체명</td>
+          <td width="35%" class="cell pd1">[[VSIT_COMP_NM]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">주민/여권번호</td>
+          <td class="cell pd1">[[SSN]]</td>
+          <td class="top_bg1 center pd1">국적</td>
+          <td class="cell pd1">[[Z001_DETL_CD]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">연락처</td>
+          <td class="cell pd1">[[CNTC_NO]]</td>
+          <td class="top_bg1 center pd1">E-mail</td>
+          <td class="cell pd1">[[EMAIL]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">예약일시</td>
+          <td class="cell pd1">[[RSRV_STRT_DT]]~[[RSRV_END_DT]]</td>
+          <td class="top_bg1 center pd1">방문예정시각</td>
+          <td class="cell pd1">[[RSRV_TM]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">방문목적</td>
+          <td colspan="3" class="cell pd1">[[A013_DETL_CD]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">방문사유</td>
+          <td colspan="3"class="cell pd1">[[VSIT_RSN]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">출입건물</td>
+          <td colspan="3" class="cell pd1">[[GATE]]</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">청정도</td>
+          <td colspan="3" class="cell pd1">&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">차종</td>
+          <td class="cell pd1">[[CAR_KND]]&nbsp;</td>
+          <td class="top_bg1 center pd1">차량번호</td>
+          <td class="cell pd1">[[CAR_NO]]&nbsp;</td>
+        </tr>
+        <tr>
+          <td class="top_bg1 center pd1">주차장소</td>
+          <td colspan="3" class="cell pd1">[[A022_DETL_CD]]</td>
+        </tr>
+			     <tr>
+          <td height="20"></td>
+        </tr>
+	</table>
+    
+      <!-- TABLEHEADER1-END -->
+      <!-- TABLEDETAIL1-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+      <!-- TABLEDETAIL1-END -->
+      <!-- TABLEFOOTER1-BEGIN -->
+      <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+
+      <!-- TABLEFOOTER1-END -->
+
+      <!-- TABLEHEADER2-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+	  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td colspan="100%" class="top_bg1 center pd1">물품반입</td>
+        </tr>
+        <tr>
+          <td width="50%" class="sub_bg1 center pd1">물품이름</td>
+          <td width="15%" class="sub_bg1 center pd1">수량</td>
+          <td width="35%" class="sub_bg1 center pd1">제조사</td>
+        </tr>
+     
+      <!-- TABLEHEADER2-END -->
+      <!-- TABLEDETAIL2-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+		<tr>
+          <td width="50%" class="cell pd1">[[GODS_NM]]</td>
+          <td width="15%" class="cell pd1">[[QTY]]</td>
+          <td width="35%" class="cell pd1">[[MAKER]]</td>
+        </tr>
+      <!-- TABLEDETAIL2-END -->
+      <!-- TABLEFOOTER2-BEGIN -->
+      <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+	  		<tr>
+          <td height="35"></td>
+        </tr>
+      </table>
+      <!-- TABLEFOOTER2-END -->
+
+	  <!-- TABLEHEADER3-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+
+	   <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td colspan="100%" class="top_bg1 center pd1">휴대용 전산저장장치(25kg 이하)</td>
+        </tr>
+        <tr>
+          <td width="20%" class="sub_bg1 center pd1">장치이름</td>
+          <td width="20%" class="sub_bg1 center pd1">모델명</td>
+          <td width="10%" class="sub_bg1 center pd1">수량</td>
+          <td width="15%" class="sub_bg1 center pd1">반출예상일</td>
+          <td width="20%" class="sub_bg1 center pd1">사용목적</td>
+          <td width="15%" class="sub_bg1 center pd1">매체제어개방</td>
+        </tr>
+      
+
+      <!-- TABLEHEADER3-END -->
+      <!-- TABLEDETAIL3-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+	  <tr>
+          <td width="20%" class="cell pd1">[[A023_DETL_CD]]</td>
+          <td width="20%" class="cell pd1">[[MODEL_NM]]</td>
+          <td width="10%" class="cell pd1">[[QTY1]]</td>
+          <td width="15%" class="cell pd1">[[OUT_DT]]</td>
+          <td width="20%" class="cell pd1">[[A024_DETL_CD]]</td>
+          <td width="15%" class="cell pd1">[[A025_DETL_CD]]</td>
+        </tr>
+      <!-- TABLEDETAIL3-END -->
+      <!-- TABLEFOOTER3-BEGIN -->
+      <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+	  </table>
+	  <table width="700" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td class="top_bg1 center pd1">개방요청항목</td>
+          <td colspan="3" class="cell pd1"><table width="540" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="50%" class="font3">[[OPEN_BIT_3]]CD읽기/쓰기</td>
+                <td width="50%" class="font3">[[OPEN_BIT_4]]FDD</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_11]]USB Port(메모리 Card 사용으로 개방)</td>
+                <td class="font3">[[OPEN_BIT_12]]USB Port(마우스 사용으로 1Port 개방)</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_7]]1394포트(대용량 전송)</td>
+                <td class="font3">[[OPEN_BIT_2]]Camera</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_13]]HDD(외부 탈착 가능)</td>
+                <td class="font3">[[OPEN_BIT_1]]무선NETWORK</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_5]]USB(1.0/2.0 Port)</td>
+                <td class="font3">[[OPEN_BIT_6]]Serial(COM포트), Printer 출력</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_9]]PCMCIA(슬롯형 전송)</td>
+                <td class="font3">[[OPEN_BIT_10]]BlueTooth</td>
+              </tr>
+              <tr>
+                <td class="font3">[[OPEN_BIT_8]]IR(적외선)포트</td>
+                <td class="font3"></td>
+              </tr>
+              <tr>
+                <td colspan="2" class="red_font center"><hr>
+                  <img src="{{image}}/images/bul04.gif" align="absmiddle">&nbsp;유선/무선 Network, Serial(COM포트) Port, 모니터 연결 Port, IR Port, PCMCIA Port는<br />
+                  개방(미 봉인)하고 반입가능하며, 검색 예외대상입니다.</td>
+              </tr>
+            </table></td>
+        </tr>
+        <tr>
+          <td height="50" class="top_bg1 center pd1">개방요청사유</td>
+          <td colspan="3" class="cell pd1">[[OPEN_RSN]]&nbsp;</td>
+        </tr>
+      </table>
+	 
+      <!-- TABLEFOOTER3-END -->
+      <!-- PAGEFOOTER-BEGIN -->
+    </td>
+  </tr>
+</table>
+<!-- PAGEFOOTER-END -->
+<!-- REPORTFOOTER-BEGIN -->
+</body>
+</html>
+<!-- REPORTFOOTER-END -->

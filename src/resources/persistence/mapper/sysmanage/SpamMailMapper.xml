@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.SpamMailRepository">
+
+	
+	<select id="selectSpamMailList" parameterType="SpamMailSearchDTO" resultType="SpamMailDTO"><![CDATA[
+		/* spamMailRepository.selectSpamMailList (dmSpamMail_List) */
+		
+		SELECT  SP.SPAM_NO,
+				SP.COMP_ID,
+				FN_GET_COMP_NM(SP.COMP_ID) AS COMP_NM ,
+				SP.DEPT_ID,
+				FN_GET_DEPT_NM(SP.DEPT_ID) AS DEPT_NM ,
+				SP.JW_ID,
+				FN_GET_JW_NM(SP.JW_ID) AS JW_NM,
+				SP.EMP_ID,
+				FN_GET_EMP_NM(SP.EMP_ID) AS EMP_NM ,
+				SP.RECV_EMP_ID,
+				FN_GET_EMP_NM(SP.RECV_EMP_ID) AS RECV_EMP_NM ,
+				FN_GET_DEPT_NM(CO.DEPT_ID) AS RECV_DEPT_NM,
+				FN_GET_JW_NM(SP.JW_ID) AS RECV_JW_NM ,
+				SP.RECV_EMAIL,
+				SP.SEND_EMAIL,
+				TO_CHAR(SP.RECV_DT, 'YYYY-MM-DD')|| ' ' || SP.RECV_HOUR || ':' || SP.RECV_MIN AS RECV_DTM ,
+				SP.CONTENT,
+				SP.FILE_PATH,
+				SP.FILE_NAME,
+				SP.FILE_URL,
+				SP.CRT_BY,
+				TO_CHAR(SP.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+	       FROM HP_SPAM SP, CO_EMP CO   
+	      WHERE NVL(SP.DEL_YN,'N') = 'N'
+	        AND SP.RECV_EMP_ID = CO.EMP_ID(+)
+			]]><if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+					AND FN_GET_EMP_NM(SP.EMP_ID) LIKE '%'|| #{searchEmpNm} ||'%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchContent)">
+					AND SP.CONTENT LIKE '%'|| #{searchContent} ||'%'
+			</if>
+		ORDER BY  SP.SPAM_NO DESC
+	</select>
+	
+	<select id="selectSpamMailView" parameterType="SpamMailSearchDTO" resultType="SpamMailDTO"><![CDATA[
+		/* spamMailRepository.selectSpamMailView (dmSpamMail_View) */
+	 SELECT SP.SPAM_NO,
+			SP.COMP_ID,
+			FN_GET_COMP_NM(SP.COMP_ID) AS COMP_NM ,
+			SP.DEPT_ID,
+			FN_GET_DEPT_NM(SP.DEPT_ID) AS DEPT_NM ,
+			SP.JW_ID,
+			FN_GET_JW_NM(SP.JW_ID) AS JW_NM,
+			SP.EMP_ID,
+			FN_GET_EMP_NM(SP.EMP_ID) AS EMP_NM ,
+			SP.RECV_EMP_ID,
+			FN_GET_EMP_NM(SP.RECV_EMP_ID) AS RECV_EMP_NM ,
+			FN_GET_DEPT_NM(CO.DEPT_ID) AS RECV_DEPT_NM,
+			FN_GET_JW_NM(SP.JW_ID) AS RECV_JW_NM ,
+			SP.RECV_EMAIL,
+			SP.SEND_EMAIL,
+			TO_CHAR(SP.RECV_DT, 'YYYY-MM-DD')||' '||SP.RECV_HOUR||':'||SP.RECV_MIN AS RECV_DTM ,
+			TO_CHAR(SP.RECV_DT, 'YYYY-MM-DD') AS RECV_DT,
+			SP.RECV_HOUR,
+			SP.RECV_MIN ,
+			REPLACE(SP.CONTENT, CHR(13)||CHR(10), '<BR />') AS CONTENT ,
+			SP.CONTENT AS CONTENTS ,
+			SP.FILE_PATH AS FILES ,
+			REPLACE(SUBSTR(SP.FILE_PATH, 1, INSTR(SP.FILE_PATH, ';', 1, 1) - 1), '\', '/') AS FILE_PATH ,
+			SUBSTR(SUBSTR(SP.FILE_PATH, INSTR(SP.FILE_PATH, ';', 1, 1) +1), 1, LENGTH(SUBSTR(SP.FILE_PATH, INSTR(SP.FILE_PATH, ';', 1, 1) +1)) -(LENGTH(SP.FILE_PATH) - INSTR(SP.FILE_PATH, ';', 1, 2) + 1)) AS FILE_NAME_OLD ,
+			SUBSTR(SP.FILE_PATH, INSTR(SP.FILE_PATH, ';', 1, 2) + 1) AS FILE_ID ,
+			SP.FILE_URL,
+			SP.FILE_NAME,
+			SP.CRT_BY,
+			TO_CHAR(SP.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+	   FROM HP_SPAM SP, CO_EMP CO   
+	        WHERE NVL(SP.DEL_YN,'N') = 'N'
+	        AND SP.RECV_EMP_ID = CO.EMP_ID(+)  
+	        AND SP.SPAM_NO = #{spamNo}
+	 ]]>
+	 </select>		
+	
+	<insert id="insertSpamMail"  parameterType="SpamMailDTO" >
+	/* spamMailRepository.insertSpamMail (dmSpamMail_Reg) */
+		INSERT INTO HP_SPAM 
+		(
+			SPAM_NO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			RECV_EMP_ID,
+			RECV_EMAIL,
+			SEND_EMAIL,
+			RECV_DT,
+			RECV_HOUR,
+			RECV_MIN,
+			CONTENT,
+			FILE_PATH,
+			FILE_URL,
+			FILE_NAME,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+	    ) 
+		VALUES 
+		( 
+		 SEQ_HP_SPAM.NEXTVAL,
+		 #{compId},
+		 #{deptId},
+		 #{jwId},
+		 #{crtBy},
+		 #{recvEmpId},
+		 #{recvEmail},
+		 #{sendEmail},
+		 TO_DATE(#{recvDt},'YYYY-MM-DD'),
+		 #{recvHour},
+		 #{recvMin},
+		 #{content},
+		 #{files},
+		 #{fileUrl},
+		 #{fileName},	
+		 'N',
+	     #{acIp}, 	
+	     #{crtBy}, 	
+	     SYSDATE,
+	     #{crtBy}, 
+	     SYSDATE
+		)
+	</insert>	
+	
+	<update id="updateSpamMail" parameterType="SpamMailDTO"><![CDATA[
+		/* spamMailRepository.updateSpamMail (dmSpamMail_Modify) */
+	   	UPDATE HP_SPAM SET 
+		       RECV_EMAIL  = #{recvEmail},
+		       SEND_EMAIL  = #{sendEmail},
+		       RECV_DT     = TO_DATE(#{recvDt},'YYYY-MM-DD'),
+		       RECV_HOUR   = #{recvHour},
+		       RECV_MIN    = #{recvMin},
+		       CONTENT     = #{content},
+		       FILE_PATH   = REPLACE(#{files},'/','\'),           
+			   FILE_URL    = #{fileUrl},
+			   FILE_NAME   = #{fileName},
+		       MOD_BY      = #{crtBy},
+		       MOD_DTM     = SYSDATE
+		WHERE  SPAM_NO     = #{spamNo}  	 
+	]]></update>		
+	
+	<delete id="deleteSpamMail" parameterType="SpamMailDTO">
+		/* spamMailRepository.deleteSpamMail (dmSpamMail_Delete) */
+		UPDATE HP_SPAM 
+		   SET DEL_YN='Y'
+		   	  ,MOD_BY  = #{crtBy}
+		      ,MOD_DTM = SYSDATE
+		 WHERE SPAM_NO = #{spamNo}  
+	</delete>			
+	
+	<select id="selectSpamMailUserInfo" parameterType="SpamMailSearchDTO" resultType="SpamMailDTO"><![CDATA[
+		/* spamMailRepository.selectSpamMailUserInfo (dmspam_UserInfo) */
+		SELECT A.EMP_NM, 
+		       B.DEPT_NM,
+		       C.JW_NM
+		  FROM CO_EMP A,
+		       CO_DEPT B,
+		       CO_JW C
+		 WHERE A.EMP_ID = #{crtBy}
+		   AND A.DEPT_ID = B.DEPT_ID
+		   AND A.JW_ID = C.JW_ID
+	 ]]>
+	 </select>			
+	
+</mapper>
+
+

@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.NoticeRepository">
+  <select id="selectNoticeList" parameterType="Map" resultType="com.skshieldus.esecurity.model.sysmanage.BbsDTO">
+    WITH PAGE AS
+    (
+    SELECT
+    ROWNUM AS ROW_NUM, T1.*
+    FROM (
+    SELECT BOARD_NO
+    ,UP_BOARD_NO
+    ,INOUT_GBN
+    ,FN_GET_CODE('Z037',INOUT_GBN,'ETC1') AS INOUT_NM
+    <![CDATA[,CASE WHEN DEPTH > 0 THEN ''|| REPLACE(REPLACE(TITLE, '<', '&lt;'), '>', '&gt;')
+    ELSE REPLACE(REPLACE(TITLE, '<', '&lt;'), '>', '&gt;') END AS TITLE]]>
+    ,CRT_BY
+    ,FN_GET_EMP_NM(CRT_BY) AS CRT_NM
+    ,READ_CNT
+    ,FILE_PATH
+    ,CRT_DTM
+    FROM HP_BOARD
+    WHERE NVL(DEL_YN ,'N') = 'N'
+    AND BOARD_GBN = 'NOTICE'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(inoutGbn) and !inoutGbn.equals('ALL')">
+      AND INOUT_GBN = #{inoutGbn}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchTitle)">
+      AND UPPER(TITLE) LIKE '%'|| UPPER(#{searchTitle}) ||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchTitle2)">
+      AND UPPER(TITLE) LIKE '%'|| UPPER(#{searchTitle2}) ||'%'
+    </if>
+    START WITH UP_BOARD_NO = '0'
+    CONNECT BY PRIOR BOARD_NO = UP_BOARD_NO
+    ORDER SIBLINGS BY BOARD_NO DESC
+    ) T1
+    )
+    SELECT
+    *
+    FROM
+    PAGE T2
+    WHERE T2.ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectNoticeListCnt" parameterType="Map" resultType="Integer">
+    WITH PAGE AS
+    (
+    SELECT ROWNUM AS ROWM, T1.*
+    FROM (
+    SELECT BOARD_NO
+    ,UP_BOARD_NO
+    ,INOUT_GBN
+    ,TITLE
+    ,CRT_BY
+    ,READ_CNT
+    ,FILE_PATH
+    ,CRT_DTM
+    FROM HP_BOARD
+    WHERE NVL(DEL_YN ,'N') = 'N'
+    AND BOARD_GBN = 'NOTICE'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(inoutGbn) and !inoutGbn.equals('ALL')">
+      AND INOUT_GBN = #{inoutGbn}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchTitle)">
+      AND UPPER(TITLE) LIKE '%'|| UPPER(#{searchTitle}) ||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchTitle2)">
+      AND UPPER(TITLE) LIKE '%'|| UPPER(#{searc hTitle2}) ||'%'
+    </if>
+    START WITH UP_BOARD_NO  = '0'
+    CONNECT BY PRIOR BOARD_NO = UP_BOARD_NO
+    ORDER SIBLINGS BY  BOARD_NO DESC
+    ) T1
+    )
+    SELECT NVL(MAX(ROWM),0) AS TOT_CNT
+    FROM PAGE T2
+  </select>
+
+  <select id="selectNoticeDetail" parameterType="Map" resultType="com.skshieldus.esecurity.model.sysmanage.BbsDTO">
+    <![CDATA[
+    SELECT BOARD_NO
+         , INOUT_GBN
+         , UP_BOARD_NO
+         , CRT_BY
+         , CRT_DTM
+         , READ_CNT
+         , REPLACE(REPLACE(TITLE, '<', '&lt;'), '>', '&gt;')                        AS TITLE
+         , CONTENT
+         , FILE_PATH                                                                AS FILES
+         , REPLACE(SUBSTR(FILE_PATH, 1, INSTR(FILE_PATH, ';', 1, 1) - 1), '\', '/') AS FILE_PATH
+         , SUBSTR(SUBSTR(FILE_PATH, INSTR(FILE_PATH, ';', 1, 1) + 1), 1,
+                  LENGTH(SUBSTR(FILE_PATH, INSTR(FILE_PATH, ';', 1, 1) + 1)) -
+                  (LENGTH(FILE_PATH) - INSTR(FILE_PATH, ';', 1, 2) + 1))            AS FILE_ID
+         , SUBSTR(FILE_PATH, INSTR(FILE_PATH, ';', 1, 2) + 1)                       AS FILE_NAME
+         , (SELECT MAX(ROWNUM)
+            FROM HP_BOARD HH
+            WHERE HH.UP_BOARD_NO = A.BOARD_NO
+              AND NVL(HH.DEL_YN, 'N') = 'N')                                        AS UP_BOARD_NO_CNT
+    FROM HP_BOARD A
+    WHERE BOARD_GBN = 'NOTICE'
+      AND BOARD_NO = #{boardNo}
+      AND DEL_YN = 'N'
+    ]]>
+	</select>
+
+  <insert id="insertNotice" parameterType="Map">
+    INSERT INTO HP_BOARD(
+      BOARD_NO
+    ,INOUT_GBN
+    ,BOARD_GBN
+    ,EMP_ID
+    ,TITLE
+    ,CONTENT
+    ,FILE_PATH
+    ,URL
+    ,UP_BOARD_NO
+    ,DEPTH
+    ,READ_CNT
+    ,DEL_YN
+    ,AC_IP
+    ,CRT_BY
+    ,CRT_DTM
+    ) VALUES (
+        SEQ_HP_BOARD.NEXTVAL
+      , #{inoutGbn}
+      , 'NOTICE'
+      , #{empId}
+      , #{title}
+      , #{content}
+      , #{files}
+      , #{url}
+      , '0'
+      , '0'
+      , '0'
+      , 'N'
+      , #{acIp}
+      , #{empId}
+      , SYSDATE)
+  </insert>
+
+  <insert id="insertNoticeReply" parameterType="Map">
+    INSERT INTO HP_BOARD(
+        BOARD_NO
+      ,INOUT_GBN
+      ,BOARD_GBN
+      ,EMP_ID
+      ,TITLE
+      ,CONTENT
+      ,FILE_PATH
+      ,URL
+      ,UP_BOARD_NO
+      ,DEPTH
+      ,READ_CNT
+      ,DEL_YN
+      ,AC_IP
+      ,CRT_BY
+      ,CRT_DTM
+      ) VALUES (
+        SEQ_HP_BOARD.NEXTVAL
+      , #{inoutGbn}
+      , 'NOTICE'
+      , #{crtBy}
+      , #{title}
+      , #{content}
+      , #{files}
+      , #{url}
+      , #{upBoardNo}
+      , (SELECT  NVL(MAX(DEPTH),0) + 1  FROM HP_BOARD WHERE BOARD_NO = #{upBoardNo} AND NVL(DEL_YN,'N') = 'N')
+      , '0'
+      , 'N'
+      , #{acIp}
+      , #{crtBy}
+      , SYSDATE)
+  </insert>
+
+  <update id="modifyNotice" parameterType="Map">
+    UPDATE  HP_BOARD SET
+      MOD_BY = #{crtBy}
+     ,MOD_DTM = SYSDATE
+     ,TITLE = #{title}
+     ,CONTENT = #{content}
+     ,INOUT_GBN = #{inoutGbn}
+    <if test='fileDeleteFlag.equals("true")'>
+      ,FILE_PATH = #{files}
+    </if>
+    WHERE BOARD_GBN= 'NOTICE'
+      AND DEL_YN ='N'
+      AND BOARD_NO = #{boardNo}
+  </update>
+
+  <update id="modifyNoticeReadUp" parameterType="Map">
+    UPDATE HP_BOARD
+    SET READ_CNT = READ_CNT + 1
+    WHERE BOARD_NO = #{boardNo}
+  </update>
+
+  <update id="deleteNotice" parameterType="Map">
+    UPDATE HP_BOARD
+    SET DEL_YN='Y'
+      , MOD_BY = #{crtBy}
+      , MOD_DTM = SYSDATE
+    WHERE BOARD_NO = #{boardNo}
+  </update>
+
+  <update id="updateNoticeFile" parameterType="Map">
+    UPDATE  HP_BOARD SET
+      MOD_BY = #{crtBy}
+     ,MOD_DTM = SYSDATE
+     ,FILE_PATH = #{files}
+    WHERE BOARD_GBN= 'NOTICE'
+      AND BOARD_NO = #{boardNo}
+  </update>
+</mapper>

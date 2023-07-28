@@ -1,0 +1,2671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.ReserveVisitRepository">
+
+	<select id="selectVisitorCertiList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVisitorCertiList (dmVisitorCertiList) */
+	    SELECT  ROW_NUMBER () OVER (ORDER BY IEC.CRT_DTM DESC) AS ROW_NUM,
+				TO_CHAR(IEC.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+				IEC.IO_EMP_ID,
+				IE.EMP_NM IO_EMP_NM,
+				IC.COMP_KO_NM,
+				IEC.EMP_ID,
+				FN_GET_EMP_NM(IEC.EMP_ID) EMP_NM,
+				FN_GET_JW_BY_EMP(IEC.EMP_ID) AS JW_NM,
+				IEC.CERTI_YN,
+				TO_CHAR(IEC.CERTI_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CERTI_DTM,
+				IEC.CERTI_BY,
+				FN_GET_EMP_JW_NM(IEC.CERTI_BY) CERTI_EMP_NM
+		  FROM  IO_EMP_CO_CERTI IEC, IO_EMP IE, IO_COMP IC
+		 WHERE  UPPER(IEC.IO_EMP_ID) = UPPER(IE.IO_EMP_ID)
+		   AND  IE.IO_COMP_ID = IC.IO_COMP_ID(+)
+
+		<if test='"C".equals(searchType)'>
+		   AND  IEC.EMP_ID = #{empId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		   AND  TO_CHAR(IEC.CRT_DTM,'YYYYMMDD') >= REPLACE(#{searchStartDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		   AND  TO_CHAR(IEC.CRT_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		   AND  IE.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+		   AND  IC.COMP_KO_NM LIKE '%' || #{searchCompNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(certiYn)">
+		   AND  IEC.CERTI_YN = #{certiYn}
+		</if>
+
+	</select>
+
+	<select id="selectVisitorCertiView" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVisitorCertiView (dmVisitorCertiView) */
+		SELECT  TO_CHAR(IEC.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+		        IEC.IO_EMP_ID,
+		        IE.EMP_NM IO_EMP_NM,
+		        IC.COMP_KO_NM,
+		        IEC.EMP_ID,
+		        FN_GET_EMP_JW_NM(IEC.EMP_ID) EMP_NM,
+		        IEC.CERTI_YN,
+		        TO_CHAR(IEC.CERTI_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CERTI_DTM,
+		        IEC.CERTI_BY,
+		        FN_GET_EMP_JW_NM(IEC.CERTI_BY) CERTI_EMP_NM,
+		        IE.JW_NM,
+		        IE.HP_NO,
+		        IE.BIRTH_DT,
+		        IC.LEGAL_NO,
+		        IE.EMAIL_ADDR
+		  FROM  IO_EMP_CO_CERTI IEC, IO_EMP IE, IO_COMP IC
+		 WHERE  UPPER(IEC.IO_EMP_ID) = UPPER(IE.IO_EMP_ID)
+		   AND  IE.IO_COMP_ID = IC.IO_COMP_ID(+)
+		   AND  UPPER(IEC.IO_EMP_ID) = UPPER(#{ioEmpId})
+	</select>
+
+	<update id="updateVisitorCerti" parameterType="Map">
+		/* ReserveVisitRepository.updateVisitorCerti (dmVisitorCertiUpdate) */
+		UPDATE IO_EMP_CO_CERTI
+		   SET CERTI_YN = 'Y',
+		       CERTI_DTM = SYSDATE,
+		       CERTI_BY = #{certiBy}
+		 WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</update>
+
+	<update id="updateVisitorNameCheck" parameterType="Map">
+		/* ReserveVisitRepository.updateVisitorNameCheck (dmVisitorNameCheckUpdate) */
+		UPDATE IO_EMP
+		   SET NAME_CHK = 'Y'
+		 WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</update>
+
+	<delete id="deleteVisitorCerti" parameterType="Map">
+		/* ReserveVisitRepository.deleteVisitorCerti (dmVisitorCertiDelete) */
+		DELETE FROM IO_EMP_CO_CERTI
+		WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</delete>
+
+	<select id="selectVisitorProgressList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVisitorProgressList (dmVisitorProgress_List) */
+		WITH PAGE AS (
+		    SELECT T1.*
+		      FROM (  SELECT  ROW_NUMBER() OVER (ORDER BY A.CRT_DTM DESC) AS ROW_NUM
+		                    , VST_APPL_NO
+		                    , IO_COMP_ID
+		                    , VIP_YN
+		                    , EMP_ID
+		                    , MEET_EMP_ID
+		                    , DOC_ID
+		                    , APPL_STAT
+		                    , VIP_VSTRS
+		                    , VIP_ITEQMT
+		                    , VIP_NM
+		                    , VIP_GU
+		                    , INOUT_GBN
+		                    , CRT_DTM
+		                    , REST_YN
+		                    , REST_CHK
+		                    , IO_PASS_YN
+		               FROM IO_VST A
+		              WHERE (A.DEL_YN = 'N' or A.DEL_YN is null)
+		               AND ( (A.INOUT_GBN = 'Z0321001') OR
+		                     (A.INOUT_GBN = 'Z0321002' AND A.APPL_STAT IS NOT NULL) )
+		               AND (A.VIP_YN !='G' OR A.DEL_YN!='Y')
+		               AND (A.VIP_YN !='G' OR (VIP_YN ='G' AND APPL_STAT IS NOT NULL) )
+		               AND A.VST_APPL_NO IN (SELECT VST_APPL_NO
+		                                      FROM IO_VST_MAN VM, IO_EMP EMP, IO_COMP COMP
+		                                     WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+		                                       AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+		                                       AND EMP.IO_COMP_ID = COMP.IO_COMP_ID)
+
+		        <if test='"V".equals(page)'>
+				   AND A.VIP_YN = 'Y'
+				</if>
+		        <if test='"G".equals(page)'>
+				   AND A.VIP_YN = 'G'
+				</if>
+				<if test="@org.springframework.util.StringUtils@isEmpty(tid)">
+				   AND A.EMP_ID = #{empId}
+				</if>
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqStartDate)">
+				   AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchReqStartDate}, 'YYYY-MM-DD')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqEndDate)">
+				   AND A.CRT_DTM <![CDATA[<]]> TO_DATE(#{searchReqEndDate} , 'YYYY-MM-DD') + 1
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate) or not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				   AND (
+				   	  SELECT COUNT(VST_APPL_NO)
+	                  FROM IO_VST_MAN
+	                  WHERE VST_APPL_NO = A.VST_APPL_NO
+	                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	                    AND VST_END_DT <![CDATA[>=]]> REPLACE(#{searchStartDate}, '-', '')
+	                  </if>
+	                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			            AND VST_STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+	                  </if>
+	                 )> 0
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+				  AND ( ( A.VIP_YN = 'Y' AND UPPER(A.VIP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[' )
+				 	      OR
+		                 ( A.VIP_YN != 'Y' AND A.VST_APPL_NO in (SELECT VST_APPL_NO
+		                                                           FROM IO_VST_MAN VM, IO_EMP EMP
+		                                                          WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+		                                                            AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+		                                                            AND UPPER(EMP.EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[') ))
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+				  AND A.IO_COMP_ID in (SELECT IO_COMP_ID
+		                                   FROM IO_COMP
+		                                  WHERE UPPER(COMP_KO_NM) LIKE '%'||UPPER(#{searchCompNm})||'%' ESCAPE '[' )
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchStat)'>
+				  AND CASE WHEN A.APPL_STAT IS NULL THEN '1'
+						   WHEN A.APPL_STAT = 'Z0331001' THEN '2'
+						   WHEN A.APPL_STAT = 'Z0331002' THEN '3'
+						   WHEN A.APPL_STAT = 'Z0331003' THEN '4'
+					       WHEN A.APPL_STAT = 'Z0331004' THEN '4'
+						   ELSE '5' END = #{searchStat}
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchRest)'>
+				  AND  A.REST_YN = #{searchRest}
+				</if>
+				<if test='"M".equals(mode)'>
+				  AND  A.INOUT_GBN = 'Z0321002'
+				</if>
+		         ) T1
+		)
+		<![CDATA[
+		SELECT T2.ROW_NUM
+		     , T2.VST_APPL_NO
+		     , T2.VIP_YN
+		     , T2.EMP_ID
+		     , TO_CHAR(T2.CRT_DTM,'YYYY-MM-DD hh24:mi') AS CRT_DT
+		     , SUBSTR(T2.VST_STRT_DT,1,4)||'-'||SUBSTR(T2.VST_STRT_DT,5,2)||'-'||SUBSTR(T2.VST_STRT_DT,7,2)||' ~ '||
+		          SUBSTR(T2.VST_END_DT,1,4)||'-'||SUBSTR(T2.VST_END_DT,5,2)||'-'||SUBSTR(T2.VST_END_DT,7,2) AS VST_DT
+		     , T2.IO_EMP_ID
+		     , CASE WHEN T2.CNT > 1 THEN T2.IO_EMP_NM||'님 외 '||TO_NUMBER(T2.CNT - 1)||'명'
+		            ELSE CASE WHEN T2.VIP_YN = 'Y'
+		                       THEN  CASE WHEN T2.VIP_GU = 'E'
+		                                           THEN (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = T2.VIP_NM)
+		                                           ELSE T2.VIP_NM
+		                                  END
+		                            ELSE T2.IO_EMP_NM
+		                   END
+		         END AS IO_EMP_NM
+		      , (SELECT COMP_KO_NM
+		          FROM IO_COMP
+		         WHERE IO_COMP_ID = T2.IO_COMP_ID) AS IO_COMP_NM
+		       , T2.APPL_STAT
+		       , '' AS ITEM_YN
+		       , T2.REST_YN
+		       , T2.REST_CHK
+		       , CASE WHEN T2.APPL_STAT IS NULL THEN '임시보관'
+		              WHEN T2.APPL_STAT = 'Z0331002' THEN '검토중'
+		              ELSE FN_GET_CODE('Z033',T2.APPL_STAT,'') END AS APPL_STAT_NM
+		       , T2.INOUT_GBN
+		       , T2.DOC_ID
+		       , T2.IO_PASS_YN
+		       , CASE WHEN T2.APPL_STAT IS NULL OR (T2.INOUT_GBN = 'Z0321002' and T2.APPL_STAT = 'Z0331005') THEN 'Y'
+		              ELSE 'N'
+		         END AS DEL_YN
+		       , CASE WHEN T2.REST_CHK = 'Y' THEN DECODE(T2.REST_YN, 'Y', '대상', '비대상')
+		              ELSE ''
+		          END AS REST_YN_NM
+		       , DECODE(T2.INOUT_CNT,0,'N','Y') AS INOUT_CNT
+		FROM (SELECT PAGE.*
+		          , (SELECT /*+ INDEX(X PK_IO_VST_MAN_GATE_IO) */ COUNT(X.VST_APPL_NO)
+		               FROM IO_VST_MAN_GATE_IO X
+		              WHERE X.VST_APPL_NO=PAGE.VST_APPL_NO
+		                AND X.IOKND <> 0 ) AS INOUT_CNT
+		          , (SELECT COUNT(A.IO_EMP_ID)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS CNT
+		          , (SELECT  MIN(VST_STRT_DT)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS VST_STRT_DT
+		          , (SELECT MAX(VST_END_DT)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS VST_END_DT
+		          , (SELECT MIN(A.IO_EMP_ID)
+		               FROM IO_VST_MAN A, IO_EMP B
+		              WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS IO_EMP_ID
+		          , (SELECT EMP_NM
+		               FROM IO_EMP
+		              WHERE IO_EMP_ID = (SELECT MIN(A.IO_EMP_ID)
+		                                   FROM IO_VST_MAN A, IO_EMP B
+		                                  WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                                    AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		                                  ) ) AS IO_EMP_NM
+        FROM PAGE ) T2
+        ]]>
+	</select>
+
+	<update id="deleteVisitorProgress" parameterType="Map">
+		/* ReserveVisitRepository.deleteVisitorProgress (dmVisitorProgress_D) */
+		UPDATE IO_VST SET
+			 DEL_YN = #{delYn}
+			,MOD_BY = #{crtBy}
+			,MOD_DTM = SYSDATE
+	 	WHERE  VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<select id="selectReserveVisitViewReIO" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectReserveVisitViewReIO (dmReserveVisit_View_ReIO) */
+		SELECT T1.VST_APPL_NO, T1.VSTR_CNT
+	           , T1.COMP_ID, FN_GET_CONAME('COMP', '', T1.COMP_ID) AS COMP_NM
+	           , T1.DEPT_ID, FN_GET_CONAME('DEPT', T1.DEPT_ID, T1.COMP_ID) AS DEPT_NM
+	           , T1.JW_ID, FN_GET_CONAME('JW', T1.JW_ID, '') AS JW_NM, T1.EMP_ID
+	           , T2.EMP_NM , T1.INNO, T1.MEET_EMP_ID
+	           , FN_GET_EMP_DEPT_JW_NM(T1.MEET_EMP_ID) AS MEET_EMP_NM
+	           , T1.DOC_ID, T1.APPL_STAT, T2.EMAIL, T1.IO_EMP_ID, T1.CANCEL_RSN
+	           , TO_CHAR(T1.MOD_DTM,'YYYY-MM-DD HH24:MI') AS MOD_DTM
+	           , CASE WHEN T1.CEO_YN = 'Y' THEN '동행'
+	                  ELSE '미동행'
+	              END CEO_YN
+	           , T1.REST_YN
+	           , T1.REST_CHK
+	           , NVL((SELECT EMAIL_ADDR FROM IO_EMP WHERE IO_EMP_ID = T1.IO_EMP_ID),T1.IO_EMP_ID) AS IO_EMAIL_ADDR
+	           , T1.IO_PASS_YN
+	           , T1.VIP_YN
+	           ,(SELECT MAX(T3.VST_COMP_ID) FROM IO_VST_MAN T3 WHERE T3.VST_APPL_NO = #{vstApplNo})  AS VST_COMP_ID /*사업장 이천/청주 중복 상신시 오류발생함20170616 HSK*/
+	           ,T2.JC_GRADE
+	           ,T2.FPATH3
+	    FROM IO_VST T1,
+	            (
+	            SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, JW_ID, EMAIL, NVL(FN_GET_JC_GRADE(JC_CD), 99) AS JC_GRADE,FN_GET_DEPT_FPATH3(DEPT_ID) AS FPATH3 FROM CO_EMP
+	            ) T2
+	    WHERE T1.EMP_ID = T2.EMP_ID
+	    AND T1.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<select id="selectReserveVisitVstManListIO" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectReserveVisitVstManListIO (dmReserveVisit_Vst_ManListIO) */
+		<![CDATA[
+		SELECT ROWNUM,
+		       TT.*,
+		       '' AS ITEM_YN,
+		       CASE WHEN TT.STORAGE_CNT > 0 THEN 'Y' ELSE 'N' END AS STORAGE_YN,
+		       CASE WHEN TT.CLEAN_CNT > 0 THEN 'O' ELSE 'X' END AS CLEAN_NM,
+		       CASE WHEN LENGTH(TT.CAR_NO) > 0 OR LENGTH(TT.CAR_KND) > 0 THEN TT.CAR_KND||' '||TT.CAR_NO
+		            ELSE 'N'
+		        END AS CAR_KNDNO,
+		       '' AS DEL_YN,
+		       TT.COMP_KO_NM AS COMP_NM,
+		       DECODE(TT.VST_HIST_CNT,'0','N','Y') AS VST_HIST_YN,
+		       CASE WHEN TO_DATE( TT.DENY_STRT_DT, 'YYYY-MM-DD') <= SYSDATE AND TO_DATE( TT.DENY_END_DT, 'YYYY-MM-DD') >= SYSDATE  THEN 'Y'
+		            ELSE 'N'
+		        END AS DENY_YN,
+		       TT.DENY_STRT_DT || ' ~ ' ||TT.DENY_END_DT AS DENY_DT
+		FROM (
+		 SELECT  T1.VST_APPL_NO
+		        ,T1.IO_EMP_ID
+		        ,SUBSTR(T1.VST_STRT_DT,1,4)||'-'||SUBSTR(T1.VST_STRT_DT,5,2)||'-'||SUBSTR(T1.VST_STRT_DT,7,2) AS VST_STRT_DT
+		        ,SUBSTR(T1.VST_END_DT,1,4)||'-'||SUBSTR(T1.VST_END_DT,5,2)||'-'||SUBSTR(T1.VST_END_DT,7,2) AS VST_END_DT
+		        ,T1.VST_TM
+		        ,SUBSTR(T1.VST_STRT_DT,1,4)||'-'||SUBSTR(T1.VST_STRT_DT,5,2)||'-'||SUBSTR(T1.VST_STRT_DT,7,2)
+		          ||' ~ '|| SUBSTR(T1.VST_END_DT,1,4)||'-'||SUBSTR(T1.VST_END_DT,5,2)||'-'||SUBSTR(T1.VST_END_DT,7,2) AS VST_DT
+		        ,RPAD(SUBSTR(T1.HP_NO,1,7),12,'*') AS HP_NO
+		        ,T1.PARKING
+		        ,FN_GET_CODE('A022',T1.PARKING,'DETL_CD') AS PARKING_NM
+		        ,T1.CAR_NO
+		        ,T1.CAR_KND
+		        ,T1.VST_OBJ
+		        ,FN_GET_CODE('A013', T1.VST_OBJ, 'DETL_CD') AS VST_OBJ_NM
+		        ,T1.VST_RSN
+		        ,T1.VST_DETL_RSN /* 외부인 방문예약 보안 관리 강화 : 회의/상담 사유로 방문시 입력되는 방문상세사유 */
+		        ,T1.CRT_BY
+		        ,TO_CHAR(T1.CRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+		        ,(SELECT /*+INDEX(X PK_IO_VST_MAN_ITEQMT)*/ COUNT(*)
+		            FROM IO_VST_MAN_ITEQMT X
+		           WHERE VST_APPL_NO = T1.VST_APPL_NO
+		             AND IO_EMP_ID =T1.IO_EMP_ID) AS STORAGE_CNT
+		        ,(SELECT /*+INDEX(X PK_IO_VST_MAN_ITEQMT)*/ COUNT(*)
+		            FROM IO_VST_MAN_ITEQMT X
+		           WHERE VST_APPL_NO = T1.VST_APPL_NO
+		             AND IO_EMP_ID =T1.IO_EMP_ID
+		             AND DECODE(BITAND(OPEN_BIT, 1), 1, 0, 1) = 0) AS STORAGE_OPEN_CNT
+		         ,(SELECT COUNT(*)
+		             FROM IO_VST_MAN_GATE A, CO_BLDG B
+		            WHERE A.GATE_ID = B.GATE_ID
+		              AND B.CLEAN_EDU_YN = 'Y'
+		              AND T1.VST_APPL_NO = A.VST_APPL_NO
+		              AND T1.IO_EMP_ID = A.IO_EMP_ID  ) AS CLEAN_CNT
+		         ,(SELECT FIRST_VALUE(DENY_STRT_DT) OVER (ORDER BY DENY_NO DESC)
+		             FROM IO_EMP_DENY X
+		            WHERE X.IO_EMP_ID = T1.IO_EMP_ID
+		              AND NVL(DEL_YN,'N') = 'N'
+		              AND ROWNUM  = 1) AS DENY_STRT_DT
+		         ,(SELECT FIRST_VALUE(DENY_END_DT) OVER (ORDER BY DENY_NO DESC)
+		             FROM IO_EMP_DENY X
+		            WHERE X.IO_EMP_ID = T1.IO_EMP_ID
+		              AND NVL(DEL_YN,'N') = 'N'
+		              AND ROWNUM  = 1) AS DENY_END_DT
+		         ,T2.EMP_NM AS IO_EMP_NM
+		         ,T3.COMP_KO_NM
+		         ,T3.COMP_EN_NM
+		         ,T5.EMP_ID AS CO_EMP_ID
+		         ,T5.COMP_ID
+		         ,T1.VST_COMP_ID
+		         ,FN_GET_CODE('A030', T1.VST_COMP_ID, 'ETC1') AS VST_COMP_NM
+		         ,T1.IO_EMP_JW
+		         ,NVL(T1.VST_BLDG, 'N') as VST_BLDG
+		         ,T3.IO_COMP_ID
+		         ,CASE WHEN T5.REST_CHK = 'Y' THEN T1.REST_YN
+		               ELSE ''
+		           END AS REST_YN
+		         ,CASE WHEN T5.REST_CHK = 'Y' THEN DECODE(T1.REST_YN, 'Y', '대상', '비대상')
+		               ELSE ''
+		           END AS REST_YN_NM
+		         ,T5.REST_CHK
+		         ,T5.REST_YN AS VREST_YN
+		         ,T5.IO_PASS_YN
+		         ,FN_GET_CODE('A049', T5.IO_PASS_GBN,'DETL_CD') AS IO_PASS_GBN_NM
+		         ,T1.IO_COMP_ID AS IO_GSCOMP_ID
+		         ,T1.IO_COMP_NM  AS IO_GSCOMP_NM
+		         ,(SELECT /*+ INDEX(Y IDX_IO_VST_MAN_GATE_IO_02) */ COUNT(*)
+		             FROM IO_VST_MAN_GATE_IO Y
+		            WHERE VST_SEQ = '1'
+		              AND GATE_ID <> '0'
+		              AND IOKND = '2'
+		              AND Y.IO_EMP_ID = T1.IO_EMP_ID) AS VST_HIST_CNT
+		         ,(SELECT DECODE(COUNT(EX.EMP_ID),'0','N','Y')
+		             FROM VW_CO_IO_VST_LEAD_EXCEPT_LIST EX
+		            WHERE EX.EMP_ID = T5.EMP_ID)  AS LEAD_FREEPASS_YN
+		         ,T1.VST_STAY_TM
+		         ,SUBSTR(T2.FILE_PHOTO,0,INSTR(T2.FILE_PHOTO, ';')-1) AS FILE_PHOTO
+		         ,NVL((SELECT UNPERMITTED_LOC_AGREE_YN FROM IO_EMP_LOC_INFO_AGREE WHERE CRT_DTM =
+		      		( SELECT MAX(CRT_DTM) FROM IO_EMP_LOC_INFO_AGREE WHERE UPPER(IO_EMP_ID) = UPPER(T1.IO_EMP_ID)
+		    		) AND IO_EMP_ID = T1.IO_EMP_ID AND ROWNUM=1) , 'N') AS UNPERMITTED_LOC_AGREE_YN
+		          ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,2) as VST_BUILD_NM_1
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,3) as MEET_EMP_NM_1
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,4) as EST_TM_1
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,5) as VST_RSN_1
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,7) as VST_BUILD_NM_2
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,8) as MEET_EMP_NM_2
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,9) as EST_TM_2
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,10) as VST_RSN_2
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,12) as VST_BUILD_NM_3
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,13) as MEET_EMP_NM_3
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,14) as EST_TM_3
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,15) as VST_RSN_3
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,17) as VST_BUILD_NM_4
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,18) as MEET_EMP_NM_4
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,19) as EST_TM_4
+			      ,regexp_substr(t1.vst_detl_rsn,'[^@|^;]+',1,20) as VST_RSN_4
+			      ,T2.EMAIL_ADDR
+			      ,RPAD(SUBSTR(T2.HP_NO,1,7),12,'*') AS IO_HP_NO
+			      ,CASE WHEN T2.NATION = 'Z0011001' THEN SUBSTR(T2.JUMIN_NO,1,6)
+			        	ELSE RPAD(SUBSTR(T2.PASSPORT_NO,1,5),9,'*') END AS IO_EMP_JUMIN_NO
+			      ,T2.JUMIN_NO AS IO_EMP_JUMIN_NO2
+			      ,T2.PASSPORT_NO AS PASSPORT_NO
+			      ,T2.ADDR AS IO_EMP_ADDR
+			      ,CASE WHEN T2.NATION = 'Z0011001' THEN FN_GET_CODE('Z001', T2.NATION, '')
+		         	    ELSE FN_GET_CODE_EN('Z001', T2.NATION, '') END AS NATION_NM
+				  ,(SELECT /*+ INDEX(IO IDX_IO_VST_MAN_GATE_IO_02) */ COUNT(*)
+		            FROM IO_VST_MAN_GATE_IO
+		            WHERE VST_SEQ = '1'
+		              AND GATE_ID <> '0' AND IOKND = '2'
+		              AND IO_EMP_ID = T2.IO_EMP_ID ) AS VST_CNT
+		          ,CASE WHEN (SELECT COUNT(IO_EMP_ID) FROM IO_EMP_FAB_EDU_HIST WHERE IO_EMP_ID = T1.IO_EMP_ID AND ADD_MONTHS(SYSDATE, -6) <= CRT_DTM) > 0
+		          	    THEN 'Y'
+		          	    ELSE 'N'
+		           END AS FAB_EDU_YN
+		   FROM IO_VST_MAN T1
+		       ,IO_VST T5
+		       ,IO_EMP T2
+		       ,IO_COMP T3
+		   WHERE T1.VST_APPL_NO = T5.VST_APPL_NO
+		     AND T1.IO_EMP_ID = T2.IO_EMP_ID
+		     AND T2.IO_COMP_ID = T3.IO_COMP_ID
+		     AND T1.VST_APPL_NO = #{vstApplNo}
+		 ]]>
+		 <if test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+		     AND T1.IO_EMP_ID = #{ioEmpId}
+		 </if>
+
+		 ) TT
+	</select>
+
+	<select id="selectInEntrytheBuildingsTop" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectInEntrytheBuildingsTop (dmInEntrytheBuildings_Top) */
+		SELECT GATE_ID, GATE_NM, COMP_ID, FN_GET_CODE('A038', COMP_ID, 'ETC1') AS COMP_NM, UP_GATE_ID, 'N' AS CLEAN_EDU_YN, CTRL_YN
+	    FROM CO_BLDG
+        WHERE UP_GATE_ID = '0'
+        AND VSTR_AVAIL_YN = 'Y'
+        AND NVL(DEL_YN,'N') = 'N'
+        <if test='"1102000001".equals(compId)'>
+		AND COMP_ID IN ('1102000001','1105000001','1106000001' ,'1109000001', '1137000001') /* 이천일경우 추가 처리 */
+        </if>
+        <if test='"1108000001".equals(compId)'>
+		AND COMP_ID IN ('1108000001','1138000001')
+        </if>
+        <if test='!"1102000001".equals(compId) and !"1108000001".equals(compId)'>
+		AND COMP_ID = #{compId}
+        </if>
+		AND GATE_KND = '2'
+        ORDER BY COMP_ID, SORT_SEQ
+	</select>
+
+	<select id="selectInEntrytheBuildingsList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectInEntrytheBuildingsList (dmInEntrytheBuildings_List) */
+		SELECT LEV, GATE_ID, GATE_NM, COMP_ID, FN_GET_CODE('A038', COMP_ID, 'ETC1') AS COMP_NM, UP_GATE_ID, 'N' AS CLEAN_EDU_YN, CTRL_YN, FN_GET_CO_BLDG(GATE_ID,'3') AS GATE_NM2
+		FROM (
+		SELECT LEVEL AS LEV, BLDG.*
+		    FROM CO_BLDG BLDG
+	        START WITH BLDG.GATE_ID = #{gateId}
+	        CONNECT BY PRIOR BLDG.GATE_ID = BLDG.UP_GATE_ID
+	        AND BLDG.VSTR_AVAIL_YN = 'Y'
+	      	<if test='"1102000001".equals(compId)'>
+			AND COMP_ID IN ('1102000001','1105000001','1106000001' ,'1109000001', '1137000001') /* 이천일경우 추가 처리 */
+	        </if>
+	        <if test='"1108000001".equals(compId)'>
+			AND COMP_ID IN ('1108000001','1138000001')
+	        </if>
+	        <if test='!"1102000001".equals(compId) and !"1108000001".equals(compId)'>
+			AND COMP_ID = #{compId}
+	        </if>
+	        AND NVL(BLDG.DEL_YN,'N') = 'N'
+	        AND GATE_KND = '2'
+	        ORDER SIBLINGS BY SORT_SEQ
+		)
+		WHERE LEV >= 2
+	</select>
+
+	<select id="selectCjGateList" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectInEntrytheBuildingsList (dmInEntrytheBuildings_List) */
+		SELECT GATE_ID, GATE_NM, COMP_ID, FN_GET_CODE('A038',COMP_ID, 'ETC1') AS COMP_NM, UP_GATE_ID, CLEAN_EDU_YN, CTRL_YN, 'N' AS CHK_YN, FN_GET_CO_BLDG(GATE_ID,'3') AS GATE_NM2
+		FROM CO_BLDG
+		WHERE GATE_ID IN ('119', '120', '121', '150', '1100000028', '160')
+	</select>
+
+	<select id="selectReserveVisitSelectIOList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectReserveVisitSelectIOList (dmReserveVisit_SelectIO) */
+		SELECT
+			VST_APPL_NO, IO_EMP_ID, ITEQMT_SEQ,
+            MODEL_NM,QTY,SUBSTR(OUT_SCHD_DT,1,4)||'-'||SUBSTR(OUT_SCHD_DT,5,2)||'-'||SUBSTR(OUT_SCHD_DT,7,2) AS OUT_SCHD_DT,
+            ITEQMT_GBN, FN_GET_CODE('A023', ITEQMT_GBN, 'DETL_CD') AS ITEQMT_GBN_NM,
+            USE_GBN, FN_GET_CODE('A024', USE_GBN, 'DETL_CD') AS USE_GBN_NM,
+            OPEN_GBN, FN_GET_CODE('A025', OPEN_GBN, 'DETL_CD') AS OPEN_GBN_NM,
+            WIRE_MAC_ADDR,
+            WIRELESS_MAC_ADDR,OPEN_BIT,
+            OPEN_RSN,CRT_BY,CRT_DTM
+            ,'' AS DEL_YN
+            ,SEC_TOOL_YN
+            ,SEC_TOOL_NON_RSN
+	    FROM  IO_VST_MAN_ITEQMT
+	    WHERE VST_APPL_NO = #{vstApplNo}
+	    AND IO_EMP_ID = #{ioEmpId}
+	    ORDER BY ITEQMT_SEQ
+	</select>
+
+	<select id="selectReserveVisitBuildingIOList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectReserveVisitBuildingIOList (dmReserveVisit_BuildingIO) */
+		SELECT T1.*
+		FROM (
+			SELECT
+				  DISTINCT
+				  GA.VST_APPL_NO
+				  <choose>
+				  <when test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+			      , GA.IO_EMP_ID
+				  </when>
+				  <otherwise>
+			      , '' IO_EMP_ID
+				  </otherwise>
+				  </choose>
+		          ,GA.GATE_ID, BL.COMP_ID
+		          ,FN_GET_CODE('A038', BL.COMP_ID, 'ETC1') AS COMP_NM
+		          ,BL.GATE_NM, BL.UP_GATE_ID
+		          ,BL.CLEAN_EDU_YN, BL.CTRL_YN
+		          ,BL.VSTR_AVAIL_YN, GA.CRT_BY, TO_CHAR(GA.CRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+		          ,FN_GET_CO_BLDG(GA.GATE_ID,'3') AS GATE_NM2
+		          ,DECODE(GA.GATE_ID,'119','N','120','N','121','N','150','N','Y') AS CHK_YN
+		          ,GA.LEAD_EMP_ID
+		          ,FN_GET_EMP_NM(GA.LEAD_EMP_ID) AS LEAD_EMP_NM
+		          ,FN_GET_EMP_JW_NM(GA.LEAD_EMP_ID) AS LEAD_EMP_JW_NM
+		          ,GA.LEAD_EMP_DEPT_ID
+		          ,(SELECT X.VST_OBJ FROM IO_VST_MAN X WHERE X.VST_APPL_NO = #{vstApplNo} AND ROWNUM = 1) AS VST_OBJ
+		          ,TOP.TOP_GATE_ID
+		          ,GA.LEAD_YN
+		          ,CASE WHEN GA.LEAD_YN = 'Y' THEN '인솔'
+		          	    WHEN GA.LEAD_YN = 'N' THEN '미인솔'
+		                ELSE '해당없음'
+		           END LEAD_YN1
+		    FROM IO_VST_MAN_GATE GA, CO_BLDG BL,
+		    (
+	          SELECT BLDG.GATE_ID, CONNECT_BY_ROOT GATE_ID AS TOP_GATE_ID
+			  FROM CO_BLDG BLDG
+	          WHERE VSTR_AVAIL_YN = 'Y'
+	          START WITH BLDG.UP_GATE_ID = '0'
+		      CONNECT BY PRIOR BLDG.GATE_ID = BLDG.UP_GATE_ID
+	        ) TOP
+		    WHERE GA.GATE_ID = BL.GATE_ID
+		      AND BL.GATE_ID = TOP.GATE_ID(+)
+		      AND VST_APPL_NO = #{vstApplNo}
+		    <if test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+		      AND IO_EMP_ID = #{ioEmpId}
+			</if>
+		) T1
+		ORDER BY T1.GATE_NM2 ASC
+	</select>
+
+	<update id="updateReserveVisitBuildChkChg" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitBuildChkChg (dmReserveVisit_buildChkChg) */
+		UPDATE IO_VST_MAN SET
+			 MOD_BY = #{crtBy}
+			,MOD_DTM = SYSDATE
+			,VST_BLDG = #{vstBldg}
+		WHERE VST_APPL_NO = #{vstApplNo}
+		<if test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+		  AND IO_EMP_ID = #{ioEmpId}
+		</if>
+	</update>
+
+	<delete id="deleteReserveVisitBuild" parameterType="Map">
+		/* ReserveVisitRepository.deleteReserveVisitBuild (dmReserveVisit_Build_Del) */
+		DELETE FROM IO_VST_MAN_GATE
+		WHERE  VST_APPL_NO = #{vstApplNo}
+		<if test='not @org.springframework.util.StringUtils@isEmpty(ioEmpId)'>
+		  AND  IO_EMP_ID = #{ioEmpId}
+		</if>
+		<if test='not @org.springframework.util.StringUtils@isEmpty(delGateId)'>
+		  AND  GATE_ID = #{delGateId}
+		</if>
+	</delete>
+
+	<insert id="insertReserveVisitBuild" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitBuild (dmReserveVisit_Build_Add) */
+		MERGE INTO IO_VST_MAN_GATE T1
+	    USING (
+	        SELECT #{vstApplNo} AS VST_APPL_NO
+	             , #{ioEmpId} AS IO_EMP_ID
+	             , #{gateId} AS GATE_ID
+	             , #{acIp} AS AC_IP
+	             , #{crtBy} AS CRT_BY
+	             , #{leadYn} AS LEAD_YN
+	        FROM DUAL
+	    ) T2
+	    ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.IO_EMP_ID = T2.IO_EMP_ID AND T1.GATE_ID = T2.GATE_ID)
+	    WHEN MATCHED THEN
+		    UPDATE SET
+		    T1.MOD_BY = T2.CRT_BY
+		    ,T1.MOD_DTM = SYSDATE
+	    WHEN NOT MATCHED THEN
+		    INSERT
+		    (VST_APPL_NO
+		    , IO_EMP_ID
+		    , GATE_ID
+		    , AC_IP
+		    , CRT_BY
+		    , CRT_DTM
+		    , MOD_BY
+		    , MOD_DTM
+		    , LEAD_YN)
+		    VALUES
+		    (T2.VST_APPL_NO
+		    , T2.IO_EMP_ID
+		    , T2.GATE_ID
+		    , T2.AC_IP
+		    , T2.CRT_BY
+		    , SYSDATE
+		    , T2.CRT_BY
+		    , SYSDATE
+		    , T2.LEAD_YN
+		    )
+	</insert>
+
+	<update id="updateReserveVisitReject" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitReject (dmReserveVisit_Reject) */
+		UPDATE IO_VST SET
+			 APPL_STAT = #{applStat}
+			,CANCEL_RSN = #{cancelRsn}
+			,MOD_BY = #{crtBy}
+			,MOD_DTM = SYSDATE
+	 	WHERE  VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<update id="updateReserveVisitMeetEmpId" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitMeetEmpId (dmReserveIOVisit_updateMeetEmpId) */
+		UPDATE IO_VST
+		SET MEET_EMP_ID   = #{meetEmpId}
+		WHERE VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<update id="updateReserveVisitVstStat" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitVstStat (dmReserveVisit_VST_stat) */
+		UPDATE IO_VST SET
+			 DOC_ID = #{docId}
+			,MOD_BY = #{crtBy}
+			,MOD_DTM = SYSDATE
+			,APPL_STAT = #{applStat}
+		WHERE VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<select id="selectVisitListForSMS" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVisitListForSMS (dmVisitListForSMS) */
+		SELECT
+			MA.IO_EMP_ID AS IO_EMP_ID,
+			IO.EMP_NM AS RECEIVE_EMP_NM,
+	        IO.HP_NO AS SMS_NO,
+	        SUBSTR(MA.VST_STRT_DT,5,2)||'.'||SUBSTR(MA.VST_STRT_DT,7,2)||' ~ '|| SUBSTR(MA.VST_END_DT,5,2)||'.'||SUBSTR(MA.VST_END_DT,7,2) AS VISIT_DAY,
+	        VS.EMP_ID AS SEND_EMP_ID,
+	        CO.EMP_NM AS SEND_EMP_NM,
+	        CO.TEL_NO1 AS CALLBACK_NO,
+	        CASE WHEN VS.INOUT_GBN = 'Z0321002' THEN 'Y' ELSE 'N' END AS SMS_YN,
+	        REPLACE(REPLACE(REPLACE(FN_GET_COMP_NM(MA.VST_COMP_ID), '1', ''), '2', ''), '3', '') AS COMP_NM,
+	        MA.VST_COMP_ID AS COMP_ID,
+	        CASE WHEN VS.INOUT_GBN = 'Z0321001'  AND VIP_YN = 'Y' THEN 'V'
+	             WHEN VS.INOUT_GBN = 'Z0321001'  AND VIP_YN = 'N' THEN 'F'
+	             ELSE 'R' END AS GBNS
+	    FROM  IO_VST VS, IO_VST_MAN MA,  IO_EMP IO, CO_EMP CO
+	    WHERE VS.VST_APPL_NO = MA.VST_APPL_NO
+	    AND NVL(VS.DEL_YN, 'N') = 'N'
+	    AND MA.IO_EMP_ID =  IO.IO_EMP_ID
+	    AND VS.EMP_ID = CO.EMP_ID
+	    AND VS.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<select id="selectVipNetworkInfo" parameterType="Integer" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipNetworkInfo (dmVipNetworkInfo) */
+		SELECT NETWORK_USER_ID, NETWORK_AUTHNO, B.VST_STRT_DT, B.VST_END_DT, B.VST_TM, A.TIME_DURATION
+          FROM IO_VIP_NETWORK A,
+               IO_VST_MAN B
+         WHERE A.VST_APPL_NO = B.VST_APPL_NO
+           AND A.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<delete id="deleteRestrictVisitVisitor" parameterType="Map">
+		/* ReserveVisitRepository.deleteRestrictVisitVisitor (dmRestrictVisit_Visit_DIO) */
+		DELETE FROM  IO_VST_MAN
+		WHERE  VST_APPL_NO = #{vstApplNo}
+		  AND  UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+	</delete>
+
+	<update id="updateRestrictVisitResolve" parameterType="Map">
+		/* ReserveVisitRepository.updateRestrictVisitResolve (dmRestrictVisit_Resolve_U) */
+		UPDATE IO_VST
+		SET REST_YN = 'N'
+		WHERE NOT EXISTS (
+			SELECT 1 FROM IO_VST_MAN WHERE VST_APPL_NO = #{vstApplNo} AND REST_YN = 'Y'
+		)
+		AND VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<update id="updateRestrictVisitResolveHist" parameterType="Map">
+		/* ReserveVisitRepository.updateRestrictVisitResolveHist (dmRestrictVisit_Resolve_Hist_U) */
+		UPDATE IO_VST_REST_HIST
+		SET RESOLVE_DT  = SYSDATE
+		,   RESOLVE_BY  = #{empId}
+		,   RESOLVE_RSN = #{resolveRsn}
+		,   MOD_DTM     = SYSDATE
+		,   MOD_BY      = #{empId}
+		WHERE NOT EXISTS (
+		    SELECT 1 FROM IO_VST_MAN WHERE VST_APPL_NO = #{vstApplNo} AND REST_YN = 'Y'
+		)
+		AND VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<delete id="deleteRestrictVisitManResolveHist" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitMeetEmpId (dmRestrictVisit_ManResolve_Hist_D) */
+		DELETE FROM IO_VST_MAN_REST_HIST
+		WHERE UPPER(IO_EMP_ID) = UPPER(#{ioEmpId})
+		AND VST_APPL_NO = #{vstApplNo}
+	</delete>
+
+	<select id="selectFamReserveVisit" parameterType="String" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectFamReserveVisit (dmFamReserveVisit_IF) */
+		SELECT EMP_NUM AS EMP_ID, SUBSTR(SSN,1,6) AS SSN, REL_CLSS_CD, FMLY_NAM,
+	           CASE WHEN SSN IS NOT NULL THEN SUBSTR(SSN,1,2)||'.'||SUBSTR(SSN,3,2)||'.'||SUBSTR(SSN,5,2)
+	                ELSE SSN
+	             END AS BRTH,
+	           ROWNUM AS ROW_NUM
+	    FROM MDM_IF_FA
+	    WHERE EMP_NUM = #{empId}
+	</select>
+
+	<insert id="insertFamReserveVisitIoemp" parameterType="Map">
+		<selectKey keyProperty="ioEmpId" resultType="String" order="BEFORE">
+	        SELECT 'FAM'||LPAD(SEQ_FAM_IO_EMP.NEXTVAL,6,'0') AS IO_EMP_ID FROM DUAL
+	    </selectKey>
+
+		/* ReserveVisitRepository.insertFamReserveVisitIoemp (dmFamReserveVisit_Ioemp_Add) */
+		INSERT INTO IO_EMP
+	    (	  IO_EMP_ID
+	        , IO_COMP_ID
+	        , EMP_NM
+	        , JUMIN_NO
+	        , DEL_YN
+	        , BIRTH_DT
+	        , JW_NM
+	        , NATION
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+	    ) VALUES (
+	    	  #{ioEmpId}
+	        , #{ioCompId}
+	        , #{fmlyNam}
+	        , #{ssn}
+	        , 'N'
+	        , REPLACE(#{brth}, '.', '')
+	        , #{relClssCd}
+	        , 'Z0011001'
+	        , #{acIp}
+	        , #{crtBy}
+	        , SYSDATE
+	        , #{crtBy}
+	        , SYSDATE
+	     )
+	</insert>
+
+	<insert id="insertReserveVisitMan" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitMan (dmReserveVisit_Man_Add) */
+		INSERT INTO IO_VST_MAN
+        ( VST_APPL_NO
+        , IO_EMP_ID
+        , VST_COMP_ID
+        , VST_STRT_DT
+        , VST_END_DT
+        , VST_TM
+        , VST_OBJ
+        , VST_RSN
+        , VST_RSN_NEW
+        , VST_BLDG
+        , HP_NO
+        , PARKING
+        , CAR_NO
+        , CAR_KND
+        , AC_IP
+        , CRT_BY
+        , CRT_DTM
+        , MOD_BY
+        , MOD_DTM
+       ) VALUES (
+         #{vstApplNo}
+       , #{ioEmpId}
+       , #{vstCompId}
+       , REPLACE(#{vstStrtDt}, '-', '')
+       , REPLACE(#{vstEndDt}, '-', '')
+       , #{vstTm}
+       , #{vstObj}
+       , #{vstRsn}
+       , #{vstRsnNew}
+       , #{vstBldg}
+       , #{hpNo}
+       , #{parking}
+       , #{carNo}
+       , #{carKnd}
+       , #{acIp}
+       , #{crtBy}
+       , SYSDATE
+       , #{crtBy}
+       , SYSDATE
+      )
+	</insert>
+
+	<insert id="insertVipReserveVisitManGate" parameterType="Map">
+		/* ReserveVisitRepository.insertVipReserveVisitManGate (dmVipReserveVisit_Man_GATEIO) */
+		MERGE INTO IO_VST_MAN_GATE_IO T1
+	    USING(
+	        SELECT #{vstApplNo} AS VST_APPL_NO
+	              ,#{ioEmpId} AS IO_EMP_ID
+	              ,#{gateId} AS GATE_ID
+	              ,#{vstDt} AS VST_DT
+	              ,#{vstSeq} AS VST_SEQ
+	              ,#{ioknd} AS IOKND
+	              ,TRIM(SUBSTR(#{ioCardno},1,10))  AS IO_CARDNO
+	              ,#{inDt} AS IN_DT
+	              ,#{outDt} AS OUT_DT
+	              ,#{delYn} AS DEL_YN
+	              ,#{acIp} AS AC_IP
+	              ,#{crtBy} AS CRT_BY
+	           FROM DUAL
+	    ) T2
+	    ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.IO_EMP_ID = T2.IO_EMP_ID AND T1.GATE_ID = T2.GATE_ID
+	        AND T1.VST_DT = T2.VST_DT AND T1.VST_SEQ = T2.VST_SEQ)
+	    WHEN MATCHED THEN
+	        UPDATE SET
+	             T1.IOKND = T2.IOKND
+	            ,T1.IO_CARDNO = T2.IO_CARDNO
+	            ,T1.IN_DT = T2.IN_DT
+	            ,T1.OUT_DT = T2.OUT_DT
+	            ,T1.DEL_YN = T2.DEL_YN
+	            ,T1.MOD_BY = T2.CRT_BY
+	            ,T1.MOD_DTM = SYSDATE
+	    WHEN NOT MATCHED THEN
+	        INSERT
+	         (VST_APPL_NO
+	        , IO_EMP_ID
+	        , GATE_ID
+	        , VST_DT
+	        , VST_SEQ
+	        , IOKND
+	        , IO_CARDNO
+	        , IN_DT
+	        , OUT_DT
+	        , DEL_YN
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+	        )
+		VALUES
+	        (T2.VST_APPL_NO
+	        , T2.IO_EMP_ID
+	        , T2.GATE_ID
+	        , T2.VST_DT
+	        , T2.VST_SEQ
+	        , T2.IOKND
+	        , T2.IO_CARDNO
+	        , T2.IN_DT
+	        , T2.OUT_DT
+	        , T2.DEL_YN
+	        , T2.AC_IP
+	        , T2.CRT_BY
+	        , SYSDATE
+	        , T2.CRT_BY
+	        , SYSDATE
+	    )
+	</insert>
+
+	<insert id="insertFamReserveVisitVst" parameterType="Map">
+		/* ReserveVisitRepository.insertFamReserveVisitVst (dmFamReserveVisit_Vst_Add) */
+		MERGE INTO IO_VST T1
+		USING (SELECT  #{vstApplNo}   AS VST_APPL_NO
+	                  ,#{ioCompId}    AS IO_COMP_ID
+	                  ,#{ioEmpId}     AS IO_EMP_ID
+	                  ,#{vstrCnt}     AS VSTR_CNT
+	                  ,#{vipYn}       AS VIP_YN
+	                  ,#{inoutGbn}    AS INOUT_GBN
+	                  ,#{compId}      AS COMP_ID
+	                  ,#{deptId}      AS DEPT_ID
+	                  ,#{jwId}        AS  JW_ID
+	                  ,#{empId}       AS EMP_ID
+	                  ,#{telNo2}      AS INNO
+	                  ,#{meetEmpId}   AS MEET_EMP_ID
+	                  ,#{delYn}       AS DEL_YN
+	                  ,#{docId}       AS DOC_ID
+	                  ,#{applStat}    AS APPL_STAT
+	                  ,#{acIp}        AS AC_IP
+	                  ,#{crtBy}       AS CRT_BY
+	           FROM DUAL
+	    ) T2
+		ON(T1.VST_APPL_NO = T2.VST_APPL_NO)
+		WHEN MATCHED THEN
+		    UPDATE SET
+		     	 T1.IO_EMP_ID = T2.IO_EMP_ID
+		    	,T1.VSTR_CNT = T2.VSTR_CNT
+		        ,T1.COMP_ID = T2.COMP_ID
+		        ,T1.DEPT_ID = T2.DEPT_ID
+		        ,T1.JW_ID = T2.JW_ID
+		        ,T1.EMP_ID = T2.EMP_ID
+		        ,T1.INNO = T2.INNO
+		        ,T1.MEET_EMP_ID = T2.MEET_EMP_ID
+		        ,T1.DEL_YN = T2.DEL_YN
+		        ,T1.APPL_STAT =  T2.APPL_STAT
+		        ,T1.MOD_BY = T2.CRT_BY
+		        ,T1.MOD_DTM = SYSDATE
+		WHEN NOT MATCHED THEN
+	    INSERT
+	        (VST_APPL_NO
+	        , IO_COMP_ID
+	        , IO_EMP_ID
+	        , VSTR_CNT
+	        , VIP_YN
+	        , INOUT_GBN
+	        , COMP_ID
+	        , DEPT_ID
+	        , JW_ID
+	        , EMP_ID
+	        , INNO
+	        , MEET_EMP_ID
+	        , DEL_YN
+	        , DOC_ID
+	        , APPL_STAT
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+	        ) VALUES (
+	          T2.VST_APPL_NO
+	        , T2.IO_COMP_ID
+	        , T2.IO_EMP_ID
+	        , T2.VSTR_CNT
+	        , T2.VIP_YN
+	        , T2.INOUT_GBN
+	        , T2.COMP_ID
+	        , T2.DEPT_ID
+	        , T2.JW_ID
+	        , T2.EMP_ID
+	        , T2.INNO
+	        , T2.MEET_EMP_ID
+	        , 'N'
+	        , T2.DOC_ID
+	        , T2.APPL_STAT
+	        , T2.AC_IP
+	        , T2.CRT_BY
+	        , SYSDATE
+	        , T2.CRT_BY
+	        , SYSDATE
+	    )
+	</insert>
+
+	<update id="updateVipReserveVisitVstDocId" parameterType="Map">
+		/* ReserveVisitRepository.updateVipReserveVisitVstDocId (dmVipReserveVisit_Vst_Docid) */
+		UPDATE IO_VST SET
+		DOC_ID = #{docId}
+		WHERE VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<select id="selectVstApplNo" resultType="Integer">
+		/* ReserveVisitRepository.selectVstApplNo */
+		SELECT SEQ_IO_VST.NEXTVAL AS VST_APPL_NO FROM DUAL
+	</select>
+
+	<select id="selectFamReserveVisitViewFamList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectFamReserveVisitViewFamList (dmFamReserveVisit_View_Fa_Infos) */
+		WITH MA AS
+	    (
+	    SELECT MA.VST_APPL_NO, IO.EMP_NM, IO.JW_NM, IO.BIRTH_DT, 'Y' AS CHKS, MA.IO_EMP_ID
+	            FROM IO_VST_MAN MA, IO_EMP IO
+	            WHERE MA.IO_EMP_ID = IO.IO_EMP_ID
+	            AND MA.VST_APPL_NO = #{vstApplNo}
+	    ) ,
+	    VS AS
+	    (
+	    SELECT VS.VST_APPL_NO, FA.FMLY_NAM, FA.REL_CLSS_CD,
+	           SUBSTR(FA.SSN,1,6) AS BRTH
+	            FROM IO_VST VS, MDM_IF_FA FA
+	            WHERE VS.EMP_ID = FA.EMP_NUM
+	            AND VS.VST_APPL_NO = #{vstApplNo}
+	    )
+	    SELECT VS.FMLY_NAM, VS.REL_CLSS_CD, SUBSTR(BRTH,1,2)||'.'||SUBSTR(BRTH,3,2)||'.'||SUBSTR(BRTH,5,2) AS BRTH, ROWNUM AS ROW_NUM,
+	           CASE WHEN MA.CHKS IS NULL THEN 'N' ELSE MA.CHKS END AS CHKS, MA.IO_EMP_ID
+	    FROM MA, VS
+	    WHERE MA.VST_APPL_NO = VS.VST_APPL_NO
+	    AND MA.EMP_NM = VS.FMLY_NAM
+	    AND MA.BIRTH_DT =  VS.BRTH
+	</select>
+
+	<select id="selectFamReserveVisitViewRe" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectFamReserveVisitViewRe (dmFamReserveVisit_View_Re) */
+		SELECT T1.VST_APPL_NO, T1.VSTR_CNT, T1.VIP_YN
+	           , T1.COMP_ID, FN_GET_CONAME('COMP', '', T1.COMP_ID) AS COMP_NM
+	           , T1.DEPT_ID, FN_GET_CONAME('DEPT', T1.DEPT_ID, T1.COMP_ID) AS DEPT_NM
+	           , T1.JW_ID, FN_GET_CONAME('JW', T1.JW_ID, '') AS JW_NM, T1.EMP_ID
+	           ,(SELECT T2.EMP_NM FROM CO_EMP T2 WHERE T1.EMP_ID = T2.EMP_ID) AS EMP_NM
+	           , T1.INNO, T1.MEET_EMP_ID, T2.EMP_NM AS MEET_EMP_NM, T1.IO_EMP_ID
+	           , T2.COMP_ID AS MEET_COMP_ID, FN_GET_CONAME('COMP', '', T2.COMP_ID) AS MEET_COMP_NM
+	           , T2.DEPT_ID AS MEET_DEPT_ID, FN_GET_CONAME('DEPT', T2.DEPT_ID, T2.COMP_ID) AS MEET_DEPT_NM
+	           , T2.JW_ID AS MEET_JW_ID, FN_GET_CONAME('JW', T2.JW_ID, '') AS MEET_JW_NM
+	           , DOC_ID, T1.APPL_STAT, T1.CANCEL_RSN
+	    FROM IO_VST T1,
+	            (
+	            SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, JW_ID FROM CO_EMP
+	            ) T2
+	    WHERE T1.MEET_EMP_ID = T2.EMP_ID
+	    AND T1.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<select id="selectFamReserveVisitViewInfo" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectFamReserveVisitViewFamList (dmFamReserveVisit_View_Info) */
+		SELECT SUBSTR(T1.VST_STRT_DT,1,4)||'-'||SUBSTR(T1.VST_STRT_DT,5,2)||'-'||SUBSTR(T1.VST_STRT_DT,7,2) AS VST_STRT_DT,
+	            SUBSTR(T1.VST_END_DT,1,4)||'-'||SUBSTR(T1.VST_END_DT,5,2)||'-'||SUBSTR(T1.VST_END_DT,7,2) AS VST_END_DT,
+	            T1.VST_TM ,T1.VST_RSN,T1.VST_RSN_new, T1.PARKING, T1.CAR_NO, T1.CAR_KND, T1.FA_CNT,
+	            CASE WHEN LENGTH(CAR_NO) > 0 OR LENGTH(CAR_KND) > 0 THEN 'Y' ELSE 'N' END AS CAR_YN,
+	            T1.VST_COMP_ID
+	    FROM (
+	        SELECT VST_APPL_NO,
+	                MAX(VST_STRT_DT) AS VST_STRT_DT, MAX(VST_END_DT) AS VST_END_DT,
+	                 MAX(VST_TM) AS VST_TM, MAX(VST_OBJ) AS VST_OBJ, MAX(VST_RSN_NEW) AS VST_RSN_new,
+	                 MAX(vst_rsn) AS vst_rsn,
+	                MAX(PARKING) AS PARKING, MAX(CAR_NO) AS CAR_NO, MAX(CAR_KND) AS CAR_KND,
+	                MAX(VST_COMP_ID) AS VST_COMP_ID,
+	                COUNT(*) FA_CNT
+	        FROM IO_VST_MAN
+	        WHERE VST_APPL_NO = #{vstApplNo}
+	        GROUP BY VST_APPL_NO
+	    ) T1
+	</select>
+
+	<update id="updateReserveVisitApplStat" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitApplStat */
+		UPDATE IO_VST
+	    SET
+	        APPL_STAT = #{applStat},
+	        MOD_BY = #{empId},
+	        MOD_DTM = SYSDATE
+	    WHERE  VST_APPL_NO = #{lid}
+	</update>
+
+	<select id="selectVipReserveVisitParnterList" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipReserveVisitParnterList (dmVipReserveVisit_Parnter) */
+		SELECT COMP_ID, COMP_NM FROM VIP_PARTNER WHERE USE_YN = 'Y' ORDER BY SORT_SEQ
+	</select>
+
+	<insert id="insertVipReserveVisitIoemp" parameterType="Map">
+		<selectKey keyProperty="ioEmpId" resultType="String" order="BEFORE">
+	        SELECT 'VIP'||LPAD(SEQ_VIP_IO_EMP.NEXTVAL,6,'0') AS IO_EMP_ID FROM DUAL
+	    </selectKey>
+
+		/* ReserveVisitRepository.insertVipReserveVisitIoemp (dmVipReserveVisit_Ioemp_Add) */
+		INSERT INTO IO_EMP
+	    (     IO_EMP_ID
+	        , IO_COMP_ID
+	        , EMP_NM
+	        , NATION
+	        , DEL_YN
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+	    ) VALUES (
+	    	  #{ioEmpId}
+	        , #{ioCompId}
+	        , #{empNm}
+	        , #{nation}
+	        , 'N'
+	        , #{acIp}
+	        , #{crtBy}
+	        , SYSDATE
+	        , #{crtBy}
+	        , SYSDATE
+	    )
+	</insert>
+
+	<insert id="insertVipReserveVisitVst" parameterType="Map">
+		/* ReserveVisitRepository.insertVipReserveVisitIoemp (dmVipReserveVisit_Vst_Add) */
+		MERGE INTO IO_VST T1
+			USING (SELECT  #{vstApplNo}  AS VST_APPL_NO
+	                      ,#{ioCompId}   AS IO_COMP_ID
+	                      ,#{ioEmpId}    AS IO_EMP_ID
+	                      ,#{vstrCnt}    AS VSTR_CNT
+	                      ,#{vipYn}      AS VIP_YN
+	                      ,#{inoutGbn}   AS INOUT_GBN
+	                      ,#{compId}     AS COMP_ID
+	                      ,#{deptId}     AS DEPT_ID
+	                      ,#{jwId}       AS  JW_ID
+	                      ,#{empId}      AS EMP_ID
+	                      ,#{inno}       AS INNO
+	                      ,#{meetEmpId}  AS MEET_EMP_ID
+	                      ,#{delYn}      AS DEL_YN
+	                      ,#{docId}      AS DOC_ID
+	                      ,#{applStat}   AS APPL_STAT
+	                      ,#{acIp}       AS AC_IP
+	                      ,#{crtBy}      AS CRT_BY
+	                      ,#{vipVstrs}   AS VIP_VSTRS
+	                      ,#{vipIteqmt}  AS VIP_ITEQMT
+	                      ,#{vipFile}    AS VIP_FILE
+	                      ,#{vipNm}      AS VIP_NM
+	                      ,#{networkTime} AS NETWORK_TIME
+	                      ,#{vipGu}       AS VIP_GU
+	                      FROM DUAL
+			            ) T2
+			ON(T1.VST_APPL_NO = T2.VST_APPL_NO)
+			WHEN MATCHED THEN
+			    UPDATE SET
+			        T1.COMP_ID = T2.COMP_ID
+			        ,T1.DEPT_ID = T2.DEPT_ID
+			        ,T1.JW_ID = T2.JW_ID
+			        ,T1.EMP_ID = T2.EMP_ID
+			        ,T1.INNO = T2.INNO
+			        ,T1.MEET_EMP_ID = T2.MEET_EMP_ID
+			        ,T1.DEL_YN = T2.DEL_YN
+			        ,T1.APPL_STAT =  T2.APPL_STAT
+			        ,T1.VIP_VSTRS = T2.VIP_VSTRS
+			        ,T1.VIP_ITEQMT = T2.VIP_ITEQMT
+			        ,T1.VIP_FILE = T2.VIP_FILE
+			        ,T1.VIP_NM = T2.VIP_NM
+			        ,T1.MOD_BY = T2.CRT_BY
+			        ,T1.MOD_DTM = SYSDATE
+			        ,T1.VIP_NETWORK_DURATION = T2.NETWORK_TIME
+			        ,T1.VIP_GU = T2.VIP_GU
+			WHEN NOT MATCHED THEN
+		     INSERT
+		        (VST_APPL_NO
+		        , IO_COMP_ID
+		        , IO_EMP_ID
+		        , VSTR_CNT
+		        , VIP_YN
+		        , INOUT_GBN
+		        , COMP_ID
+		        , DEPT_ID
+		        , JW_ID
+		        , EMP_ID
+		        , INNO
+		        , MEET_EMP_ID
+		        , DEL_YN
+		        , DOC_ID
+		        , APPL_STAT
+		        , VIP_VSTRS
+		        , VIP_ITEQMT
+		        , VIP_FILE
+		        , VIP_NM
+		        , AC_IP
+		        , CRT_BY
+		        , CRT_DTM
+		        , MOD_BY
+		        , MOD_DTM
+		        , VIP_NETWORK_DURATION
+		        , VIP_GU
+		     ) VALUES (
+		          T2.VST_APPL_NO
+		        , T2.IO_COMP_ID
+		        , T2.IO_EMP_ID
+		        , T2.VSTR_CNT
+		        , T2.VIP_YN
+		        , T2.INOUT_GBN
+		        , T2.COMP_ID
+		        , T2.DEPT_ID
+		        , T2.JW_ID
+		        , T2.EMP_ID
+		        , T2.INNO
+		        , T2.MEET_EMP_ID
+		        , 'N'
+		        , T2.DOC_ID
+		        , T2.APPL_STAT
+		        , T2.VIP_VSTRS
+		        , T2.VIP_ITEQMT
+		        , T2.VIP_FILE
+		        , T2.VIP_NM
+		        , T2.AC_IP
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.NETWORK_TIME
+		        , T2.VIP_GU
+			 )
+	</insert>
+
+	<update id="updateVipNetwork" parameterType="Map">
+		/* ReserveVisitRepository.updateVipNetwork (dmVipNetworkInsert) */
+		UPDATE IO_VIP_NETWORK
+   		   SET USE_YN = 'Y',
+               VST_APPL_NO = #{vstApplNo}
+         WHERE NETWORK_USER_ID IN (SELECT NETWORK_USER_ID
+                                     FROM IO_VIP_NETWORK
+                                    WHERE 1 = 1
+                                      AND USE_YN = 'N'
+                                      AND TIME_DURATION = #{networkTime}
+                                      AND ROWNUM = 1)
+	</update>
+
+	<insert id="insertVipReserveVisitManVst" parameterType="Map">
+		/* ReserveVisitRepository.insertVipReserveVisitManVst (dmVipReserveVisit_ManVst_Add) */
+		INSERT INTO IO_VST_MAN_VIP(
+			VST_APPL_NO,
+			MAN_SEQ,
+			IO_EMP_NM,
+			IO_COMP_NM,
+			CRT_BY,
+			CRT_DTM,
+			IO_EMP_JW
+		) VALUES(
+			#{vstApplNo},
+			#{manSeq},
+			#{ioEmpNms},
+			#{ioCompNm},
+			#{crtBy},
+			SYSDATE,
+			#{ioEmpJw}
+		)
+	</insert>
+
+	<insert id="insertReserveVisitCar" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitCar (dmReserveVisit_Car_Add) */
+		MERGE INTO IO_VIP_CAR_INFO T1
+	    USING (
+	        SELECT
+	        	  #{vstApplNo} AS VST_APPL_NO
+                 ,#{seq} AS SEQ
+                 ,#{driverNm} AS DRIVER_NM
+                 ,#{carKnd} AS CAR_KND
+                 ,TRIM(REPLACE(#{carNo},' ','')) AS CAR_NO
+                 ,#{acIp} AS AC_IP
+                 ,#{crtBy} AS CRT_BY
+                 ,#{parking} AS PARKING
+           FROM DUAL
+        ) T2
+        ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.SEQ = T2.SEQ)
+        WHEN MATCHED THEN
+            UPDATE SET
+             T1.DRIVER_NM  = T2.DRIVER_NM
+            ,T1.CAR_KND = T2.CAR_KND
+            ,T1.CAR_NO = T2.CAR_NO
+            ,T1.MOD_BY = T2.CRT_BY
+            ,T1.MOD_DTM = SYSDATE
+            ,T1.PARKING = T2.PARKING
+        WHEN NOT MATCHED THEN
+            INSERT
+            (
+                VST_APPL_NO
+                , SEQ
+                , DRIVER_NM
+                , CAR_KND
+                , CAR_NO
+                , AC_IP
+                , CRT_BY
+                , CRT_DTM
+                , MOD_BY
+                , MOD_DTM
+                , PARKING
+                )
+        VALUES
+                (T2.VST_APPL_NO
+                , T2.SEQ
+                , T2.DRIVER_NM
+                , T2.CAR_KND
+                , T2.CAR_NO
+                , T2.AC_IP
+                , T2.CRT_BY
+                , SYSDATE
+                , T2.CRT_BY
+                , SYSDATE
+                , T2.PARKING
+                )
+	</insert>
+
+	<select id="selectVipReserveVisitViewRE" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectFamReserveVisitViewRe (dmVipReserveVisit_View_RE) */
+		SELECT T1.VST_APPL_NO, T1.VSTR_CNT, T1.VIP_YN
+	           , T1.COMP_ID, FN_GET_CONAME('COMP', '', T1.COMP_ID) AS COMP_NM
+	           , T1.DEPT_ID, FN_GET_CONAME('DEPT', T1.DEPT_ID, T1.COMP_ID) AS DEPT_NM
+	           , T1.JW_ID, FN_GET_CONAME('JW', T1.JW_ID, '') AS JW_NM, T1.EMP_ID
+	           ,(SELECT T2.EMP_NM FROM CO_EMP T2 WHERE T1.EMP_ID = T2.EMP_ID) AS EMP_NM
+	           , T1.INNO, T1.MEET_EMP_ID, T2.EMP_NM AS MEET_EMP_NM, T1.IO_EMP_ID
+	           , T2.COMP_ID AS MEET_COMP_ID, FN_GET_CONAME('COMP', '', T2.COMP_ID) AS MEET_COMP_NM
+	           , T2.DEPT_ID AS MEET_DEPT_ID, FN_GET_CONAME('DEPT', T2.DEPT_ID, T2.COMP_ID) AS MEET_DEPT_NM
+	           , T2.JW_ID AS MEET_JW_ID, FN_GET_CONAME('JW', T2.JW_ID, '') AS MEET_JW_NM
+	           , T1.DOC_ID, T1.APPL_STAT, T1.VIP_VSTRS, T1.VIP_ITEQMT, T1.VIP_FILE, T1.CANCEL_RSN, T1.VIP_FILE2
+	           , REPLACE(SUBSTR(T1.VIP_FILE,1,INSTR(T1.VIP_FILE,';',1,1) - 1),'\','/') AS FILE_PATH
+	           , SUBSTR(SUBSTR(T1.VIP_FILE, INSTR(T1.VIP_FILE,';',1,1) +1),1,LENGTH(SUBSTR(T1.VIP_FILE, INSTR(T1.VIP_FILE,';',1,1) +1)) -(LENGTH(T1.VIP_FILE) - INSTR(T1.VIP_FILE,';',1,2) + 1)) AS FILE_NAME
+	           , SUBSTR(T1.VIP_FILE,INSTR(T1.VIP_FILE,';',1,2) + 1) AS FILE_ID
+	           , REPLACE(SUBSTR(T1.VIP_FILE2, 1, INSTR(T1.VIP_FILE2, ';', 1, 1) - 1), '\', '/') AS FILE_PATH2
+	           , SUBSTR(SUBSTR(T1.VIP_FILE2, INSTR(T1.VIP_FILE2, ';', 1, 1) + 1), 1, LENGTH(SUBSTR(T1.VIP_FILE2, INSTR(T1.VIP_FILE2, ';', 1, 1) + 1)) - (LENGTH(T1.VIP_FILE2) - INSTR(T1.VIP_FILE2, ';', 1, 2) + 1)) AS FILE_NAME2
+	           , SUBSTR(T1.VIP_FILE2, INSTR(T1.VIP_FILE2, ';', 1, 2) + 1) AS FILE_ID2
+	           , T1.VIP_NETWORK_COUNT
+	           , T1.VIP_NETWORK_DURATION
+	           ,T1.VIP_GU
+	    FROM IO_VST T1,
+	         CO_EMP T2
+	    WHERE T1.MEET_EMP_ID = T2.EMP_ID
+	    AND T1.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<select id="selectVipReserveVisitViewInfo" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipReserveVisitViewInfo (dmVipReserveVisit_View_Info) */
+		SELECT T1.IO_EMP_ID, SUBSTR(T1.VST_STRT_DT,1,4)||'-'||SUBSTR(T1.VST_STRT_DT,5,2)||'-'||SUBSTR(T1.VST_STRT_DT,7,2) AS VST_STRT_DT
+			 , SUBSTR(T1.VST_END_DT,1,4)||'-'||SUBSTR(T1.VST_END_DT,5,2)||'-'||SUBSTR(T1.VST_END_DT,7,2) AS VST_END_DT, T1.VST_TM , T1.VST_RSN
+			 , T1.VST_COMP_ID, CASE WHEN T2.VIP_GU = 'E' THEN (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = T2.VIP_NM) ELSE T2.VIP_NM END AS IO_EMP_NM, T2.VIP_NM, 'VIP' AS IO_COMP_ID, T2.VIP_GU, 'VIP' AS IO_COMP_NM
+			 , NVL(T1.VST_BLDG,(SELECT DECODE(COUNT(VST_APPL_NO),'0','N','Y') AS VST_BLDG FROM IO_VST_MAN_GATE where VST_APPL_NO = T1.VST_APPL_NO)) AS VST_BLDG
+	    FROM IO_VST_MAN T1, IO_VST T2
+	    WHERE T1.VST_APPL_NO = T2.VST_APPL_NO
+	   	AND T1.IO_EMP_ID = T2.IO_EMP_ID
+	    AND T1.VST_APPL_NO = #{vstApplNo}
+	    AND T1.IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<select id="selectVipReserveVisitCarList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipReserveVisitCarList (dmVipReserveVisit_Car_list) */
+		SELECT VST_APPL_NO, SEQ, DRIVER_NM, CAR_KND, CAR_NO, CRT_BY, TO_CHAR(CRT_DTM,'YYYYMMDD HH24:MI"SS') AS CRT_DTM
+		    FROM IO_VIP_CAR_INFO
+		    WHERE VST_APPL_NO = #{vstApplNo}
+		    ORDER BY SEQ
+	</select>
+
+	<select id="selectVipReserveVisitManList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipReserveVisitManList (dmVipReserveVisit_ManVst_List) */
+		SELECT VST_APPL_NO,
+		  MAN_SEQ,
+		  IO_EMP_NM AS IO_EMP_NMS,
+		  (SELECT COMP_NM FROM VIP_PARTNER WHERE COMP_ID = IO_COMP_NM) AS IO_COMP_NM2,
+		  IO_COMP_NM,
+		  CRT_BY,
+		  CRT_DTM,
+		  MOD_BY,
+		  MOD_DTM,
+		  IO_EMP_JW,
+		  IO_CARDNO
+		FROM IO_VST_MAN_VIP
+		WHERE VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<select id="selectVipReserveVisitBuildingList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVipReserveVisitBuildingList (dmVipReserveVisit_Building) */
+		SELECT GA.VST_APPL_NO, GA.IO_EMP_ID
+	          ,GA.GATE_ID, BL.COMP_ID
+	          ,FN_GET_CODE('A038', BL.COMP_ID, 'ETC1') AS COMP_NM
+	          ,BL.GATE_NM, BL.UP_GATE_ID
+	          ,BL.CLEAN_EDU_YN, BL.CTRL_YN
+	          ,BL.VSTR_AVAIL_YN, GA.CRT_BY, TO_CHAR(GA.CRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+	          FN_GET_CO_BLDG(GA.GATE_ID,'3') AS GATE_NM2, 'Y' AS CHK_YN
+	    FROM IO_VST_MAN_GATE GA, CO_BLDG BL
+	    WHERE GA.GATE_ID = BL.GATE_ID
+	     AND VST_APPL_NO = #{vstApplNo}
+	     AND IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<insert id="insertIoGroup" parameterType="Map">
+		<selectKey keyProperty="groupNo" resultType="Integer" order="BEFORE">
+	        SELECT SECURITYADM.SEQ_IO_GROUP.NEXTVAL AS GROUP_NO FROM DUAL
+	    </selectKey>
+
+		/* ReserveVisitRepository.insertIoGroup (dmIO_Group_Insert) */
+		INSERT INTO SECURITYADM.IO_GROUP
+		(
+			GROUP_NO,
+			VST_DT,
+			FROM_TM,
+			TO_TM,
+			VST_PLACE,
+			IO_RSN,
+			DEL_YN,
+			DOC_ID,
+			APPR_RESULT,
+			FILE_PATH,
+			FILE_PATH2,
+			APPL_EMP_ID,
+			APPL_DEPT_ID,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM
+		)
+		VALUES
+		(
+			#{groupNo},
+			TO_DATE(#{vstDt}, 'YYYY-MM-DD'),
+			#{fromTm},
+			#{toTm},
+			#{vstPlace},
+			#{ioRsn},
+			'N',
+			'',
+			#{apprResult},
+			#{filePlan},
+			#{fileList},
+			#{applEmpId},
+			#{applDeptId},
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<insert id="insertIoGroupCar" parameterType="Map">
+		/* ReserveVisitRepository.insertIoGroupCar (dmIO_Group_Car_Insert) */
+		INSERT INTO IO_GROUP_CAR_INFO
+               ( GROUP_NO
+               , SEQ
+               , DRIVER_NM
+               , CAR_KND
+               , CAR_NO
+               , AC_IP
+               , CRT_BY
+               , CRT_DTM
+               )
+        VALUES
+               ( #{groupNo}
+               , #{seq}
+               , #{driverNm}
+               , #{carKnd}
+               , TRIM(REPLACE(#{carNo},' ',''))
+               , #{acIp}
+               , #{crtBy}
+               , SYSDATE
+               )
+	</insert>
+
+	<update id="updateOrgVisitDocId" parameterType="Map">
+		/* ReserveVisitRepository.updateOrgVisitDocId (dmOrgVisitDocIdUpdate) */
+		UPDATE IO_GROUP
+		SET   DOC_ID    = #{docId}
+		WHERE GROUP_NO  = #{groupNo}
+	</update>
+
+	<update id="updateOrgVisitApprResult" parameterType="Map">
+		/* ReserveVisitRepository.updateOrgVisitApprResult (dmOrgVisitApprResultUpdate) */
+        UPDATE IO_GROUP
+        SET
+           APPR_RESULT = #{apprResult},
+           MOD_BY  = #{empId},
+           MOD_DTM = SYSDATE
+        WHERE  GROUP_NO = #{groupNo}
+	</update>
+
+	<select id="selectOrgVisitList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectOrgVisitList (dmOrgVisitList) */
+		WITH T AS
+		(
+			SELECT
+					ROW_NUMBER() OVER( ORDER BY A.GROUP_NO DESC ) AS ROW_NUM,
+					TO_CHAR(A.VST_DT, 'YYYY-MM-DD') AS VST_DT,
+					A.IO_RSN 		AS IO_RSN,
+					A.FROM_TM 		AS FROM_TM,
+					A.TO_TM 		AS TO_TM,
+					A.VST_PLACE 	AS VST_PLACE,
+					A.CRT_DTM 		AS CRT_DTM,
+					A.GROUP_NO      AS GROUP_NO,
+					A.DOC_ID 		AS DOC_ID,
+
+					A.APPL_EMP_ID 	AS APPL_EMP_ID,
+					A.APPL_JW_ID  	AS APPL_JW_ID,
+					B.EMP_NM 		AS APPL_EMP_NM,
+
+					C.DEPT_NM 		AS APPL_DEPT_NM,
+
+					D.APPR_RESULT	AS APPR_RESULT
+			FROM IO_GROUP A, CO_EMP B, CO_DEPT C, AP_DOC D
+			WHERE A.APPL_EMP_ID = B.EMP_ID
+			AND A.APPL_DEPT_ID 	= C.DEPT_ID
+			AND A.DOC_ID		= D.DOC_ID
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applEmpId)">
+			AND A.APPL_EMP_ID	= #{applEmpId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND A.VST_DT >= TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND A.VST_DT <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchVstPlace)">
+			AND A.VST_PLACE LIKE '%' ||  #{searchVstPlace} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoRsn)">
+			AND A.IO_RSN LIKE '%' || #{searchIoRsn} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND B.EMP_NM = #{searchEmpNm}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApprResult)">
+			AND D.APPR_RESULT = #{searchApprResult}
+		</if>
+
+		)
+		SELECT
+			ROW_NUM,
+			VST_DT,
+			IO_RSN,
+			FROM_TM,
+			TO_TM,
+			VST_PLACE,
+			TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+			GROUP_NO,
+			DOC_ID,
+			APPL_EMP_ID,
+			APPL_EMP_NM,
+			FN_GET_JW_NM(APPL_JW_ID) AS APPL_JW_NM,
+			APPL_DEPT_NM,
+			APPR_RESULT,
+			DECODE(APPR_RESULT, '0', '진행중', '1', '승인', '2', '반려', '') AS APPR_RESULT_NM
+		FROM T
+	</select>
+
+	<select id="selectOrgVisitView" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectOrgVisitView (dmOrgVisitView) */
+		SELECT A.GROUP_NO
+			 , TO_CHAR(A.VST_DT, 'YYYY-MM-DD')  AS VST_DT
+		     , A.IO_RSN 						AS IO_RSN
+		     , A.FROM_TM 						AS FROM_TM
+		     , A.TO_TM 							AS TO_TM
+		     , A.VST_PLACE 						AS VST_PLACE
+		     , TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		     , A.APPL_EMP_ID 					AS EMP_ID
+		     , A.APPL_JW_ID						AS JW_ID
+		     , FN_GET_JW_NM(A.APPL_JW_ID) 		AS JW_NM
+		     , B.EMP_NM 						AS EMP_NM
+		     , C.DEPT_NM 						AS DEPT_NM
+		     , D.DOC_ID                         AS DOC_ID
+		     , D.APPR_RESULT					AS APPR_RESULT
+		     , DECODE(A.APPR_RESULT, '0', '진행중', '1', '승인', '2', '반려', '') AS APPR_RESULT_NM
+		     , SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, ';')+1) as FILE_PLAN_NM
+		     , SUBSTR(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')-1 ), 1, INSTR(SUBSTR(A.FILE_PATH, 1, INSTR(A.FILE_PATH, ';')  -1 ), '\', -1)) AS FILE_PLAN_ADDR
+		     , SUBSTR(SUBSTR(A.FILE_PATH,1, INSTR(A.FILE_PATH, ';')-1), INSTR(SUBSTR(A.FILE_PATH,1, INSTR(A.FILE_PATH, ';')-1), '\',-1, 1) +1) AS FILE_PLAN_SYS_NM
+		     , SUBSTR(A.FILE_PATH2, INSTR(A.FILE_PATH2, ';')+1) as FILE_LIST_NM
+		     , SUBSTR(SUBSTR(A.FILE_PATH2, 1, INSTR(A.FILE_PATH2, ';')-1 ), 1, INSTR(SUBSTR(A.FILE_PATH2, 1, INSTR(A.FILE_PATH2, ';')  -1 ), '\', -1)) as FILE_LIST_ADDR
+		     , SUBSTR(SUBSTR(A.FILE_PATH2,1, INSTR(A.FILE_PATH2, ';')-1), INSTR(SUBSTR(A.FILE_PATH2,1, INSTR(A.FILE_PATH2, ';')-1), '\',-1, 1) +1) AS FILE_LIST_SYS_NM
+		  FROM IO_GROUP A
+		     , CO_EMP B
+		     , CO_DEPT C
+		     , AP_DOC  D
+		 WHERE A.APPL_EMP_ID    = B.EMP_ID
+		   AND A.APPL_DEPT_ID 	= C.DEPT_ID
+		   AND A.DOC_ID 		= D.DOC_ID(+)
+		   AND A.GROUP_NO		= #{groupNo}
+	</select>
+
+	<select id="selectOrgVisitCarList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectOrgVisitCarList (dmOrgVisitCarList) */
+		SELECT GROUP_NO, SEQ, DRIVER_NM, CAR_KND, CAR_NO, CRT_BY, TO_CHAR(CRT_DTM,'YYYYMMDD HH24:MI"SS') AS CRT_DTM
+		  FROM IO_GROUP_CAR_INFO
+		 WHERE GROUP_NO = #{groupNo}
+		 ORDER BY SEQ
+	</select>
+
+	<select id="selectVipIcSpmsIfInfo" parameterType="Integer" resultType="SendSpmsDTO">
+		/* ReserveVisitRepository.selectVipIcSpmsIfInfo (dmVIP_ICSpmsIF_Info) */
+		SELECT
+		      '' AS Division
+	    	,IV.VST_APPL_NO
+	    	,IVCI.CAR_NO AS VehicleNumber    /* VehicleNumber: 차량번호 */
+	    	,SUBSTRB(IVCI.CAR_KND,1,25) 	AS VehicleName		/* Vehicle_kind : 차량종류 */
+	    	,IVM.VST_STRT_DT 				AS EnterDateTime 	/* EnterDateTime  : 예약시작일시 */
+			,IVM.VST_END_DT 				AS NoEntryDateTime 	/* NoEntryDateTime : 예약종료일시 */
+	    	,'VIP'  AS VisitPurpose  /* VisitPurpose  : 방문목적 */
+	    	,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  AS ApproverName  /* ApproverName  : 부서명(신청자명) */
+			,IVCI.DRIVER_NM AS VisitorName  /* VisitorName   : 운전자 */
+			,IV.IO_COMP_ID  AS AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+			,FN_GET_EMP_TEL_NO(fn_get_emp_nm(IV.EMP_ID), IV.EMP_ID) 				AS ContactNumber 	/*방문객휴대전화*/
+			,DECODE(IVM.VST_COMP_ID,'1101000001','1101000001','1102000001','1102000001','기타') AS Destination	 	/* Destination  : 청주만 방문장소 */
+	    	/* ,IV.VIP_NM|| '; ' || IV.VIP_VSTRS|| '(' || '방문자수:' || IV.VSTR_CNT || ')' AS note 황해섭 요청 20181113*/
+	    	,'' AS DeptName
+	        ,'' AS Location
+	        ,'' AS BirthDay
+	    	,'' as Note
+	    	,'' as SecurityID
+	    	,'1' as MemberType
+	        ,'' as UnionNumber
+		FROM IO_VST IV, IO_VST_MAN IVM , IO_VIP_CAR_INFO IVCI
+		WHERE 1 = 1
+		  AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+  		  AND IV.VST_APPL_NO = IVCI.VST_APPL_NO
+  		  AND IVCI.VST_APPL_NO = IVM.VST_APPL_NO
+  		  AND IV.VIP_GU  IN ('J','G','E')  /* (고객사 및 관계사, 관공서, 교육 및 지원) 는 LPR연동 하지 않는다. 정문만 연동함. */
+  		  AND IV.VST_APPL_NO = #{lid}
+	</select>
+
+	<select id="selectSendICSpmsIoVstInfoForGotham" parameterType="Integer" resultType="SendSpmsDTO">
+		/* ReserveVisitRepository.selectSendICSpmsIoVstInfoForGotham (dm_SendICSpms_getIoVstInfoForGotham) */
+		SELECT
+		    /*이천 일반 방문 차량 */
+		     DISTINCT  IV.VST_APPL_NO AS Lid/* 승인번호*/
+	        ,IVM.CAR_NO         AS VehicleNumber    /* VehicleNumber: 차량번호 */
+	        ,SUBSTRB(IVM.CAR_KND,1,25)  AS VehicleName    /* Vehicle_kind : 차량종류 */
+
+	        ,IVM.VST_STRT_DT         AS EnterDateTime  /* EnterDateTime  : 예약시작일시 */
+	        ,IVM.VST_END_DT        AS NoEntryDateTime  /* NoEntryDateTime : 예약종료일시 */
+	        ,SUBSTRB(FN_GET_CODE('A013', IVM.VST_OBJ, ''),1,20) AS VisitPurpose  /* VisitPurpose  : 방문목적 */
+
+	        ,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  AS ApproverName  /* ApproverName  : 부서명(신청자명) */
+	        ,SUBSTRB((SELECT EMP_NM FROM IO_EMP WHERE IO_EMP_ID = IVM.IO_EMP_ID),1,20) AS VisitorName  /* VisitorName   : 운전자 */
+	        ,SUBSTRB(FN_GET_IO_COMP_KO_NM(IE.IO_COMP_ID),1,100)  AS AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+	        ,FN_GET_IO_EMP_HP_NO(IVM.IO_EMP_ID)         AS ContactNumber  /*방문객휴대전화*/
+	        ,SUBSTRB(FN_GET_CODE('A022', IVM.PARKING, ''), 1,50)     AS Destination  /* SUBSTRB(FN_GET_CODE('A028', IVM.VST_PLC, ''), 1,50)  AS Destination  */  /* Destination  : 청주만 방문장소 */
+	        ,IVM.VST_RSN AS Note
+	        ,IVM.IO_EMP_ID AS SecurityID /*행복한 만남 ID*/
+	        ,DECODE(IV.IO_PASS_YN,'Y','1','2') AS MemberType /* 1:상시출입증 , 2:방문객 */
+	        ,FN_GET_IDCARD_ID(IVM.IO_EMP_ID) AS UnionNumber /* 상시출입증 통합사번 */
+	     FROM IO_VST IV, IO_VST_MAN IVM, IO_EMP IE
+	     WHERE 1=1
+	        AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+	        AND IVM.IO_EMP_ID = IE.IO_EMP_ID(+)
+	        AND IV.APPL_STAT = 'Z0331005' /*승인완료*/
+	        AND IVM.VST_COMP_ID = '1101000001'
+	        AND IVM.CAR_NO IS NOT NULL
+	        AND IVM.VST_APPL_NO = #{lid} /*APPL_NO*/
+
+	      UNION ALL
+
+	      /*이천 VIP 방문 차량 */
+	      SELECT
+	    	IV.VST_APPL_NO
+	    	,IVCI.CAR_NO AS VehicleNumber    /* VehicleNumber: 차량번호 */
+	    	,SUBSTRB(IVCI.CAR_KND,1,25) 	AS VehicleName		/* Vehicle_kind : 차량종류 */
+	    	,IVM.VST_STRT_DT 				AS EnterDateTime 	/* EnterDateTime  : 예약시작일시 */
+			,IVM.VST_END_DT 				AS NoEntryDateTime 	/* NoEntryDateTime : 예약종료일시 */
+	    	,'VIP'  AS VisitPurpose  /* VisitPurpose  : 방문목적 */
+	    	,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  AS ApproverName  /* ApproverName  : 부서명(신청자명) */
+			,IVCI.DRIVER_NM AS VisitorName  /* VisitorName   : 운전자 */
+			,IV.IO_COMP_ID  AS AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+			,IVM.HP_NO 				AS ContactNumber 	/*방문객휴대전화*/
+			,DECODE(IVM.VST_COMP_ID,'1101000001','1101000001','1102000001','1102000001','기타') AS Destination	 	/* Destination  : 청주만 방문장소 */
+	    	/* ,IV.VIP_NM|| '; ' || IV.VIP_VSTRS|| '(' || '방문자수:' || IV.VSTR_CNT || ')' AS Note 황해섭 요청 20181113*/
+	    	,''  AS Note
+	    	,''  AS SecurityID
+	    	,'1' AS MemberType
+	        ,''  AS UnionNumber
+		FROM IO_VST IV, IO_VST_MAN IVM , IO_VIP_CAR_INFO IVCI
+		WHERE 1=1
+			AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+	  		AND IV.VST_APPL_NO = IVCI.VST_APPL_NO
+	  		AND IVCI.VST_APPL_NO = IVM.VST_APPL_NO
+	  		AND IV.VST_APPL_NO = #{lid}
+	  		AND IV.VIP_GU NOT IN ('J','G','E') /* (고객사 및 관계사, 관공서, 교육 및 지원) 는 LPR연동 하지 않는다. 정문만 연동함. */
+	</select>
+
+	<select id="selectSendCJSpmsIoVipCarInfoForSpms" parameterType="Integer" resultType="SendSpmsDTO">
+		/* ReserveVisitRepository.selectSendCJSpmsIoVipCarInfoForSpms (dm_SendCJSpms_getIoVipCarInfoForSpms) */
+		SELECT
+		    IV.VST_APPL_NO AS Lid
+		   ,'8' AS Division /*VIP*/
+		   ,'88' AS MemberType /* 88 : SKHYnix */
+		   ,IVCI.CAR_NO AS VehicleNumber    /* VehicleNumber: 차량번호 */
+		   ,SUBSTRB(IVCI.CAR_KND,1,25)   AS VehicleName    /* Vehicle_kind : 차량종류 */
+		   ,IVM.VST_STRT_DT        AS EnterDateTime  /* EnterDateTime  : 예약시작일시 */
+		   ,IVM.VST_END_DT         AS NoEntryDateTime  /* NoEntryDatetime : 예약종료일시 */
+		   ,'VIP'  AS VisitPurpose  /* VisitPurpose  : 방문목적 */
+		   ,SUBSTRB(FN_GET_DEPT_NM(IV.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IV.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IV.JW_ID),1,8) ||')'  AS ApproverName  /* ApproverName  : 부서명(신청자명) */
+		   ,IVCI.DRIVER_NM AS VisitorName  /* VisitorName   : 운전자 */
+		   ,IV.IO_COMP_ID  AS AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+		   ,'' AS DeptName
+		   ,IVM.HP_NO        AS ContactNumber  /*방문객휴대전화*/
+		   ,DECODE(IVM.VST_COMP_ID,'1101000001','1101000001','1102000001','1102000001','기타') AS Destination    /* Destination  : 청주만 방문장소 */
+		   ,'' AS Location
+		   ,'' AS Birthday
+		   ,'' AS Note
+		   ,'' AS SecurityID
+		   ,'' AS UnionNumber
+		FROM IO_VST IV, IO_VST_MAN IVM , IO_VIP_CAR_INFO IVCI
+		WHERE 1=1
+		  	AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+		    	AND IV.VST_APPL_NO = IVCI.VST_APPL_NO
+		    	AND IVCI.VST_APPL_NO = IVM.VST_APPL_NO
+		AND IV.VST_APPL_NO = #{lid}
+	</select>
+
+	<select id="selectVisitNacIfCount" parameterType="Integer" resultType="Integer">
+		/* ReserveVisitRepository.selectVisitNacIfCount (dmVisit_NacIF_Chk) */
+		SELECT COUNT(*) AS N_CNT
+		FROM (
+			SELECT VST_APPL_NO
+	           FROM IO_VST
+	          WHERE CASE WHEN  INOUT_GBN = 'Z0321002' AND VIP_YN = 'N' THEN 'Y' ELSE ' N' END  = 'Y'
+	            AND NVL(DEL_YN,'N') = 'N'
+	            AND VST_APPL_NO = #{lid}
+	          UNION ALL
+	         SELECT VST_APPL_NO
+	           FROM IO_VST
+	          WHERE CASE WHEN  INOUT_GBN = 'Z0321001' AND VIP_YN = 'G' THEN 'Y' ELSE ' N' END  = 'Y'
+	            AND NVL(DEL_YN,'N') = 'N'
+	            AND VST_APPL_NO = #{lid}
+	    ) T1
+	</select>
+
+	<select id="selectVisitNacIfInfoList" parameterType="Integer" resultType="HashMap">
+		/* ReserveVisitRepository.selectVisitNacIfInfo (dmVisit_NacIF_Info) */
+		/* History: NAC IF 로 외부인 전산저장장치 반출 예상일 (OUT_SCHD_DT) 를 방문 예약기간 종료일로 Setting 해서 전송함.
+		                        외부인 전산저장장치 사용시 방문예약기간 중에만 사용할수 있도록 하고, 추가 연장 신청시에는  서비스신청 > 전산보안 > 외부인Networkd 사용신청을 이용하여 사용하도록 함  2014.02.03  from 산업보안팀:강진수책임, 경영정보화팀:김정민 책임
+		            	방문 시작일과 반출 예상일이 8일 이상 차이나면 보안프로그램 인스톨 할 수 있도록 필드 추가함. 2014.3.6
+		            	2017.11.30 8일 -> 30일로 기준이 변경됨, JAVA 로직에서 수정
+		*/
+		WITH GA AS
+		(
+		    SELECT VST_APPL_NO, IO_EMP_ID, FN_GET_CO_BLDG(MAX(GATE_ID),'5') AS GATE_NM
+		        FROM IO_VST_MAN_GATE
+		        GROUP BY VST_APPL_NO, IO_EMP_ID
+		)
+		SELECT TO_CHAR(IQ.VST_APPL_NO) AS VST_APPL_NO, IQ.IO_EMP_ID, IO.EMP_NM AS IO_EMP_NM, CASE WHEN IO.NATION = 'Z0011001' THEN SUBSTR(IO.JUMIN_NO,1,6) ELSE IO.PASSPORT_NO END AS JUMIN_NO, IO.HP_NO
+             ,FN_GET_IO_COMP_KO_NM(IO.IO_COMP_ID) AS IO_COMP_NM, SUBSTR(IQ.OUT_SCHD_DT,'1','4')||'-'||SUBSTR(IQ.OUT_SCHD_DT,'5','2')||'-'||SUBSTR(IQ.OUT_SCHD_DT,'7','2') AS OUT_SCHD_DT, TO_CHAR(BETWEEN_DT) AS BETWEEN_DT
+             ,REPLACE(IQ.WIRE_MAC_ADDR,';',':') AS WIRE_MAC_ADDR, REPLACE(IQ.WIRELESS_MAC_ADDR,';',':') AS WIRELESS_MAC_ADDR
+             ,CASE WHEN LENGTH(IQ.WIRELESS_MAC_ADDR) > 0 THEN
+                   CASE WHEN IQ.WIRE_MAC_ADDR IS NOT NULL THEN REPLACE(IQ.WIRE_MAC_ADDR,';',':')||','|| REPLACE(IQ.WIRELESS_MAC_ADDR,';',':')
+                        ELSE REPLACE(IQ.WIRELESS_MAC_ADDR,';',':')
+                    END
+                   ELSE REPLACE(IQ.WIRE_MAC_ADDR,';',':') END AS MAC_ADDR
+             ,FN_GET_DEPT_NM(VS.DEPT_ID) AS CO_DEPT_NM, GA.GATE_NM, TO_CHAR(IQ.VST_COMP_ID) AS COMP_ID, FN_GET_EMP_NM(VS.EMP_ID) AS EMP_NM
+             ,( SELECT TO_CHAR(COUNT(*)) AS CNT
+                    FROM  IO_VST_MAN_ITEQMT MT, IO_VST VS, IO_VST_MAN MA
+                    WHERE BITAND(MT.OPEN_BIT,1) > 0
+                    AND MT.VST_APPL_NO = VS.VST_APPL_NO
+                    AND MT.VST_APPL_NO <![CDATA[<>]]> IQ.VST_APPL_NO
+                    AND MT.IO_EMP_ID = IQ.IO_EMP_ID
+                    AND VS.APPL_STAT = 'Z0331005'
+                    AND NVL(VS.DEL_YN,'N') = 'N'
+                    AND MT.VST_APPL_NO = MA.VST_APPL_NO
+                    AND MT.IO_EMP_ID = MA.IO_EMP_ID
+                    AND IQ.VST_COMP_ID = MA.VST_COMP_ID
+              ) AS DUPL_CNT
+		FROM (
+	        SELECT IQ.VST_APPL_NO, IQ.IO_EMP_ID, IQ.ITEQMT_SEQ, IQ.MODEL_NM, IQ.QTY, (IQ.OUT_SCHD_DT - MA.VST_STRT_DT) AS BETWEEN_DT , IQ.OUT_SCHD_DT AS OUT_SCHD_DT, IQ.WIRE_MAC_ADDR, IQ.WIRELESS_MAC_ADDR, MA.VST_COMP_ID
+            FROM  IO_VST_MAN_ITEQMT IQ, IO_VST_MAN MA
+            WHERE BITAND(OPEN_BIT,1) > 0
+            AND IQ.VST_APPL_NO = MA.VST_APPL_NO
+            AND IQ.IO_EMP_ID = MA.IO_EMP_ID
+		) IQ, IO_VST VS, IO_EMP IO, GA
+		WHERE IQ.VST_APPL_NO = VS.VST_APPL_NO
+		AND NVL(VS.DEL_YN,'N') = 'N'
+		AND IQ.IO_EMP_ID = IO.IO_EMP_ID
+		AND IQ.VST_APPL_NO = GA.VST_APPL_NO(+)
+		AND IQ.IO_EMP_ID = GA.IO_EMP_ID(+)
+		AND IQ.VST_APPL_NO = #{lid}
+		ORDER BY IQ.IO_EMP_ID
+	</select>
+
+	<insert id="insertNacLogReg" parameterType="Map">
+		/* ReserveVisitRepository.insertNacLogReg (dmNacLogReg) */
+		INSERT INTO SY_IF_NAC
+		(
+		 COMP_ID,
+		 IO_EMP_ID,
+		 IO_EMP_NM,
+		 IO_COMP_NM,
+		 URL_ADDRESS,
+		 MAC_ADDRESS,
+		 WIR_ADDRESS,
+		 PASS_VALUE,
+		 RETCODE,
+		 RETMSG,
+		 CRT_DTM
+		) VALUES (
+		 #{COMP_ID},
+		 #{IO_EMP_ID},
+		 #{IO_EMP_NM},
+		 #{IO_COMP_NM},
+		 #{URL_ADDRESS},
+		 #{MAC_ADDRESS},
+		 #{WIR_ADDRESS},
+		 #{PASS_VALUE},
+		 #{RETCODE},
+		 #{RETMSG},
+		 SYSDATE
+		 )
+	</insert>
+
+	<select id="selectReserveIfManGateIoList" parameterType="Integer" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectReserveIfManGateIoList (dmReserveIF_ManGateIoList) */
+		SELECT  X.VST_APPL_NO,
+				X.IO_EMP_ID,
+				X.VST_COMP_ID,
+				X.VST_STRT_DT,
+				X.VST_END_DT,
+				X.VST_STAY_TM,
+				X.AC_IP,
+	       		X.CRT_BY
+		FROM IO_VST_MAN X, IO_VST Y
+		WHERE 1 = 1
+		  AND X.VST_APPL_NO = Y.VST_APPL_NO
+		  AND X.VST_APPL_NO = #{lid}
+	</select>
+
+	<insert id="insertReserveIfManGateIoMerge" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveIfManGateIoMerge (dmReserveIF_Man_GateIo_Merge) */
+		MERGE INTO IO_VST_MAN_GATE_IO T1
+	    USING(
+	        SELECT #{vstApplNo} AS VST_APPL_NO
+	              ,#{ioEmpId} AS IO_EMP_ID
+	              ,#{gateId} AS GATE_ID
+	              ,#{vstDt} AS VST_DT
+	              ,#{vstSeq} AS VST_SEQ
+	              ,#{ioknd} AS IOKND
+	              ,#{ioCardno} AS IO_CARDNO
+	              ,#{inDt} AS IN_DT
+	              ,#{outDt} AS OUT_DT
+	              ,#{delYn} AS DEL_YN
+	              ,#{acIp} AS AC_IP
+	              ,#{crtBy} AS CRT_BY
+	              ,#{vstCompId} AS VST_COMP_ID
+	           FROM DUAL
+	    ) T2
+	    ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.IO_EMP_ID = T2.IO_EMP_ID AND T1.GATE_ID = T2.GATE_ID
+	        AND T1.VST_DT = T2.VST_DT AND T1.VST_SEQ = T2.VST_SEQ)
+	    WHEN NOT MATCHED THEN
+	        INSERT
+	         (VST_APPL_NO
+	        , IO_EMP_ID
+	        , GATE_ID
+	        , VST_DT
+	        , VST_SEQ
+	        , IOKND
+	        , IO_CARDNO
+	        , IN_DT
+	        , OUT_DT
+	        , DEL_YN
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+	        ) VALUES (
+	          T2.VST_APPL_NO
+	        , T2.IO_EMP_ID
+	        , T2.GATE_ID
+	        , T2.VST_DT
+	        , T2.VST_SEQ
+	        , T2.IOKND
+	        , T2.IO_CARDNO
+	        , T2.IN_DT
+	        , T2.OUT_DT
+	        , T2.DEL_YN
+	        , T2.AC_IP
+	        , 'SYSTEM RECOVERY'
+	        , SYSDATE
+	        , T2.CRT_BY
+	        , SYSDATE
+	        )
+	</insert>
+
+	<select id="selectIoVstCarVstCompId" parameterType="Integer" resultType="String">
+		/* ReserveVisitRepository.selectIoVstCarVstCompId (dmGetIoVstCarVstCompId) */
+		SELECT  MAX(A.VST_COMP_ID) AS COMP_ID
+		FROM IO_VST_MAN A
+		WHERE 1 = 1
+		 AND A.VST_APPL_NO = #{lid}
+	</select>
+
+	<select id="selectGroupIcSpmsIfInfoList" parameterType="Integer" resultType="SendSpmsDTO">
+		/* ReserveVisitRepository.selectGroupIcSpmsIfInfoList (dmGroup_ICSpmsIF_Info) */
+		SELECT
+		        '' AS Division
+		       ,B.CAR_NO AS VehicleNumber
+			   ,SUBSTRB(B.CAR_KND,1,25) AS VehicleName
+	           ,TO_CHAR(A.VST_DT, 'YYYYMMDD') AS EnterDateTime
+	           ,TO_CHAR(A.VST_DT, 'YYYYMMDD') AS NoEntryDateTime
+	           ,'GROUP'  AS VisitPurpose
+	           ,SUBSTRB(FN_GET_DEPT_NM(C.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(C.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(C.JW_ID),1,8) ||')' AS ApproverName
+	           ,B.DRIVER_NM AS VisitorName
+	           ,'GROUP' AS AffiliatedCompany
+	           ,C.TEL_NO1 AS ContactNumber
+	           ,DECODE(C.COMP_ID,'1102000001','1102000001','1105000001','1105000001','1106000001','1106000001','1109000001','1109000001','기타') AS Destination
+	          /*  ,A.IO_RSN as note 황해섭요청 20181123 */
+	           ,'' AS DeptName
+	           ,'' AS Location
+	           ,'' AS BirthDay
+	           ,'' AS Note
+	           ,'' AS SecurityID
+	           ,'' AS MemberType
+	           ,'' AS UnionNumber
+	     FROM IO_GROUP A, IO_GROUP_CAR_INFO B, CO_EMP C
+	     WHERE A.GROUP_NO = B.GROUP_NO
+	       AND A.APPL_EMP_ID = C.EMP_ID
+	       AND A.GROUP_NO = #{lid}
+	       AND C.COMP_ID IN ('1101000001')
+	</select>
+
+	<select id="selectSendCjSpmsGroupCarInfoList" parameterType="Integer" resultType="SendSpmsDTO">
+		/* ReserveVisitRepository.selectSendCjSpmsGroupCarInfoList (dm_SendCJSpms_getGroupCarInfoForSpms) */
+		SELECT
+			 A.GROUP_NO AS Lid
+			,'8' AS Division /*VIP*/
+			,'88' AS MemberType /* 88 : SKHYnix */
+			, B.CAR_NO AS VehicleNumber
+			,SUBSTRB(B.CAR_KND,1,25) AS VehicleName
+			,TO_CHAR(A.VST_DT, 'YYYYMMDD') AS EnterDateTime
+			,TO_CHAR(A.VST_DT, 'YYYYMMDD') AS NoEntryDateTime
+			,'GROUP'  AS VisitPurpose
+			,SUBSTRB(FN_GET_DEPT_NM(C.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(C.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(C.JW_ID),1,8) ||')' AS ApproverName
+			,B.DRIVER_NM AS VisitorName
+			,'GROUP' AS AffiliatedCompany
+			,'' AS DeptName
+			,C.TEL_NO1 AS ContactNumber
+			,DECODE(C.COMP_ID,'1102000001','1102000001','1105000001','1105000001','1106000001','1106000001','1109000001','1109000001','기타') AS Destination
+			/*  ,A.IO_RSN as note 황해섭요청 20181123 */
+			,'' AS Location
+			,'' AS BirthDay
+			,'' AS Note
+			,'' AS SecurityID
+			,'' AS UnionNumber
+	    FROM IO_GROUP A, IO_GROUP_CAR_INFO B, CO_EMP C
+	    WHERE A.GROUP_NO = B.GROUP_NO
+	       AND A.APPL_EMP_ID = C.EMP_ID
+	       AND A.GROUP_NO = #{lid}
+	       AND C.COMP_ID IN ('1102000001', '1105000001', '1106000001','1109000001')
+	</select>
+
+	<update id="updateVipIoCardno" parameterType="Map">
+		UPDATE IO_VST_MAN_VIP SET
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE,
+			IO_CARDNO = #{ioCardno}
+		WHERE VST_APPL_NO = #{vstApplNo}
+		AND MAN_SEQ = #{manSeq}
+	</update>
+
+	<select id="selectVisitorProgressAdminList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectVisitorProgressAdminList */
+		WITH PAGE AS (
+		    SELECT T1.*
+		      FROM (  SELECT  ROW_NUMBER() OVER (ORDER BY A.CRT_DTM DESC) AS ROW_NUM
+		                    , VST_APPL_NO
+		                    , IO_COMP_ID
+		                    , VIP_YN
+		                    , EMP_ID
+		                    , MEET_EMP_ID
+		                    , DOC_ID
+		                    , APPL_STAT
+		                    , VIP_VSTRS
+		                    , VIP_ITEQMT
+		                    , VIP_NM
+		                    , VIP_GU
+		                    , INOUT_GBN
+		                    , CRT_DTM
+		                    , REST_YN
+		                    , REST_CHK
+		                    , IO_PASS_YN
+		               FROM IO_VST A
+		              WHERE (A.DEL_YN = 'N' or A.DEL_YN is null)
+		               AND ( (A.INOUT_GBN = 'Z0321001') OR
+		                     (A.INOUT_GBN = 'Z0321002' AND A.APPL_STAT IS NOT NULL) )
+		               AND (A.VIP_YN !='G' OR A.DEL_YN!='Y')
+		               AND (A.VIP_YN !='G' OR (VIP_YN ='G' AND APPL_STAT IS NOT NULL) )
+		               AND A.VST_APPL_NO IN (SELECT VST_APPL_NO
+		                                      FROM IO_VST_MAN VM, IO_EMP EMP, IO_COMP COMP
+		                                     WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+		                                       AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+		                                       AND EMP.IO_COMP_ID = COMP.IO_COMP_ID)
+
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqStartDate)">
+				   AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchReqStartDate}, 'YYYY-MM-DD')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqEndDate)">
+				   AND A.CRT_DTM <![CDATA[<]]> TO_DATE(#{searchReqEndDate} , 'YYYY-MM-DD') + 1
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate) or not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				   AND (
+				   	  SELECT COUNT(VST_APPL_NO)
+	                  FROM IO_VST_MAN
+	                  WHERE VST_APPL_NO = A.VST_APPL_NO
+	                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	                    AND VST_END_DT <![CDATA[>=]]> REPLACE(#{searchStartDate}, '-', '')
+	                  </if>
+	                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			            AND VST_STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+	                  </if>
+	                 )> 0
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				  AND A.EMP_ID IN (SELECT EMP_ID FROM CO_EMP WHERE EMP_NM LIKE '%'||#{empNm}||'%' ESCAPE '[')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+				  AND ( ( A.VIP_YN = 'Y' AND UPPER(A.VIP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[' )
+				 	      OR
+		                 ( A.VIP_YN != 'Y' AND A.VST_APPL_NO in (SELECT VST_APPL_NO
+		                                                           FROM IO_VST_MAN VM, IO_EMP EMP
+		                                                          WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+		                                                            AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+		                                                            AND UPPER(EMP.EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[') ))
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+				  AND A.IO_COMP_ID in (SELECT IO_COMP_ID
+		                                   FROM IO_COMP
+		                                  WHERE UPPER(COMP_KO_NM) LIKE '%'||UPPER(#{searchCompNm})||'%' ESCAPE '[' )
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchStat)'>
+				  AND CASE WHEN A.APPL_STAT IS NULL THEN '1'
+						   WHEN A.APPL_STAT = 'Z0331001' THEN '2'
+						   WHEN A.APPL_STAT = 'Z0331002' THEN '3'
+						   WHEN A.APPL_STAT = 'Z0331003' THEN '4'
+					       WHEN A.APPL_STAT = 'Z0331004' THEN '4'
+						   ELSE '5' END = #{searchStat}
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchRest)'>
+				  AND  A.REST_YN = #{searchRest}
+				</if>
+				<if test='"M".equals(mode)'>
+				  AND  A.INOUT_GBN = 'Z0321002'
+				</if>
+
+		         ) T1
+		)
+		<![CDATA[
+		SELECT T2.ROW_NUM
+		     , T2.VST_APPL_NO
+		     , T2.VIP_YN
+		     , T2.EMP_ID
+		     , FN_GET_EMP_JW_NM(T2.EMP_ID) AS EMP_NM
+		     , TO_CHAR(T2.CRT_DTM,'YYYY-MM-DD hh24:mi') AS CRT_DT
+		     , SUBSTR(T2.VST_STRT_DT,1,4)||'-'||SUBSTR(T2.VST_STRT_DT,5,2)||'-'||SUBSTR(T2.VST_STRT_DT,7,2)||' ~ '||
+		          SUBSTR(T2.VST_END_DT,1,4)||'-'||SUBSTR(T2.VST_END_DT,5,2)||'-'||SUBSTR(T2.VST_END_DT,7,2) AS VST_DT
+		     , T2.IO_EMP_ID
+		     , CASE WHEN T2.CNT > 1 THEN T2.IO_EMP_NM||'님 외 '||TO_NUMBER(T2.CNT - 1)||'명'
+		            ELSE CASE WHEN T2.VIP_YN = 'Y'
+		                       THEN  CASE WHEN T2.VIP_GU = 'E'
+		                                           THEN (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = T2.VIP_NM)
+		                                           ELSE T2.VIP_NM
+		                                  END
+		                            ELSE T2.IO_EMP_NM
+		                   END
+		         END AS IO_EMP_NM
+		      , (SELECT COMP_KO_NM
+		          FROM IO_COMP
+		         WHERE IO_COMP_ID = T2.IO_COMP_ID) AS IO_COMP_NM
+		       , T2.APPL_STAT
+		       , '' AS ITEM_YN
+		       , T2.REST_YN
+		       , T2.REST_CHK
+		       , CASE WHEN T2.APPL_STAT IS NULL THEN '임시보관'
+		              WHEN T2.APPL_STAT = 'Z0331002' THEN '검토중'
+		              ELSE FN_GET_CODE('Z033',T2.APPL_STAT,'') END AS APPL_STAT_NM
+		       , T2.INOUT_GBN
+		       , T2.DOC_ID
+		       , T2.IO_PASS_YN
+		       , CASE WHEN T2.APPL_STAT IS NULL OR (T2.INOUT_GBN = 'Z0321002' and T2.APPL_STAT = 'Z0331005') THEN 'Y'
+		              ELSE 'N'
+		         END AS DEL_YN
+		       , CASE WHEN T2.REST_CHK = 'Y' THEN DECODE(T2.REST_YN, 'Y', '대상', '비대상')
+		              ELSE ''
+		          END AS REST_YN_NM
+		FROM (SELECT PAGE.*
+		          , (SELECT COUNT(A.IO_EMP_ID)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS CNT
+		          , (SELECT  MIN(VST_STRT_DT)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS VST_STRT_DT
+		          , (SELECT MAX(VST_END_DT)
+		                FROM IO_VST_MAN A, IO_EMP B
+		               WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                 AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS VST_END_DT
+		          , (SELECT MIN(A.IO_EMP_ID)
+		               FROM IO_VST_MAN A, IO_EMP B
+		              WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		             ) AS IO_EMP_ID
+		          , (SELECT EMP_NM
+		               FROM IO_EMP
+		              WHERE IO_EMP_ID = (SELECT MIN(A.IO_EMP_ID)
+		                                   FROM IO_VST_MAN A, IO_EMP B
+		                                  WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		                                    AND A.VST_APPL_NO = PAGE.VST_APPL_NO
+		                                  ) ) AS IO_EMP_NM
+        FROM PAGE ) T2
+        WHERE 1 = 1
+        ]]>
+        <if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND T2.ROW_NUM > (#{currentPage} - 1) * #{rowPerPage} AND T2.ROW_NUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectVisitorProgressAdminCount" parameterType="Map" resultType="Integer">
+		/* ReserveVisitRepository.selectVisitorProgressAdminCount */
+		SELECT COUNT(T1.VST_APPL_NO) AS CNT
+	      FROM (SELECT VST_APPL_NO
+	              FROM IO_VST A
+	             WHERE (A.DEL_YN = 'N' or A.DEL_YN is null)
+	               AND ( (A.INOUT_GBN = 'Z0321001') OR
+	                     (A.INOUT_GBN = 'Z0321002' AND A.APPL_STAT IS NOT NULL) )
+	               AND (A.VIP_YN !='G' OR A.DEL_YN!='Y')
+	               AND (A.VIP_YN !='G' OR (VIP_YN ='G' AND APPL_STAT IS NOT NULL) )
+	               AND A.VST_APPL_NO IN (SELECT VST_APPL_NO
+	                                      FROM IO_VST_MAN VM, IO_EMP EMP, IO_COMP COMP
+	                                     WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+	                                       AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+	                                       AND EMP.IO_COMP_ID = COMP.IO_COMP_ID)
+
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqStartDate)">
+			   AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchReqStartDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchReqEndDate)">
+			   AND A.CRT_DTM <![CDATA[<]]> TO_DATE(#{searchReqEndDate} , 'YYYY-MM-DD') + 1
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate) or not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			   AND (
+			   	  SELECT COUNT(VST_APPL_NO)
+                  FROM IO_VST_MAN
+                  WHERE VST_APPL_NO = A.VST_APPL_NO
+                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+                    AND VST_END_DT <![CDATA[>=]]> REPLACE(#{searchStartDate}, '-', '')
+                  </if>
+                  <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		            AND VST_STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+                  </if>
+                 )> 0
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			  AND A.EMP_ID IN (SELECT EMP_ID FROM CO_EMP WHERE EMP_NM LIKE '%'||#{empNm}||'%' ESCAPE '[')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			  AND ( ( A.VIP_YN = 'Y' AND UPPER(A.VIP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[' )
+			 	      OR
+	                 ( A.VIP_YN != 'Y' AND A.VST_APPL_NO in (SELECT VST_APPL_NO
+	                                                           FROM IO_VST_MAN VM, IO_EMP EMP
+	                                                          WHERE VM.VST_APPL_NO = A.VST_APPL_NO
+	                                                            AND VM.IO_EMP_ID = EMP.IO_EMP_ID
+	                                                            AND UPPER(EMP.EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '[') ))
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+			  AND A.IO_COMP_ID in (SELECT IO_COMP_ID
+	                                   FROM IO_COMP
+	                                  WHERE UPPER(COMP_KO_NM) LIKE '%'||UPPER(#{searchCompNm})||'%' ESCAPE '[' )
+			</if>
+			<if test='not @org.springframework.util.StringUtils@isEmpty(searchStat)'>
+			  AND CASE WHEN A.APPL_STAT IS NULL THEN '1'
+					   WHEN A.APPL_STAT = 'Z0331001' THEN '2'
+					   WHEN A.APPL_STAT = 'Z0331002' THEN '3'
+					   WHEN A.APPL_STAT = 'Z0331003' THEN '4'
+				       WHEN A.APPL_STAT = 'Z0331004' THEN '4'
+					   ELSE '5' END = #{searchStat}
+			</if>
+			<if test='not @org.springframework.util.StringUtils@isEmpty(searchRest)'>
+			  AND  A.REST_YN = #{searchRest}
+			</if>
+			<if test='"M".equals(mode)'>
+			  AND  A.INOUT_GBN = 'Z0321002'
+			</if>
+		) T1
+	</select>
+
+	<select id="selectReserveVisitVstApplNo" resultType="Integer">
+		/* ReserveVisitRepository.selectReserveVisitVstApplNo(dmReserveVisit_Vst_NO) */
+		SELECT SEQ_IO_VST.NEXTVAL AS VST_APPL_NO FROM DUAL
+	</select>
+
+	<select id="selectReserveVisitIoEmpGsCnt" parameterType="String" resultType="String">
+		/* ReserveVisitRepository.selectReserveVisitIoEmpGsCnt (dmReserveVisit_IoEmpGsCnt) */
+		SELECT CASE WHEN (COUNT(IO_EMP_ID ) > 0 )THEN 'Y' ELSE 'N' END AS GS_EMP_YN
+		  FROM IO_EMP
+		 WHERE IO_EMP_ID = #{ioEmpId}
+		   AND IO_COMP_ID = 'GS'
+	</select>
+
+	<insert id="insertReserveVisitVstMan" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitVstMan (dmReserveVisit_Vst_Man) */
+		MERGE INTO IO_VST_MAN T1
+		USING (SELECT #{vstApplNo} AS VST_APPL_NO
+	                 ,#{ioEmpId} AS IO_EMP_ID
+	                 ,#{vstCompId} AS VST_COMP_ID
+	                 ,#{vstStrtDt} AS VST_STRT_DT
+	                 ,#{vstEndDt} AS VST_END_DT
+	                 ,#{vstTm} AS VST_TM
+	                 ,#{vstObj} AS VST_OBJ
+	                 ,#{vstRsn} AS VST_RSN
+	                 ,#{vstBldg} AS VST_BLDG
+	                 ,#{hpNo} AS HP_NO
+	                 ,#{parking} AS PARKING
+	                 ,TRIM(REPLACE(#{carNo},' ','')) AS CAR_NO
+	                 ,#{carKnd} AS CAR_KND
+	                 ,#{acIp} AS AC_IP
+	                 ,#{crtBy} AS CRT_BY
+	                 ,#{ioEmpJw} AS IO_EMP_JW
+	                 ,#{ioCompId} AS IO_COMP_ID
+	                 ,#{ioCompNm} AS IO_COMP_NM
+	                 ,#{vstStayTm} AS VST_STAY_TM
+	            FROM DUAL
+	      ) T2
+	      ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.IO_EMP_ID = T2.IO_EMP_ID)
+	      WHEN MATCHED THEN
+	          UPDATE SET
+	               T1.VST_STRT_DT =  T2.VST_STRT_DT
+	              ,T1.VST_END_DT = T2.VST_END_DT
+	              ,T1.VST_COMP_ID = T2.VST_COMP_ID
+	              ,T1.VST_TM = T2.VST_TM
+	              ,T1.VST_OBJ = T2.VST_OBJ
+	              ,T1.VST_RSN = T2.VST_RSN
+	              ,T1.VST_BLDG = T2.VST_BLDG
+	              ,T1.HP_NO = T2.HP_NO
+	              ,T1.PARKING = T2.PARKING
+	              ,T1.CAR_NO = T2.CAR_NO
+	              ,T1.CAR_KND = T2.CAR_KND
+	              ,T1.MOD_BY = T2.CRT_BY
+	              ,T1.MOD_DTM = SYSDATE
+	              ,T1.IO_EMP_JW = T2.IO_EMP_JW
+	              ,T1.IO_COMP_ID = T2.IO_COMP_ID
+	              ,T1.IO_COMP_NM = T2.IO_COMP_NM
+	              ,T1.VST_STAY_TM = T2.VST_STAY_TM
+	      WHEN NOT MATCHED THEN
+	          INSERT
+	              (VST_APPL_NO
+	              , IO_EMP_ID
+	              , VST_COMP_ID
+	              , VST_STRT_DT
+	              , VST_END_DT
+	              , VST_TM
+	              , VST_OBJ
+	              , VST_RSN
+	              , VST_BLDG
+	              , HP_NO
+	              , PARKING
+	              , CAR_NO
+	              , CAR_KND
+	              , AC_IP
+	              , CRT_BY
+	              , CRT_DTM
+	              , MOD_BY
+	              , MOD_DTM
+	              , IO_EMP_JW
+	              , IO_COMP_ID
+	              , IO_COMP_NM
+	              , VST_STAY_TM
+	             )
+	      VALUES
+	              (T2.VST_APPL_NO
+	              , T2.IO_EMP_ID
+	              , T2.VST_COMP_ID
+	              , T2.VST_STRT_DT
+	              , T2.VST_END_DT
+	              , T2.VST_TM
+	              , T2.VST_OBJ
+	              , T2.VST_RSN
+	              , T2.VST_BLDG
+	              , T2.HP_NO
+	              , T2.PARKING
+	              , T2.CAR_NO
+	              , T2.CAR_KND
+	              , T2.AC_IP
+	              , T2.CRT_BY
+	              , SYSDATE
+	              , T2.CRT_BY
+	              , SYSDATE
+	              , T2.IO_EMP_JW
+	              , T2.IO_COMP_ID
+	              , T2.IO_COMP_NM
+	              , T2.VST_STAY_TM
+           )
+	</insert>
+
+	<insert id="insertReserveVisitIoEmp" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitIoEmp (dmReserveVisit_ioEmp_Add) */
+		INSERT INTO IO_EMP
+	   	(     IO_EMP_ID
+	        , IO_COMP_ID
+	        , EMP_NM
+	        , DEL_YN
+	        , AC_IP
+	        , CRT_BY
+	        , CRT_DTM
+	        , MOD_BY
+	        , MOD_DTM
+			, EMAIL_ADDR
+        ) VALUES (
+              #{ioEmpId}
+	        , #{ioCompId}
+	        , #{empNm}
+	        , 'N'
+	        , #{acIp}
+	        , #{crtBy}
+	        , SYSDATE
+	        , #{crtBy}
+	        , SYSDATE
+	        , #{emailAddr}
+        )
+	</insert>
+
+	<update id="updateReserveVisitIoEmp" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitIoEmp (dmReserveVisit_ioEmp_Upt) */
+		UPDATE IO_EMP
+		   SET EMP_NM = #{empNm},
+		       AC_IP = #{acIp},
+		       MOD_BY = #{crtBy},
+		       MOD_DTM = SYSDATE,
+		       EMAIL_ADDR = #{emailAddr}
+		 WHERE  IO_EMP_ID = #{ioEmpId}
+		   AND IO_COMP_ID = 'GS'
+	</update>
+
+	<select id="selectReserveVisitVstManCnt" parameterType="Integer" resultType="Integer">
+		/* ReserveVisitRepository.selectReserveVisitVstManCnt (dmReserveVisit_VstManCnt) */
+		SELECT NVL(MAX(ROWNUM),0) + 1 AS VST_CNT
+	    FROM IO_VST_MAN
+	    WHERE VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<insert id="insertReserveVisit" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisit (dmReserveVisit_Add) */
+		MERGE INTO IO_VST T1
+		USING (SELECT  #{vstApplNo} AS VST_APPL_NO
+                      ,#{ioCompId} AS IO_COMP_ID
+                      ,#{ioEmpId} AS IO_EMP_ID
+                      ,#{vstrCnt} AS VSTR_CNT
+                      ,#{vipYn} AS VIP_YN
+                      ,#{inoutGbn} AS INOUT_GBN
+                      ,#{compId} AS COMP_ID
+                      ,#{deptId} AS DEPT_ID
+                      ,#{jwId} AS  JW_ID
+                      ,#{empId} AS EMP_ID
+                      ,#{inno} AS INNO
+                      ,#{meetEmpId} AS MEET_EMP_ID
+                      ,#{delYn} AS DEL_YN
+                      ,#{docId} AS DOC_ID
+                      ,#{acIp} AS AC_IP
+                      ,#{crtBy} AS CRT_BY
+                      ,#{ceoYn} AS CEO_YN
+                      ,#{ioPassYn} AS IO_PASS_YN
+                      ,#{ioPassGbn} AS IO_PASS_GBN
+		        FROM DUAL
+		) T2
+		ON(T1.VST_APPL_NO = T2.VST_APPL_NO)
+		WHEN MATCHED THEN
+		    UPDATE SET
+		         T1.IO_COMP_ID = T2.IO_COMP_ID
+		        ,T1.IO_EMP_ID = T2.IO_EMP_ID
+		        ,T1.VSTR_CNT = T2.VSTR_CNT
+		        ,T1.VIP_YN = T2.VIP_YN
+		        ,T1.INOUT_GBN = T2.INOUT_GBN
+		        ,T1.COMP_ID = T2.COMP_ID
+		        ,T1.DEPT_ID = T2.DEPT_ID
+		        ,T1.JW_ID = T2.JW_ID
+		        ,T1.EMP_ID = T2.EMP_ID
+		        ,T1.INNO = T2.INNO
+		        ,T1.MEET_EMP_ID = T2.MEET_EMP_ID
+		        ,T1.DEL_YN = T2.DEL_YN
+		        ,T1.DOC_ID = T2.DOC_ID
+		        ,T1.MOD_BY = T2.CRT_BY
+		        ,T1.MOD_DTM = SYSDATE
+		        ,T1.CEO_YN = T2.CEO_YN
+		        ,T1.IO_PASS_YN = T2.IO_PASS_YN
+		        ,T1.IO_PASS_GBN = T2.IO_PASS_GBN
+		WHEN NOT MATCHED THEN
+		    INSERT
+		        (VST_APPL_NO
+		        , IO_COMP_ID
+		        , IO_EMP_ID
+		        , VSTR_CNT
+		        , VIP_YN
+		        , INOUT_GBN
+		        , COMP_ID
+		        , DEPT_ID
+		        , JW_ID
+		        , EMP_ID
+		        , INNO
+		        , MEET_EMP_ID
+		        , DEL_YN
+		        , DOC_ID
+		        , AC_IP
+		        , CRT_BY
+		        , CRT_DTM
+		        , MOD_BY
+		        , MOD_DTM
+		        , CEO_YN
+		        , IO_PASS_YN
+		        , IO_PASS_GBN
+		        )
+		VALUES
+		        (T2.VST_APPL_NO
+		        , T2.IO_COMP_ID
+		        , T2.IO_EMP_ID
+		        , T2.VSTR_CNT
+		        , T2.VIP_YN
+		        , T2.INOUT_GBN
+		        , T2.COMP_ID
+		        , T2.DEPT_ID
+		        , T2.JW_ID
+		        , T2.EMP_ID
+		        , T2.INNO
+		        , T2.MEET_EMP_ID
+		        , 'N'
+		        , T2.DOC_ID
+		        , T2.AC_IP
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.CEO_YN
+		        , T2.IO_PASS_YN
+		        , T2.IO_PASS_GBN
+       )
+	</insert>
+
+	<insert id="insertReserveVisitVstManIteqmt" parameterType="Map">
+		/* ReserveVisitRepository.insertReserveVisitVstManIteqmt (dmReserveVisit_Vst_Man_Iteqmt) */
+		MERGE INTO IO_VST_MAN_ITEQMT T1
+		USING(SELECT #{vstApplNo} AS VST_APPL_NO
+		            ,#{ioEmpId} AS IO_EMP_ID
+		            ,#{iteqmtSeq} AS ITEQMT_SEQ
+		            ,#{modelNm} AS MODEL_NM
+		            ,#{qty} AS QTY
+		            ,#{outSchdDt} AS OUT_SCHD_DT
+		            ,#{iteqmtGbn} AS ITEQMT_GBN
+		            ,#{useGbn} AS USE_GBN
+		            ,#{openGbn} AS OPEN_GBN
+		            ,REPLACE(TRIM(#{wireMacAddr}),'-',':') AS WIRE_MAC_ADDR
+		            ,REPLACE(TRIM(#{wirelessMacAddr}),'-',':') AS WIRELESS_MAC_ADDR
+		            ,#{openBit} AS OPEN_BIT
+		            ,#{openRsn} AS OPEN_RSN
+		            ,#{acIp} AS AC_IP
+		            ,#{crtBy} AS CRT_BY
+		            ,#{secToolYn} AS SEC_TOOL_YN
+		            ,#{secToolNonRsn} AS SEC_TOOL_NON_RSN
+		            FROM DUAL
+		        ) T2
+		ON(T1.VST_APPL_NO = T2.VST_APPL_NO AND T1.IO_EMP_ID = T2.IO_EMP_ID AND T1.ITEQMT_SEQ = T2.ITEQMT_SEQ)
+		WHEN MATCHED THEN
+		    UPDATE SET
+		         T1.MODEL_NM = T2.MODEL_NM
+		        ,T1.QTY = T2.QTY
+		        ,T1.OUT_SCHD_DT = T2.OUT_SCHD_DT
+		        ,T1.ITEQMT_GBN = T2.ITEQMT_GBN
+		        ,T1.USE_GBN = T2.USE_GBN
+		        ,T1.OPEN_GBN= T2.OPEN_GBN
+		        ,T1.WIRE_MAC_ADDR = T2.WIRE_MAC_ADDR
+		        ,T1.WIRELESS_MAC_ADDR = T2.WIRELESS_MAC_ADDR
+		        ,T1.OPEN_BIT = T2.OPEN_BIT
+		        ,T1.OPEN_RSN = T2.OPEN_RSN
+		        ,T1.MOD_BY = T2.CRT_BY
+		        ,T1.MOD_DTM = SYSDATE
+		        ,T1.SEC_TOOL_YN = T2.SEC_TOOL_YN
+		        ,T1.SEC_TOOL_NON_RSN = T2.SEC_TOOL_NON_RSN
+		WHEN NOT MATCHED THEN
+		    INSERT
+		     (VST_APPL_NO
+		        , IO_EMP_ID
+		        , ITEQMT_SEQ
+		        , MODEL_NM
+		        , QTY
+		        , OUT_SCHD_DT
+		        , ITEQMT_GBN
+		        , USE_GBN
+		        , OPEN_GBN
+		        , WIRE_MAC_ADDR
+		        , WIRELESS_MAC_ADDR
+		        , OPEN_BIT
+		        , OPEN_RSN
+		        , AC_IP
+		        , CRT_BY
+		        , CRT_DTM
+		        , MOD_BY
+		        , MOD_DTM
+		        , SEC_TOOL_YN
+		        , SEC_TOOL_NON_RSN
+		        )
+		VALUES
+		        (T2.VST_APPL_NO
+		        , T2.IO_EMP_ID
+		        , T2.ITEQMT_SEQ
+		        , T2.MODEL_NM
+		        , T2.QTY
+		        , T2.OUT_SCHD_DT
+		        , T2.ITEQMT_GBN
+		        , T2.USE_GBN
+		        , T2.OPEN_GBN
+		        , T2.WIRE_MAC_ADDR
+		        , T2.WIRELESS_MAC_ADDR
+		        , T2.OPEN_BIT
+		        , T2.OPEN_RSN
+		        , T2.AC_IP
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.CRT_BY
+		        , SYSDATE
+		        , T2.SEC_TOOL_YN
+		        , T2.SEC_TOOL_NON_RSN
+        )
+	</insert>
+
+	<select id="selectGlobalStaffMailSend" parameterType="Integer" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectGlobalStaffMailSend (dmGlobalStaffMailSend)*/
+		SELECT B.EMAIL_ADDR, B.EMP_NM , A.IO_COMP_NM, A.VST_STRT_DT, A.VST_END_DT, VST_COMP_ID, (SELECT DETL_EN_NM FROM CO_CODE_D WHERE GRP_CD='A030' AND ETC1= A.VST_COMP_ID) AS VST_COMP_NM
+		FROM IO_VST_MAN A, IO_EMP B, IO_VST C
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		  AND A.VST_APPL_NO = C.VST_APPL_NO
+		  AND A.VST_APPL_NO = #{vstApplNo}
+	</select>
+
+	<delete id="deleteReserveVisitIteqmt" parameterType="Map">
+		/* ReserveVisitRepository.deleteReserveVisitIteqmt (dmReserveVisit_Iteqmt_D) */
+		DELETE FROM  IO_VST_MAN_ITEQMT
+		 WHERE VST_APPL_NO = #{vstApplNo}
+		   AND IO_EMP_ID = #{ioEmpId}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(iteqmtSeq)">
+		   AND ITEQMT_SEQ = #{iteqmtSeq}
+		</if>
+	</delete>
+
+	<delete id="deleteReserveVisitMan" parameterType="Map">
+		/* ReserveVisitRepository.deleteReserveVisitMan (dmReserveVisit_Man_D) */
+		DELETE FROM  IO_VST_MAN
+		 WHERE  VST_APPL_NO = #{vstApplNo}
+		   AND  IO_EMP_ID = #{ioEmpId}
+	</delete>
+
+	<update id="updateReserveVisitVst" parameterType="Map">
+		/* ReserveVisitRepository.updateReserveVisitVst (dmReserveVisit_Vst_U) */
+		UPDATE IO_VST SET
+			 VSTR_CNT = #{vstrCnt}
+			,MOD_BY = #{crtBy}
+	        ,MOD_DTM = SYSDATE
+		WHERE VST_APPL_NO = #{vstApplNo}
+	</update>
+
+	<select id="selectAdmVipPartnerList" parameterType="Map" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectAdmVipPartnerList (dmVipReserveVisit_PartnerAdm) */
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER (ORDER BY A.SORT_SEQ) AS RNUM,
+				A.COMP_ID,
+				A.COMP_NM,
+				A.TEL_NO,
+				A.SORT_SEQ,
+				A.USE_YN
+			FROM VIP_PARTNER A
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(partnerNm)">
+				AND UPPER(A.COMP_NM) LIKE '%' || UPPER(#{partnerNm}) || '%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND A.USE_YN = #{useYn}
+			</if>
+		) ALL_LIST
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+	    	<![CDATA[ AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage} ]]>
+		</if>
+	</select>
+
+	<select id="selectAdmVipPartnerListCnt" parameterType="Map" resultType="Integer">
+		/* ReserveVisitRepository.selectAdmVipPartnerList (dmVipReserveVisit_PartnerAdm_Cnt) */
+		SELECT COUNT(*)
+		FROM VIP_PARTNER A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(partnerNm)">
+			AND UPPER(A.COMP_NM) LIKE '%' || UPPER(#{partnerNm}) || '%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+			AND A.USE_YN = #{useYn}
+		</if>
+	</select>
+
+	<update id="saveVipPartner" parameterType="Map">
+		/* ReserveVisitRepository.saveVipPartner (dmVipReserveVisit_PartnerAdm) */
+		MERGE INTO VIP_PARTNER T1
+		USING (
+			SELECT
+				#{compId} AS COMP_ID,
+				#{compNm} AS COMP_NM,
+				#{telNo} AS TEL_NO,
+				#{useYn} AS USE_YN,
+				#{sortSeq} AS SORT_SEQ,
+				#{acIp} AS AC_IP,
+				#{crtBy} AS CRT_BY
+			FROM DUAL
+		) T2
+		ON (T1.COMP_ID = T2.COMP_ID)
+
+		WHEN MATCHED THEN
+		UPDATE SET
+			T1.COMP_NM = T2.COMP_NM,
+			T1.TEL_NO = T2.TEL_NO,
+			T1.USE_YN = T2.USE_YN,
+			T1.SORT_SEQ = T2.SORT_SEQ,
+			T1.MOD_BY = T2.CRT_BY,
+			T1.MOD_DTM = SYSDATE
+
+		WHEN NOT MATCHED THEN
+		INSERT (
+			COMP_ID,
+			COMP_NM,
+			TEL_NO,
+			USE_YN,
+			SORT_SEQ,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		) VALUES (
+			T2.COMP_ID,
+			T2.COMP_NM,
+			T2.TEL_NO,
+			T2.USE_YN,
+			T2.SORT_SEQ,
+			T2.AC_IP,
+			T2.CRT_BY,
+			SYSDATE,
+			T2.CRT_BY,
+			SYSDATE
+		)
+	</update>
+
+	<update id="updateBuildingEntranceInfoUseYn" parameterType="String">
+		/* ReserveVisitRepository.updateBuildingEntranceInfoUseYn (dmBuildingEntranceInfoUseYnUpdate) */
+		UPDATE SECURITYADM.BUILD_ENT_INFO SET
+			USE_YN = 'N'
+		WHERE ENT_COMP_ID = #{entCompId}
+	</update>
+
+	<insert id="insertBuildingEntranceInfo" parameterType="Map">
+		/* ReserveVisitRepository.insertBuildingEntranceInfo (dmBuildingEntranceInfoInsert) */
+		INSERT INTO SECURITYADM.BUILD_ENT_INFO (
+			EMP_ID,
+			ENT_COMP_ID,
+			USE_YN,
+			ORG_FILE_NAME,
+			CRT_DTM,
+			FILE_URL
+		) VALUES (
+			#{empId},
+			#{entCompId},
+			'Y',
+			#{orgFileName},
+			SYSDATE,
+			#{fileUrl}
+		)
+	</insert>
+
+	<select id="selectBuildingEntranceInfo" parameterType="String" resultType="CamelHashMap">
+		/* ReserveVisitRepository.selectBuildingEntranceInfo */
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				A.EMP_ID,
+				A.ENT_COMP_ID,
+				A.USE_YN,
+				A.FILE_PATH,
+				A.ORG_FILE_NAME,
+				A.CRT_DTM,
+				A.FILE_URL
+			FROM SECURITYADM.BUILD_ENT_INFO A
+			WHERE A.ENT_COMP_ID = #{entCompId}
+			AND A.USE_YN = 'Y'
+			ORDER BY CRT_DTM DESC
+		) ALL_LIST
+		WHERE ROWNUM = 1
+	</select>
+
+</mapper>

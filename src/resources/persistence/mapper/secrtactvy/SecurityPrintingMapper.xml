@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityPrintingRepository">
+
+	<select id="selectSecurityPrintingDeptList" parameterType="hashMap" resultType="CamelHashMap">
+	<![CDATA[
+		/* IO: insNet.secrtActvy.securityprinting.DU_SecurityPrinting_dmSelectSecurityPrintingDeptList_2017-09-26T10:14:19(2017-12-07T13:56:19) */
+		SELECT A.ENA_DEPT_ID AS DEPT_ID, B.DEPT_NM AS DEPT_NM
+		  FROM SC_DEPT_SEC_EMP A, CO_DEPT B
+		WHERE A.ENA_DEPT_ID = B.DEPT_ID
+		   AND A.SEC_EMP_ID = #{empId}
+		   AND A.DEL_YN = 'N'
+		   AND b.USE_YN = 'Y'
+		   AND B.DEPT_ID NOT IN ('10120881',
+				 '10120882',
+				 '10120813',
+				 'XB20',
+				 'XB21',
+				 'XB22',
+				 'XB23',
+				 'XB24')
+		 ORDER BY DEPT_NM ASC
+	]]>
+	</select>
+</mapper>

@@ -1,0 +1,249 @@
+<!-- REPORTHEADER-BEGIN -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>&lt;전산저장장치 반입 신청서&gt;</title>
+<link rel="stylesheet" href="{{ER_EagletReportUrl}}/lib/report.css">
+</head>
+<body>
+<!-- REPORTHEADER-END -->
+<!-- REPORTTITLE-BEGIN -->
+<!-- REPORTTITLE-END -->
+<!-- PAGEHEADER-BEGIN -->
+<!-- 타이틀에 표현할 logo와 조건의 이름이 위치하는 영역(모든페이지의 앞에 표기된다.) -->
+<table width="690" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td><!-- PAGEHEADER-END -->
+      <!-- TABLEHEADER1-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+	  <table width="650"  border="0" bordercolor="#142B6D" style="border-collapse:collapse;" align="center">
+		  <tr>
+			<td width="140" height="17" align="left" style="padding-bottom:1px;" class="font4"><img src="{{image2}}/images/logo.jpg"/></td>
+			<td width="295" align="center" class="font5">물품반입 신청서</td>
+			<td width="120" align="left" style="padding-bottom:1px;" class="font8">(신청번호 :&nbsp;[[DOC_ID]])</td>
+			<td width="" height="17" align="right" style="padding-bottom:1px;" class="font4"> {{ER_ReportMakeTime}}<!-- Page : {{ER_Page}} of {{ER_TotalPage}} --></td>
+		  </tr>
+		</table>
+      <table width="690" align="center" border="0">
+        <tr>
+          <td style="PADDING-RIGHT: 0px; PADDING-LEFT: 20px; PADDING-BOTTOM: 0px;" vAlign="top" width="688"><table borderColor="#000000" width="645" border="1">
+              <tr align="middle">
+                <td colspan="2" class="top_bg1 center pd1">반입 예약자</td>
+                <td colspan="2" class="top_bg1 center pd1">반입자</td>
+              </tr>
+              <tr>
+                <td width="17%" class="sub_bg1 center pd1">소속</td>
+                <td width="33%" class="font8 pd1">[[COMPANYNAME]]([[DEPT_NAME]])</td>
+                <td width="17%" class="sub_bg1 center pd1">소속</td>
+                <td width="33%" class="font8 pd1">[[VSIT_COMP_NM]]</td>
+              </tr>
+              <tr>
+                <td class="sub_bg1 center pd1">성명(사번)</td>
+                <td class="font8 pd1">[[EMP_NAME]]([[EMP_NO]]) </td>
+                <td class="sub_bg1 center pd1">성명</BR>(생년월일,</br>여권번호)</td>
+                <td class="font8 pd1">[[VISITOR_NAME]]([[SSN_NO]])</td>
+              </tr>
+              <tr>
+                <td class="sub_bg1 center pd1">전화</td>
+                <td class="font8 pd1">[[INNO]]</td>
+                <td class="sub_bg1 center pd1">전화</td>
+                <td class="font8 pd1">[[CNTC_NO]]</td>
+              </tr>
+              <tr>
+                <td class="sub_bg1 center pd1">반입목적</td>
+                <td class="font8 pd1">[[A024_DETL_CD]]&nbsp;</td>
+                <td class="sub_bg1 center pd1">반입기간</td>
+                <td class="font8 pd1">[[RSRV_STRT_DT]] ~ [[OUT_DT]]</td>
+              </tr>
+              <tr>
+                <td class="top_bg1 center pd1">반입물품</td>
+                <td colspan="3" class="font8 pd1"><table width="540" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="50%" class="font3">[[NOTEBOOK]]</td>
+                      <td width="50%" class="font3">[[MEMORY]]</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[CAMERA]]</td>
+                      <td class="font3">[[CD]]</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[FDD]]</td>
+                      <td class="font3">[[ETC]]</td>
+                    </tr>
+                  </table></td>
+              </tr>
+              <!--<tr>
+                <td class="top_bg1 center pd1">개방요청항목</td>
+                <td colspan="3" class="font8 pd1"><table width="540" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="50%" class="font3">[[OPEN_BIT_3]]CD읽기/쓰기</td>
+                      <td width="50%" class="font3">[[OPEN_BIT_4]]FDD</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[OPEN_BIT_11]]USB Port(메모리 Card 사용으로 개방)</td>
+                      <td class="font3">[[OPEN_BIT_12]]USB Port(마우스 사용으로 1Port 개방)</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[OPEN_BIT_7]]1394포트(대용량 전송)</td>
+                      <td class="font3">[[OPEN_BIT_2]]Camera</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[OPEN_BIT_13]]HDD(외부 탈착 가능)</td>
+                      <td class="font3">[[OPEN_BIT_1]]유/무선NETWORK</td>
+                       <td colspan="2" class="font3">[[OPEN_BIT_13]]HDD(외부 탈착 가능)</td>
+                       <td class="font3">[[OPEN_BIT_1]]무선NETWORK</td> 
+                    </tr>
+                    <tr>
+                      <td class="font3" colspan="2">[[OPEN_BIT_9]]PCMCIA Port</td>
+                    </tr>
+                     <tr>
+                      <td class="font3">[[OPEN_BIT_5]]USB(1.0/2.0 Port)</td>
+                      <td class="font3">[[OPEN_BIT_6]]Serial(COM포트), Printer 출력</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[OPEN_BIT_9]]PCMCIA(슬롯형 전송)</td>
+                      <td class="font3">[[OPEN_BIT_10]]BlueTooth</td>
+                    </tr>
+                    <tr>
+                      <td class="font3">[[OPEN_BIT_8]]IR(적외선)포트</td>
+                      <td class="font3"></td>
+                    </tr> 
+                    <tr>
+                      <td colspan="2" class="red_font center"><hr><img src="{{image}}/images/bul04.gif" align="absmiddle">&nbsp;Serial(COM포트) Port, 모니터 연결 Port, IR Port는<br />개방(미 봉인)하고 반입가능하며, 검색 예외대상입니다.</td>
+                    </tr>
+                  </table></td>
+              </tr>
+              -->
+              
+              
+              
+              
+
+              
+              <tr>
+              	<td height="50" class="top_bg1 center pd1">품명</td>
+              	<td class="font8 pd1" colspan="3"> [[ITM_NM]] &nbsp;</td>
+              </tr>
+              <tr>
+              	<td height="50" class="top_bg1 center pd1">모델명</td>
+              	<td class="font8 pd1"> [[MODEL_NM_1]] &nbsp;</td>
+              	<td height="50" class="top_bg1 center pd1">수량</td>
+              	<td class="font8 pd1"> [[QTY_1]] &nbsp;</td>
+              </tr>
+              <tr>
+              	<td height="50" class="top_bg1 center pd1">반출예정일</td>
+                <td class="font8 pd1">[[OUT_DT_1]]</td>
+              	<td height="50" class="top_bg1 center pd1">사용목적</td>
+              	<td class="font8 pd1"> [[A024_DETL_CD_1]] &nbsp;</td>
+              </tr>
+              
+              
+              
+      
+              
+              
+              <tr>
+                <td height="50" class="top_bg1 center pd1">데이터반출</td>
+                <td colspan="3" class="font8 pd1">[[DETL_CD_A025]]&nbsp;</td>
+              </tr>
+              <tr>
+              
+              
+              <tr>
+                <td height="50" class="top_bg1 center pd1">데이터반출사유</td>
+                <td colspan="3" class="font8 pd1">[[OPEN_RSN]]&nbsp;</td>
+              </tr>
+              <!--<tr>
+                <td height="40" class="top_bg1 center pd1">보안프로그램<BR>
+                  미적용사유</td>
+                <td colspan="3" class="font8 pd1">[[OPEN_RSN2]]&nbsp;</td>
+              </tr>
+              --><tr>
+                <td height="20" class="top_bg1 center pd1">현업승인권자</td>
+                <td colspan="3" class="font8 pd1">[[D_EMP_NAME]]&nbsp;([[D_EMP_NO]])&nbsp;&nbsp;[[D_JW_NAME]]</td>
+              </tr>
+              <tr>
+                <td style="BORDER-RIGHT: black 2px solid; BORDER-TOP: black 2px solid; BORDER-LEFT: black 2px solid; BORDER-BOTTOM: black 2px solid" width="635" colspan="4"><table width="100%" border=0>
+                    <tr>
+                      <td class="top_bg1 center pd1" width="200" height="30" style="BORDER-RIGHT: black 2px solid; PADDING-RIGHT: 0px; BORDER-TOP: black 2px solid; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; BORDER-LEFT: black 2px solid; PADDING-TOP: 0px; BORDER-BOTTOM: black 2px solid">반입자 보안각서</td>
+                      <td width="700"><B>&nbsp;</B> </td>
+                    </tr>
+                    <tr>
+                      <td class="font8 pd1" colspan="2" height="90" style="PADDING-RIGHT: 0px; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; PADDING-TOP: 0px">&nbsp;&nbsp;&nbsp;상기 본인은 <U>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(이하 회사라 한다)</U>를 출입함에 있어 허가된 목적 외 산업보안에 위배되는 행동을 하지 않을 것이며, 								출입 회사의 허가없이 자료를 저장하지 않겠습니다. 회사 영업비밀 등 자료의 반출이 필요한 경우 사전 예약부서 팀장 승인을 득하여 저장할 것이며, 반출시 사전 승인된 자료라 할지라도 보안목적상 삭제시도 이의를 제기하지 않겠습니다. 또한, 회사 영업비밀 등 업무자료를 불법 저장하거나 반출 시도 時 어떠한 법적조치도 감수하겠습니다. </td>
+                    </tr>
+                    <tr>
+                      <td class="font8 right pd1" style="PADDING-RIGHT: 0px; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; PADDING-TOP: 0px" colspan="2" height="30"><P>&lt;반입자 서약 확인&gt;&nbsp;&nbsp;&nbsp;&nbsp; 반입자 성명 :                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </P></td>
+                    </tr>
+                  </table></td>
+              </tr>
+              <tr>
+                <td style="BORDER-RIGHT: black 2px solid; BORDER-TOP: black 2px solid; BORDER-LEFT: black 2px solid; BORDER-BOTTOM: black 2px solid" width="635" colspan="4"><table>
+                    <tr>
+                      <td class="top_bg1 center pd1" width="200" height="40" style="BORDER-RIGHT: black 2px solid; PADDING-RIGHT: 0px; BORDER-TOP: black 2px solid; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; BORDER-LEFT: black 2px solid; PADDING-TOP: 0px; BORDER-BOTTOM: black 2px solid">반입부서 보안 확인서</td>
+                      <td width="700"><B>&nbsp;</B> </td>
+                    </tr>
+                    <tr>
+                      <td class="font8 pd1" style="PADDING-RIGHT: 0px; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; PADDING-TOP: 0px" colspan="2" height="45">&nbsp;&nbsp;&nbsp;상기 반입회사의 전산저장장치를 반입 함에 있어 회사 업무자료가 유출되지 않도록 입·출문시 용량을 점검하는 등 반출시 철저한 보안 조치를 할 것이며, 회사 영업비밀 등 자료 불법유출시 동반 책임질 것을 서약합니다.</td>
+                    </tr>
+                    <tr>
+                      <td class="font8 right pd1" style="PADDING-RIGHT: 0px; PADDING-LEFT: 10px; PADDING-BOTTOM: 0px; PADDING-TOP: 0px" colspan="2" height=30><P>&lt;반입부서 확인&gt;&nbsp;&nbsp;&nbsp;&nbsp; 소속                         :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;직위 :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;성명 :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </P></td>
+                    </tr>
+                   
+                  </table></td>
+              </tr>
+              <tr>
+                <td class="top_bg1 center pd1">당사자료 반출時<BR>
+                  팀장 승인</td>
+                <td class="font8 pd1" colspan="3">추가파일(File) List
+                  <P></P>
+                   </br></br></br>소속  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;직위  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;성명  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;결제일 : </td>
+              </tr>
+              <!--<tr>
+                <td class="top_bg1 center pd1">Low Format<br>처리결과<BR><span class="font10">[(주)현대디지텍코어]</span></td>
+                <td class="font8 pd1" colspan="3">&nbsp;소속  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;직위  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;성명  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;검색일 :</td>
+              </tr>
+              --><tr>
+                <td class="top_bg1 center pd1">반출 검색 확인<BR>
+                  (보안주관부서)</td>
+                <td class="font8 pd1" colspan="3">&nbsp;</br></br></br>소속  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;직위  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;성명  :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(서명)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;검색일 :</td>
+              </tr>
+              <tr>
+                <td class="top_bg1 center pd1" height="25">반입일</td>
+                <td class="top_bg1 center pd1">반입 확인(보안요원)</td>
+                <td class="top_bg1 center pd1">반출일</td>
+                <td class="top_bg1 center pd1">반출 확인(보안요원)</td>
+              </tr>
+              <tr>
+                <td height="20">&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+              </tr>
+            </table></td>
+        </tr>
+      </table>
+      <!-- TABLEHEADER1-END -->
+      <!-- TABLEDETAIL1-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+      <!-- TABLEDETAIL1-END -->
+      <!-- TABLEFOOTER1-BEGIN -->
+      <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+      <!-- TABLEFOOTER1-END -->
+      <!-- TABLEHEADER2-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+      <!-- TABLEHEADER2-END -->
+      <!-- TABLEDETAIL2-BEGIN -->
+      <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+      <!-- TABLEDETAIL2-END -->
+      <!-- TABLEFOOTER2-BEGIN -->
+      <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+      <!-- TABLEFOOTER2-END -->
+      <!-- PAGEFOOTER-BEGIN -->
+    </td>
+  </tr>
+</table>
+<!-- PAGEFOOTER-END -->
+<!-- REPORTFOOTER-BEGIN -->
+</body>
+</html>
+<!-- REPORTFOOTER-END -->

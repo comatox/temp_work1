@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityDeputyRepository">
+
+
+	<!-- 보안담당자 신규/변경 조회 - securityDeputyList (ASIS : dmSecrtChange_OtherTeamSec_List_S) -->
+	<select id="securityDeputyList" parameterType="Map" resultType="CamelHashMap">
+		/* 보안담당자 신규/변경 조회 - securityDeputyList */
+		SELECT TB.*
+		  FROM (SELECT ROW_NUMBER() OVER(ORDER BY SC_CHANGE_NO DESC) AS ROW_NUM
+		             , T.*
+		          FROM (SELECT A.SC_CHANGE_NO
+		                     , A.COMP_ID as REQ_COMP_ID
+		                     , A.DEPT_ID as REQ_DEPT_ID
+		                     , A.JW_ID as REQ_JW_ID
+		                     , A.EMP_ID as REQ_EMP_ID
+		                     , FN_GET_COMP_NM(A.COMP_ID) as REQ_COMP_NM
+		                     , FN_GET_DEPT_NM(A.DEPT_ID) as REQ_DEPT_NM
+		                     , FN_GET_EMP_NM(A.EMP_ID) as REQ_EMP_NM
+		                     , FN_GET_JW_NM(A.JW_ID) as REQ_JW_NM
+		                     , A.OLD_COMP_ID
+		                     , A.OLD_DEPT_ID
+		                     , A.OLD_JW_ID
+		                     , A.OLD_EMP_ID
+		                     , FN_GET_COMP_NM(A.OLD_COMP_ID) as OLD_COMP_NM
+		                     , FN_GET_DEPT_NM(A.OLD_DEPT_ID) as OLD_DEPT_NM
+		                     , FN_GET_JW_NM(A.OLD_JW_ID) as OLD_JW_NM
+		                     , FN_GET_EMP_NM(A.OLD_EMP_ID) as OLD_EMP_NM
+		                     , A.OLD_RSN
+		                     , A.NEW_COMP_ID
+		                     , A.NEW_DEPT_ID
+		                     , A.NEW_JW_ID
+		                     , A.NEW_EMP_ID
+		                     , FN_GET_COMP_NM(A.NEW_COMP_ID) as NEW_COMP_NM
+		                     , FN_GET_DEPT_NM(A.NEW_DEPT_ID) as NEW_DEPT_NM
+		                     , FN_GET_JW_NM(A.NEW_JW_ID) as NEW_JW_NM
+		                     , FN_GET_EMP_NM(A.NEW_EMP_ID) as NEW_EMP_NM
+		                     , A.NEW_RSN
+		                     , A.PRMS_DEPT_ID
+		                     , A.PRMS_JW_ID
+		                     , A.PRMS_EMP_ID
+		                     , CASE WHEN NVL(A.PRMS_DT, 'N') = 'N' THEN A.PRMS_DT
+		                     	    ELSE SUBSTR(A.PRMS_DT, 1,4) || '-' || SUBSTR(A.PRMS_DT, 5, 2) || '-' || SUBSTR(A.PRMS_DT, 7, 2)
+		           	            END PRMS_DT
+		                     , AD.DOC_ID
+		                     , CASE WHEN AD.APPR_STAT = '0' THEN '대기'
+		                            WHEN AD.APPR_STAT = '10' THEN '진행'
+		                            WHEN AD.APPR_STAT = '20' THEN '완료'
+		                            WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+		                        END as APPR_STAT_NM
+		                     , CASE WHEN AD.APPR_RESULT = '0' THEN '검토중'
+		                            WHEN AD.APPR_RESULT = '1' THEN '승인'
+		                            WHEN AD.APPR_RESULT = '2' THEN '부결'
+		                            WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+		                        END as APPR_RESULT_NM
+		                     , TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD HH:MI:SS') CRT_DTM
+		                  FROM SC_CHANGE A
+		                     , AP_DOC AD
+		                 WHERE A.DOC_ID = AD.DOC_ID(+)
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+		                <![CDATA[
+		                AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') >= REPLACE(#{searchStrtDt}, '-', '')
+		                ]]>
+		                </if>
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		                <![CDATA[
+		                AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <= REPLACE(#{searchEndDt}, '-', '')
+		                ]]>
+		                </if>
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+		                	<if test='"N".equals(adminYn)'>
+		                	AND A.EMP_ID = #{searchEmpId}
+		                	</if>
+		                	<if test='"T".equals(adminYn)'>
+		                	AND A.DEPT_ID = #{searchDeptId}
+		                	</if>
+		                </if>
+		                <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		                	/* 진행상태 */
+		                	<if test='"10".equals(applStat)'>
+		                	/* 검토중 */
+							AND AD.APPR_STAT = #{applStat}
+		                	</if>
+		                	<if test='"20".equals(applStat)'>
+		                	/* 처리완료 */
+							AND AD.APPR_STAT = #{applStat}
+		                	</if>
+		                	<if test='"1".equals(applStat)'>
+		                	/* 승인 */
+							AND AD.APPR_RESULT = #{applStat}
+		                	</if>
+		                	<if test='"2".equals(applStat)'>
+		                	/* 부결 */
+							AND AD.APPR_RESULT = #{applStat}
+		                	</if>
+		                </if>
+		                <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+		                AND NVL(AD.APPR_STAT, 'N') = 'N'
+		                </if>
+		        ) T
+		        WHERE 1 = 1
+		         <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+		         AND REQ_DEPT_NM like '%' || #{searchDeptNm} || '%'
+		         </if>
+		         <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		         AND REQ_EMP_NM like '%' || #{searchEmpNm} || '%'
+		         </if>
+		    ) TB
+	</select>
+	
+	
+	<!-- 보안담당자 신규/변경 상세정보 - securityDeputyView (ASIS : dmSecrtChange_ReqChangeSecrt_S) -->
+	<select id="securityDeputyView" parameterType="Map" resultType="CamelHashMap">
+		/* 보안담당자 신규/변경 상세정보 - securityDeputyView  */
+		SELECT A.SC_CHANGE_NO
+		     , A.COMP_ID
+		     , A.DEPT_ID
+		     , A.JW_ID
+		     , A.EMP_ID
+		     , FN_GET_COMP_NM(A.COMP_ID) 			as REQ_COMP_NM
+		     , FN_GET_DEPT_NM(A.DEPT_ID) 			as REQ_DEPT_NM
+		     , FN_GET_JW_NM(A.JW_ID) 				as REQ_JW_NM
+		     , FN_GET_EMP_NM(A.EMP_ID) 				as REQ_EMP_NM
+		     , A.OLD_COMP_ID
+		     , A.OLD_DEPT_ID
+		     , A.OLD_JW_ID
+		     , A.OLD_EMP_ID
+		     , FN_GET_COMP_NM(A.OLD_COMP_ID) 		as OLD_COMP_NM
+		     , FN_GET_DEPT_NM(A.OLD_DEPT_ID) 		as OLD_DEPT_NM
+		     , FN_GET_JW_NM(A.OLD_JW_ID) 			as OLD_JW_NM
+		     , FN_GET_EMP_NM(A.OLD_EMP_ID) 			as OLD_EMP_NM
+		     , A.OLD_RSN
+		     , A.NEW_COMP_ID
+		     , A.NEW_DEPT_ID
+		     , A.NEW_JW_ID
+		     , A.NEW_EMP_ID
+		     , FN_GET_COMP_NM(A.NEW_COMP_ID) 		as NEW_COMP_NM
+		     , FN_GET_DEPT_NM(A.NEW_DEPT_ID) 		as NEW_DEPT_NM
+		     , FN_GET_JW_NM(A.NEW_JW_ID) 			as NEW_JW_NM
+		     , FN_GET_EMP_NM(A.NEW_EMP_ID) 			as NEW_EMP_NM
+		     , A.NEW_RSN
+		     , A.DOC_ID
+		     , A.PRMS_DEPT_ID
+		     , A.PRMS_JW_ID
+		     , A.PRMS_EMP_ID
+		     , SUBSTR(A.PRMS_DT, 1,4) || '-' || SUBSTR(A.PRMS_DT, 5, 2) || '-' || SUBSTR(A.PRMS_DT, 7, 2) as PRMS_DT
+		     , FN_GET_DEPT_NM(A.PRMS_DEPT_ID) 		as PRMS_DEPT_NM
+		     , FN_GET_JW_NM(A.PRMS_JW_ID) 			as PRMS_JW_NM
+		     , FN_GET_EMP_NM(A.PRMS_EMP_ID) 		as PRMS_EMP_NM
+		     , B.APPR_STAT
+		     , B.APPR_RESULT
+		     , A.NEW_JB_GBN
+		     , A.NEW_TEAM_GBN
+		     , A.NEW_MPRS_GBN
+		     , FN_GET_CODE('C071', A.NEW_JB_GBN, '') 	as NEW_JB_GBN_NM
+		     , FN_GET_CODE('C072', A.NEW_TEAM_GBN, '') 	as NEW_TEAM_GBN_NM
+		     , FN_GET_CODE('C073', A.NEW_MPRS_GBN, '') 	as NEW_MPRS_GBN_NM
+		     <![CDATA[
+			   /* (SELECT LISTAGG(BB.DEPT_NM,'<br />') WITHIN GROUP(ORDER BY BB.DEPT_NM) FROM SC_DEPT_SEC_EMP_PRE AA, CO_DEPT BB WHERE AA.ENA_DEPT_ID = BB.DEPT_ID AND AA.SEC_EMP_ID = A.NEW_EMP_ID ) AS DEPT_IDS */
+			 ]]>
+			 , (SELECT DEPT_NM FROM CO_DEPT WHERE DEPT_ID = A.SEC_DEPT_ID) AS SEC_DEPT_NM
+			 , A.SEC_DEPT_ID
+			 , A.SC_DEPT_SEC_NO
+	      FROM SC_CHANGE A
+	         , AP_DOC B
+	     WHERE 1=1
+	       AND A.DOC_ID = B.DOC_ID(+)
+	       <if test="not @org.springframework.util.StringUtils@isEmpty(scChangeNo)">
+	       AND A.SC_CHANGE_NO = #{scChangeNo}
+	       </if>
+	       <if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+	       AND A.DOC_ID = #{docId}
+	       </if>
+	</select>
+	
+	
+	<!-- 보안담당자 신규/변경 상세정보 > 관리부서 Tree - securityDeputyDeptTreeList (ASIS : dmSecrtDeptDupty_ViewDeptList) -->
+	<select id="securityDeputyDeptTreeList" parameterType="Map" resultType="CamelHashMap">
+		/* 보안담당자 신규/변경 상세정보 > 관리부서 Tree - securityDeputyViewDeptTreeList */
+		SELECT  A.ORG_NAM AS DEPT_NM
+			  , A.ORG_CD AS DEPT_ID
+			  , B.ORG_UN_CD
+			  , A.PRNT_ORG_CD AS UPDEPT_ID
+			  , LEVEL - 1 AS DEPTH
+			  , (SELECT COUNT(1)
+				  FROM TBL_PT_ORG
+				 WHERE PRNT_ORG_CD = A.ORG_CD
+				 ) AS SUB_MENU_COUNT  
+			  , DECODE(NVL(SE.SEC_DEPT_ID, '*'), '*', '', 'Y') AS CHK_YN
+			  , DECODE(NVL(OP.DEPT_ID, '*'), '*', '', 'Y') AS OPEN_YN
+		   FROM TBL_PT_ORG A 
+		   LEFT OUTER JOIN CO_DEPT B 
+		                ON A.ORG_CD = B.DEPT_ID
+			  LEFT OUTER JOIN SC_CHANGE SE
+				    ON SE.SC_CHANGE_NO = #{scChangeNo}
+				   AND SE.SEC_DEPT_ID  = B.DEPT_ID
+			  LEFT OUTER JOIN (	
+					SELECT
+						DISTINCT B.DEPT_ID
+					FROM CO_DEPT B
+					JOIN (
+						SELECT DISTINCT B.UPDEPT_ID AS DEPT_ID
+						FROM SC_CHANGE A, CO_DEPT B
+						WHERE A.SC_CHANGE_NO = #{scChangeNo}
+						AND A.SEC_DEPT_ID    = B.DEPT_ID
+					) A
+					ON 1=1
+					START WITH  B.DEPT_ID = A.DEPT_ID
+					CONNECT BY B.DEPT_ID  = PRIOR UPDEPT_ID  
+				) OP
+				ON B.DEPT_ID = OP.DEPT_ID
+		   WHERE B.USE_YN = 'Y'             
+		     AND B.DEPT_ID NOT IN ('10120881','10120882', '10120813', 'XB20', 'XB21', 'XB22', 'XB23', 'XB24')     
+		START WITH A.PRNT_ORG_CD = '10103709'
+		CONNECT BY PRIOR A.ORG_CD = A.PRNT_ORG_CD 
+		   ORDER SIBLINGS BY A.ORG_NAM
+	</select>
+	
+	
+	<!-- 팀내생활보안점검 > 점검부서 Tree - securityDeputyDeptTreeList3 (ASIS : dmSecrtDeptDupty_DeptList3) -->
+	<select id="securityDeputyDeptTreeList3" parameterType="Map" resultType="CamelHashMap">
+		/* 팀내생활보안점검 > 점검부서 Tree - securityDeputyDeptTreeList3 */
+		SELECT  A.ORG_NAM AS DEPT_NM
+			  , A.ORG_CD AS DEPT_ID
+			  , B.ORG_UN_CD
+			  , A.PRNT_ORG_CD AS UPDEPT_ID
+			  , LEVEL - 1 AS DEPTH
+			  , (SELECT COUNT(1)
+				  FROM TBL_PT_ORG
+				 WHERE PRNT_ORG_CD = A.ORG_CD
+				 ) AS SUB_MENU_COUNT  
+			<if test="not @org.springframework.util.StringUtils@isEmpty(secEmpId)">
+			  , DECODE(NVL(SE.ENA_DEPT_ID, '*'), '*', '', 'Y') AS CHK_YN
+			  , DECODE(NVL(OP.DEPT_ID, '*'), '*', '', 'Y') AS OPEN_YN
+			</if>
+			<if test="@org.springframework.util.StringUtils@isEmpty(secEmpId)">
+			  , 'N' AS CHK_YN
+			  , 'N' AS OPEN_YN
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(openDeptId)">
+			  , DECODE(NVL(OA.DEPT_ID, '*'), '*', '', 'Y') AS NEW_CHK_YN
+			  , DECODE(NVL(OB.DEPT_ID, '*'), '*', '', 'Y') AS NEW_OPEN_YN
+			</if>
+			<if test="@org.springframework.util.StringUtils@isEmpty(openDeptId)">
+			  , 'N' AS NEW_CHK_YN
+			  , 'N' AS NEW_OPEN_YN
+			</if>
+		   FROM TBL_PT_ORG A 
+		   LEFT OUTER JOIN CO_DEPT B 
+		                ON A.ORG_CD = B.DEPT_ID
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(secEmpId)">
+		      LEFT OUTER JOIN SC_DEPT_SEC_EMP SE
+				    ON SE.SEC_DEPT_ID = #{secDeptId}
+				   AND SE.SEC_EMP_ID  = #{secEmpId}
+				   AND SE.ENA_DEPT_ID = B.DEPT_ID
+			  LEFT OUTER JOIN (	
+					SELECT
+						DISTINCT B.DEPT_ID
+					FROM CO_DEPT B
+					JOIN (
+						SELECT DISTINCT B.UPDEPT_ID AS DEPT_ID
+						FROM SC_DEPT_SEC_EMP A, CO_DEPT B
+						WHERE A.SEC_DEPT_ID = #{secDeptId}
+						AND A.SEC_EMP_ID    = #{secEmpId}
+						AND A.ENA_DEPT_ID   = B.DEPT_ID
+					) A
+					ON 1=1
+					START WITH  B.DEPT_ID = A.DEPT_ID
+					CONNECT BY B.DEPT_ID  = PRIOR UPDEPT_ID  
+				) OP
+				ON B.DEPT_ID = OP.DEPT_ID
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(openDeptId)">
+		      LEFT OUTER JOIN CO_DEPT OA
+				    ON OA.DEPT_ID = #{openDeptId}
+				   AND OA.DEPT_ID = B.DEPT_ID
+			  LEFT OUTER JOIN (	
+					SELECT
+						DISTINCT B.DEPT_ID
+					FROM CO_DEPT B
+					JOIN (
+						SELECT DISTINCT B.UPDEPT_ID AS DEPT_ID
+						FROM CO_DEPT B
+						WHERE B.DEPT_ID = #{openDeptId}
+					) A
+					ON 1=1
+					START WITH  B.DEPT_ID = A.DEPT_ID
+					CONNECT BY B.DEPT_ID  = PRIOR UPDEPT_ID  
+				) OB
+				ON B.DEPT_ID = OB.DEPT_ID
+		    </if>
+		   WHERE B.USE_YN = 'Y'
+		   <if test="@org.springframework.util.StringUtils@isEmpty(isHystec)">
+		   	 /* 하이스텍(XC04) 제외 */
+		   	 AND  B.DEPT_ID NOT IN ('10120881','10120882', '10120813', 'XB20', 'XB21', 'XB22', 'XB23', 'XB24', 'XC04')
+		   </if>
+		   <if test="not @org.springframework.util.StringUtils@isEmpty(isHystec)">
+		     /* 하이스텍(XC04) 포함 */                  
+		     AND  B.DEPT_ID NOT IN ('10120881','10120882', '10120813', 'XB20', 'XB21', 'XB22', 'XB23', 'XB24')
+		   </if>   
+		START WITH A.PRNT_ORG_CD = '10103709'
+		CONNECT BY PRIOR A.ORG_CD = A.PRNT_ORG_CD 
+		   ORDER SIBLINGS BY A.ORG_NAM
+	</select>
+	
+	<!-- 보안담당자 신규/변경 신청 > scChangeNo 시퀀스 채번 - selectScChangeNoSeq (ASIS : dmSecrtChange_Seq_S) -->
+	<select id="selectScChangeNoSeq" resultType="Integer">
+		/* 보안담당자 신규/변경 신청 > scChangeNo 시퀀스 채번 - secrtChangeSeq */
+		SELECT SEQ_SC_CHANGE_NO.nextval as SC_CHANGE_NO
+	      FROM DUAL
+	</select>
+	
+	<!-- 보안담당자 신규/변경 신청 > 결재선 AP_SEQ 증가처리 - updateSecrtChangeApAppr -->
+	<update id="updateSecrtChangeApAppr" parameterType="java.lang.String">
+		UPDATE AP_APPR 
+   		   SET AP_SEQ = AP_SEQ + 1
+  		 WHERE DOC_ID = #{0}
+	</update>
+	
+	
+	<!-- 보안담당자 신규/변경 신청 > 결재선 추가 - insertSecrtChangeApAppr (ASIS : dmSecrtChange_ApAppr_I) -->
+	<insert id="insertSecrtChangeApAppr" parameterType="Map">
+		/* 보안담당자 신규/변경 신청 > 결재선 추가 - insertSecrtChangeApAppr (ASIS : dmSecrtChange_ApAppr_I) */
+		INSERT INTO SECURITYADM.AP_APPR
+			(
+				DOC_ID
+				,AP_SEQ
+				,APPR_DEPT_GBN
+				,COMP_ID
+				,DEPT_ID
+				,JW_ID
+				,EMP_ID
+				,APPR_RESULT
+				,CANCELETC
+				,AUTO_SIGN
+				,DEL_YN
+				,AC_IP
+				,CRT_BY
+				,CRT_DTM
+				,MOD_BY
+				,MOD_DTM
+			) values (
+				#{docId}
+				,#{apSeq}
+				,#{apprDeptGbn}
+				,#{compId}
+				,#{deptId}
+				,#{jwId}
+				,#{empId}
+				,#{apprResult}
+				,#{canceletc}
+				,#{autoSign}
+				,#{delYn}
+				,#{acIp}
+				,#{crtBy}
+				,SYSDATE
+				,#{modBy}
+				,SYSDATE
+			)
+	</insert>
+	
+	<!-- 보안담당자 신규/변경 신청 > AP_DOC Update - updateApDocScrtChg (ASIS : dmApDocScrtChgUpdate) -->
+	<update id="updateApDocScrtChg" parameterType="Map">
+		/* 보안담당자 신규/변경 신청 > AP_DOC Update - updateApDocScrtChg (ASIS : dmApDocScrtChgUpdate) */
+		UPDATE SECURITYADM.AP_DOC SET
+			COMP_ID 		= #{compId}, 
+			AP_SEQ 			= #{apSeq},
+			DEPT_ID 		= #{deptId},
+			JW_ID 			= #{jwId},
+			EMP_ID 			= #{empId},
+			APPR_DEPT_GBN 	= #{apprDeptGbn},
+			APPR_STAT 		= #{apprStat},
+			APPR_RESULT 	= #{apprResult},
+			MOD_BY 			= #{modBy},
+			MOD_DTM			= SYSDATE	
+		WHERE DOC_ID = #{docId}
+	</update>
+	
+	<!-- 보안담당자 신규/변경 신청 > 신청정보 Select - selectSecrtChange (ASIS : ) -->
+	<select id="selectSecrtChange" parameterType="Map" resultType="CamelHashMap">
+		SELECT *
+		  FROM SC_CHANGE
+		 WHERE SC_CHANGE_NO = #{scChangeNo}
+	</select>
+	
+	<!-- 보안담당자 신규/변경 신청 > 신청정보 Insert - insertSecrtChange (ASIS : dmSecrtChange_I) -->
+	<insert id="insertSecrtChange" parameterType="Map">
+		/* 보안담당자 신규/변경 신청 > 신청정보 Insert - insertSecrtChange */
+		INSERT INTO SC_CHANGE
+			(
+				SC_CHANGE_NO
+				,COMP_ID
+				,DEPT_ID
+				,JW_ID
+				,EMP_ID
+				,OLD_COMP_ID
+				,OLD_DEPT_ID
+				,OLD_JW_ID
+				,OLD_EMP_ID
+				,OLD_RSN
+				,NEW_COMP_ID
+				,NEW_DEPT_ID
+				,NEW_JW_ID
+				,NEW_EMP_ID
+				,NEW_RSN
+				,PRMS_DEPT_ID
+				,PRMS_JW_ID
+				,PRMS_EMP_ID
+				,PRMS_DT
+				,DOC_ID
+				,AC_IP
+				,CRT_BY
+				,CRT_DTM
+				,MOD_BY
+				,MOD_DTM
+				,SC_DEPT_SEC_NO
+				,NEW_JB_GBN
+				,NEW_TEAM_GBN
+				,NEW_MPRS_GBN
+				,SEC_DEPT_ID
+			) 
+			VALUES 
+			(
+				  #{scChangeNo}
+				, #{compId}
+				, #{deptId}
+				, #{jwId}
+				, #{empId}
+				, (SELECT COMP_ID FROM SC_DEPT_SEC WHERE SC_DEPT_SEC_NO = #{scDeptSecNo})
+				, (SELECT DEPT_ID FROM SC_DEPT_SEC WHERE SC_DEPT_SEC_NO = #{scDeptSecNo})
+				, (SELECT JW_ID   FROM SC_DEPT_SEC WHERE SC_DEPT_SEC_NO = #{scDeptSecNo})
+				, (SELECT EMP_ID  FROM SC_DEPT_SEC WHERE SC_DEPT_SEC_NO = #{scDeptSecNo})
+				, #{oldRsn}
+				, #{newCompId}
+				, #{newDeptId}
+				, #{newJwId}
+				, #{newEmpId}
+				, #{newRsn}
+				, #{prmsDeptId}
+				, #{prmsJwId}
+				, #{prmsEmpId}
+				, REPLACE(#{prmsDt}, '-', '')
+				, #{docId}
+				, #{acIp}
+				, #{crtBy}
+				, SYSDATE
+				, #{crtBy}
+				, SYSDATE
+				, #{scDeptSecNo}
+				, #{newJbGbn}
+				, #{newTeamGbn}
+				, #{mprsGbn}
+				, #{secDeptId}
+			)
+	</insert>
+	
+	<!-- 보안담당자 신규/변경 신청 > 이전 신청정보 Insert - insertScDeptSecEmpPre (ASIS : dmSecrtChange_ScDeptSecEmpPre_I) -->
+	<insert id="insertScDeptSecEmpPre" parameterType="Map">
+		/* 보안담당자 신규/변경 신청 > 이전 신청정보 Insert - insertScDeptSecEmpPre */
+		INSERT INTO SC_DEPT_SEC_EMP_PRE
+		(
+		SC_CHANGE_NO, SEC_COMP_ID, SEC_DEPT_ID, SEC_EMP_ID, ENA_COMP_ID, ENA_DEPT_ID, DEL_YN, AC_IP, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM
+		) 
+		SELECT 
+		     #{scChangeNo}
+		    ,(SELECT COMP_ID FROM CO_DEPT WHERE DEPT_ID = #{secDeptId})
+		    ,#{secDeptId}
+		    ,#{newEmpId}
+		    ,B.COMP_ID
+		    ,B.DEPT_ID
+		    ,'N'
+		    ,#{acIp}
+		    ,#{empId}
+		    ,SYSDATE
+		    ,#{empId}
+		    ,SYSDATE
+		FROM  CO_DEPT B
+		WHERE  B.USE_YN = 'Y'
+		  AND (B.DEPT_ID = #{secDeptId} OR B.UPDEPT_ID = #{secDeptId})
+	</insert>
+	
+	
+	<!-- + 보안담당자 신규/변경 신청 > 결제 후처리 승인 Start ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 1) 구 보안 담당자 정보  UPDATE (삭제 플래그 처리) -  deleteSecrtChangeDeptSec (ASIS : dmSecrtChange_DeptSec_D) -->
+	<update id="deleteSecrtChangeDeptSec" parameterType="Map">
+		UPDATE SC_DEPT_SEC
+		   SET DEL_YN = 'Y',
+		       AC_IP = #{acIp},
+		       MOD_BY = #{modBy},
+		       MOD_DTM = SYSDATE
+	     WHERE SC_DEPT_SEC_NO = (SELECT SC_DEPT_SEC_NO FROM SC_CHANGE WHERE SC_CHANGE_NO = #{lid})
+	</update>
+	
+	<!-- 신 보안담당자 정보 INSERT -->
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 2-1) 신 보안담당자 정보 INSERT - insertSecrtChangeDeptSec (ASIS : dmSecrtChange_DeptSec_I) -->
+	<insert id="insertSecrtChangeDeptSec"  parameterType="Map">
+		INSERT INTO SC_DEPT_SEC 
+			(SC_DEPT_SEC_NO, COMP_ID, DEPT_ID, JW_ID, EMP_ID, DEL_YN, AC_IP, CRT_BY, CRT_DTM, JB_GBN, TEAM_GBN)
+		VALUES (
+			SEQ_SC_DEPT_SEC_NO.NEXTVAL
+			, (SELECT COMP_ID FROM CO_DEPT WHERE DEPT_ID = #{secDeptId})
+			, #{secDeptId}
+			, #{newJwId}
+			, #{newEmpId}
+			, 'N'
+			, #{acIp}
+			, #{modBy}
+			, SYSDATE
+			, #{jbGbn}
+			, #{teamGbn}
+		)
+	</insert>
+	
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 2-2) 신 보안담당자 정보 INSERT - deleteSecrtChangeScDeptSecEmp (ASIS : dmSecrtChange_ScDeptSecEmp_D) -->
+	<delete id="deleteSecrtChangeScDeptSecEmp" parameterType="Map">
+		DELETE FROM SC_DEPT_SEC_EMP 
+		 WHERE SEC_EMP_ID = #{newEmpId}
+		   AND SEC_DEPT_ID = #{secDeptId}
+	</delete>
+	
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 2-3) 신 보안담당자 정보 INSERT - insertSecrtChangeScDeptSecEmp (ASIS : dmSecrtChange_ScDeptSecEmp_I) -->
+	<insert id="insertSecrtChangeScDeptSecEmp" parameterType="Map">
+		INSERT INTO SC_DEPT_SEC_EMP 
+			( SEC_COMP_ID, SEC_DEPT_ID, SEC_EMP_ID, ENA_COMP_ID, ENA_DEPT_ID, DEL_YN, AC_IP, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM ) 
+		SELECT 
+		     A.SEC_COMP_ID
+		    ,A.SEC_DEPT_ID
+		    ,A.SEC_EMP_ID
+		    ,A.ENA_COMP_ID
+		    ,A.ENA_DEPT_ID
+		    ,A.DEL_YN
+		    ,A.AC_IP
+		    ,A.CRT_BY
+		    ,SYSDATE
+		    ,A.MOD_BY
+		    ,SYSDATE
+		FROM SC_DEPT_SEC_EMP_PRE A
+		WHERE A.SC_CHANGE_NO = #{lid}
+	</insert>
+	
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 3) 구 보안 담당자 권한 삭제 - deleteSecrtChangeOldSecrtEmpAuth (ASIS : dmSecrtChange_Old_Secrt_Emp_Auth_D_U) -->
+	<delete id="deleteSecrtChangeOldSecrtEmpAuth" parameterType="Map">
+		DELETE FROM CO_EMP_AUTH
+	 	 WHERE EMP_ID = (SELECT OLD_EMP_ID FROM SC_CHANGE WHERE SC_CHANGE_NO = #{lid}) 
+	       AND AUTH_ID = '11'
+	</delete>
+	
+	<!-- 보안담당자 신규/변경 신청 > 결제 후처리 승인 > 4) 신 보안담당자권한 부여 - updateSecrtChangeNewSecrtEmpAuth(ASIS : dmSecrtChange_New_Secrt_Emp_Auth_U) -->
+	<update id="updateSecrtChangeNewSecrtEmpAuth"  parameterType="Map">
+		MERGE INTO CO_EMP_AUTH T1
+		USING (SELECT (SELECT NEW_EMP_ID FROM SC_CHANGE WHERE SC_CHANGE_NO = #{lid}) EMP_ID,
+		              (SELECT EMP_ID FROM SC_CHANGE WHERE SC_CHANGE_NO = #{lid}) APPL_EMP_ID,
+		              '11' AS AUTH_ID 
+		         FROM DUAL
+		      ) T2
+		      ON (T1.EMP_ID = T2.EMP_ID AND T1.AUTH_ID = T2.AUTH_ID)
+		 WHEN MATCHED THEN
+		      UPDATE SET
+		             T1.MOD_BY = T2.APPL_EMP_ID,
+		             T1.MOD_DTM = SYSDATE
+	     WHEN NOT MATCHED THEN
+	          INSERT (EMP_ID, AUTH_ID, CRT_BY, CRT_DTM)
+	          VALUES (T2.EMP_ID, T2.AUTH_ID, T2.APPL_EMP_ID, SYSDATE)
+	</update>
+	<!-- + 보안담당자 신규/변경 신청 > 결제 후처리 승인 End ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+	
+	<!-- 보안담당자 신규/변경 신청 > 보안담당자 List - secrtDeptDuptyCheckDuptyRenew (ASIS : dmSecrtDeptDupty_CheckDuptyRenew) -->
+	<select id="secrtDeptDuptyCheckDuptyRenew" parameterType="Map" resultType="CamelHashMap">
+		/* 보안담당자 신규/변경 신청 > 보안담당자 List - secrtDeptDuptyCheckDuptyRenew */
+        SELECT FN_GET_EMP_DEPT_JW_NM(EMP_ID)||'('||EMP_ID||')' AS NAME,
+                  EMP_ID AS CODE,
+                  SC_DEPT_SEC_NO
+          FROM SC_DEPT_SEC
+         WHERE DEPT_ID IN (
+         	SELECT DEPT_ID FROM CO_DEPT 
+         	 WHERE DEPT_ID = #{searchDeptId} 
+         	 UNION 
+         	SELECT UPDEPT_ID AS DEPT_ID 
+         	  FROM CO_DEPT WHERE DEPT_ID = #{searchDeptId}) 
+           AND NVL(DEL_YN, 'N') = 'N'
+         ORDER BY EMP_ID
+	</select>
+	
+	<!-- 보안담당자 신규/변경 신청 > 보안담당자 정보 - secrtDeptDuptyDuptyInfo (ASIS : dmSecrtDeptDupty_DuptyInfo) -->
+	<select id="secrtDeptDuptyDuptyInfo" parameterType="Map" resultType="CamelHashMap">
+		/* 보안담당자 신규/변경 신청 > 보안담당자 정보 - secrtDeptDuptyDuptyInfo */
+		SELECT 
+		     A.EMP_ID
+		    ,B.EMP_NM
+		    ,A.COMP_ID
+		    ,FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+		    ,A.DEPT_ID
+		    ,FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+		    ,A.JW_ID
+		    ,FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		FROM   SC_DEPT_SEC A, CO_EMP B
+		WHERE A.SC_DEPT_SEC_NO = #{scDeptSecNo}
+		AND A.EMP_ID = B.EMP_ID
+	</select>
+	
+
+</mapper>	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.LogManageRepository">
+
+
+	<select id="selectUserLogList" parameterType="Map" resultType="CamelHashMap">
+		/*  LogManageRepository.selectUserLogList (dmLogManageList) */
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY T.REG_DT DESC) AS ROW_NUM,
+				T.*
+			FROM (
+				SELECT
+					TO_CHAR(A.REG_DT, 'YYYY-MM-DD HH24:MI:SS') AS REG_DT,
+					CASE
+						WHEN LOG_TYPE = 'WEB' OR LOG_TYPE = 'MSA' THEN
+							B.MENU_NM
+						ELSE
+							A.REMARK
+					END MENU_NM,
+					(
+						CASE
+							WHEN CRUD_TYPE = 'I' THEN '등록'
+							WHEN CRUD_TYPE = 'U' THEN '수정'
+							WHEN CRUD_TYPE = 'D' THEN '삭제'
+							WHEN CRUD_TYPE = 'S' THEN '조회'
+							WHEN CRUD_TYPE = 'P' THEN '인쇄'
+							WHEN CRUD_TYPE = 'E' THEN '다운로드'
+						END
+					) AS CRUD_TYPE,
+					CASE
+						WHEN LOG_TYPE = 'WEB' OR LOG_TYPE = 'MSA' THEN
+							FN_GET_EMP_NM(A.REG_ID)
+						ELSE
+							FN_GET_IO_EMP_NM(A.REG_ID)
+					END REG_NM,
+					CASE
+						WHEN LOG_TYPE = 'WEB' OR LOG_TYPE = 'MSA' THEN
+							FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.REG_ID))
+						ELSE
+							''
+					END DEPT_NM,
+					A.REMOTE_IP,
+					A.REQ_PARAM,
+					A.REMARK_TYPE,
+					A.REMARK,
+					A.REG_ID,
+					A.LOG_TYPE
+				FROM CO_LOG A
+				LEFT OUTER JOIN CO_MENU B
+				ON A.MENU_ID = B.MENU_ID
+				LEFT OUTER JOIN CO_MENU_WELCOME C
+				ON A.MENU_ID = C.MENU_ID
+				WHERE 1 = 1
+				<if test="not @org.springframework.util.StringUtils@isEmpty(regStartDate)">
+					AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ >= ]]> #{regStartDate}
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(regEndDate)">
+					AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ <= ]]> #{regEndDate}
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(crudType)">
+					AND A.CRUD_TYPE = #{crudType}
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(regId)">
+					AND A.REG_ID = UPPER(#{regId})
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(logType)">
+					<if test='logType.equals("ESECURITY")'>
+						AND ( A.LOG_TYPE = 'WEB' OR A.LOG_TYPE = 'MSA' )
+					</if>
+					<if test='!logType.equals("ESECURITY")'>
+						AND A.LOG_TYPE = #{logType}
+					</if>
+				</if>
+			) T
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(menuNm)">
+				AND MENU_NM LIKE '%' || #{menuNm} || '%'
+			</if>
+		) ALL_LIST
+		WHERE ROW_NUM BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+	</select>
+
+	<select id="selectUserLogListCnt" parameterType="Map" resultType="Integer">
+		/*  LogManageRepository.selectUserLogListCnt (dmLogManageList) */
+		SELECT
+			COUNT(*)
+		FROM (
+			SELECT
+				CASE
+					WHEN LOG_TYPE = 'WEB' OR LOG_TYPE = 'MSA' THEN
+						B.MENU_NM
+					ELSE
+						A.REMARK
+				END MENU_NM
+			FROM CO_LOG A
+			LEFT OUTER JOIN CO_MENU B
+			ON A.MENU_ID = B.MENU_ID
+			LEFT OUTER JOIN CO_MENU_WELCOME C
+			ON A.MENU_ID = C.MENU_ID
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(regStartDate)">
+				AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ >= ]]> #{regStartDate}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(regEndDate)">
+				AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ <= ]]> #{regEndDate}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(crudType)">
+				AND A.CRUD_TYPE = #{crudType}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(regId)">
+				AND A.REG_ID = UPPER(#{regId})
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(logType)">
+				<if test='logType.equals("ESECURITY")'>
+					AND ( A.LOG_TYPE = 'WEB' OR A.LOG_TYPE = 'MSA' )
+				</if>
+				<if test='!logType.equals("ESECURITY")'>
+					AND A.LOG_TYPE = #{logType}
+				</if>
+			</if>
+		) T
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(menuNm)">
+			AND MENU_NM LIKE '%' || #{menuNm} || '%'
+		</if>
+	</select>
+
+	<select id="selectUsageStatMenu" parameterType="Map" resultType="CamelHashMap">
+		/*  LogManageRepository.selectUsageStatMenu (dmLogMenuManageList) */
+		SELECT
+			ALL_LIST.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY T_CRUD_TYPE DESC) AS ROW_NUM,
+				T.*
+			FROM (
+				SELECT
+					MENU_NM,
+					SUM(S_CRUD_TYPE) AS S_CRUD_TYPE,
+					SUM(I_CRUD_TYPE) AS I_CRUD_TYPE,
+					SUM(U_CRUD_TYPE) AS U_CRUD_TYPE,
+					SUM(D_CRUD_TYPE) AS D_CRUD_TYPE,
+					SUM(T_CRUD_TYPE) AS T_CRUD_TYPE
+				FROM (
+					SELECT
+						B.MENU_NM,
+						NVL(CASE WHEN A.CRUD_TYPE = 'S' THEN COUNT(*) END,0) AS S_CRUD_TYPE,
+						NVL(CASE WHEN A.CRUD_TYPE = 'I' THEN COUNT(*) END,0) AS I_CRUD_TYPE,
+						NVL(CASE WHEN A.CRUD_TYPE = 'U' THEN COUNT(*) END,0) AS U_CRUD_TYPE,
+						NVL(CASE WHEN A.CRUD_TYPE = 'D' THEN COUNT(*) END,0) AS D_CRUD_TYPE,
+						NVL(COUNT(*),0) AS T_CRUD_TYPE
+					FROM CO_LOG A
+					INNER JOIN CO_MENU B ON A.MENU_ID = B.MENU_ID
+					WHERE 1 = 1
+					<if test="not @org.springframework.util.StringUtils@isEmpty(regStartDate)">
+						AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ >= ]]> #{regStartDate}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(regEndDate)">
+						AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ <= ]]> #{regEndDate}
+					</if>
+					<if test="not @org.springframework.util.StringUtils@isEmpty(menuNm)">
+						AND B.MENU_NM LIKE '%' || #{menuNm} || '%'
+					</if>
+					GROUP BY B.MENU_NM, A.CRUD_TYPE
+				) TT
+				GROUP BY MENU_NM
+			) T
+		) ALL_LIST
+		WHERE ROW_NUM BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1	AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+	</select>
+
+	<select id="selectUsageStatMenuCnt" parameterType="Map" resultType="Integer">
+		/*  LogManageRepository.selectUsageStatMenuCnt (dmLogMenuManageListCount) */
+		SELECT
+			COUNT(*) AS TOT_CNT
+		FROM CO_LOG A
+		INNER JOIN CO_MENU B ON A.MENU_ID = B.MENU_ID
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(regStartDate)">
+			AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ >= ]]> #{regStartDate}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(regEndDate)">
+			AND TO_CHAR(A.REG_DT, 'YYYYMMDDHH24MISS') <![CDATA[ <= ]]> #{regEndDate}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(menuNm)">
+			AND B.MENU_NM LIKE '%' || #{menuNm} || '%'
+		</if>
+		GROUP BY B.MENU_NM, A.CRUD_TYPE
+	</select>
+
+	<select id="selectUsageStatMonth" parameterType="Map" resultType="CamelHashMap">
+		/*  LogManageRepository.selectUsageStatMonth (dmLogMonthManageList) */
+		SELECT
+			MM ||'월' AS MM,
+			S_CRUD_TYPE,
+			I_CRUD_TYPE,
+			U_CRUD_TYPE,
+			D_CRUD_TYPE,
+			T_CRUD_TYPE
+		FROM (
+			SELECT
+				MM,
+				NVL(SUM(S_CRUD_TYPE),0) AS S_CRUD_TYPE,
+				NVL(SUM(I_CRUD_TYPE),0) AS I_CRUD_TYPE,
+				NVL(SUM(U_CRUD_TYPE),0) AS U_CRUD_TYPE,
+				NVL(SUM(D_CRUD_TYPE),0) AS D_CRUD_TYPE,
+				NVL(SUM(S_CRUD_TYPE),0) + NVL(SUM(I_CRUD_TYPE),0) + NVL(SUM(U_CRUD_TYPE),0) + NVL(SUM(D_CRUD_TYPE),0) AS T_CRUD_TYPE
+			FROM (
+				SELECT
+					A.MM,
+					(
+						CASE
+							WHEN CRUD_TYPE = 'S' THEN COUNT(*)
+						END
+					) AS S_CRUD_TYPE,
+					(
+						CASE
+							WHEN CRUD_TYPE = 'I' THEN COUNT(*)
+						END
+					) AS I_CRUD_TYPE,
+					(
+						CASE
+							WHEN CRUD_TYPE = 'U' THEN COUNT(*)
+						END
+					) AS U_CRUD_TYPE,
+					(
+						CASE
+							WHEN CRUD_TYPE = 'D' THEN COUNT(*)
+						END
+					) AS D_CRUD_TYPE
+				FROM
+				(
+					SELECT
+						LEVEL MM
+					FROM DUAL
+					CONNECT BY LEVEL <![CDATA[ <= ]]> 12
+				) A,
+				(
+					SELECT
+						TO_NUMBER(TO_CHAR(REG_DT,'MM')) MM,
+						CRUD_TYPE
+					FROM CO_LOG
+					WHERE 1 = 1
+					<if test="not @org.springframework.util.StringUtils@isEmpty(years)">
+						AND TO_CHAR(REG_DT,'YYYY') = #{years}
+					</if>
+				) B
+				WHERE A.MM = B.MM(+)
+				GROUP BY A.MM, CRUD_TYPE
+			) T
+			GROUP BY MM
+			ORDER BY MM
+		) TT
+	</select>
+</mapper>

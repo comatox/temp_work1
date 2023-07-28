@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.AuthRepository">
+
+  <select id="selectCoEmpAuthList" parameterType="CoEmpAuthDTO" resultType="CoEmpAuthDTO">
+    SELECT
+    A.EMP_ID,
+    A.AUTH_ID,
+    A.AC_IP,
+    A.CRT_BY,
+    A.CRT_DTM,
+    A.MOD_BY,
+    A.MOD_DTM
+    FROM CO_EMP_AUTH A
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+      AND UPPER(A.EMP_ID) = UPPER(#{empId})
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(authId)">
+      AND A.AUTH_ID = #{authId}
+    </if>
+    ORDER BY A.EMP_ID, A.AUTH_ID
+  </select>
+
+  <select id="selectCoEmpAuth" parameterType="CoEmpAuthDTO" resultType="CoEmpAuthDTO">
+    SELECT A.EMP_ID,
+           A.AUTH_ID,
+           A.AC_IP,
+           A.CRT_BY,
+           A.CRT_DTM,
+           A.MOD_BY,
+           A.MOD_DTM
+    FROM CO_EMP_AUTH A
+    WHERE A.EMP_ID = #{empId}
+      AND A.AUTH_ID = #{authId}
+  </select>
+
+  <select id="selectCoAuthMenuList" parameterType="CoAuthMenuDTO" resultType="CoAuthMenuDTO">
+    SELECT
+    A.AUTH_ID,
+    A.MENU_ID,
+    A.AC_IP,
+    A.CRT_BY,
+    A.CRT_DTM,
+    A.MOD_BY,
+    A.MOD_DTM
+    FROM CO_AUTH_MENU A
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(authId)">
+      AND A.AUTH_ID = #{authId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(menuId)">
+      AND A.MENU_ID = #{menuId}
+    </if>
+    ORDER BY A.AUTH_ID, A.MENU_ID
+  </select>
+
+  <select id="selectCoAuthMenu" parameterType="CoAuthMenuDTO" resultType="CoAuthMenuDTO">
+    SELECT A.AUTH_ID,
+           A.MENU_ID,
+           A.AC_IP,
+           A.CRT_BY,
+           A.CRT_DTM,
+           A.MOD_BY,
+           A.MOD_DTM
+    FROM CO_AUTH_MENU A
+    WHERE A.MENU_ID = #{menuId}
+      AND A.AUTH_ID = #{authId}
+  </select>
+
+  <select id="selectLoginUserView" parameterType="CoEmpDTO" resultType="HashMap">
+    SELECT EMP_ID
+         , EMP_NM
+         , COMP_ID
+         , DEPT_ID
+         , JC_CD
+         , JW_ID
+         , ID
+         , TEL_NO1
+         , TEL_NO2
+         , EMAIL
+         , DIV_CD
+         , JOBLOCAT                                AS DIV_NM
+         , JUMIN_NO                                AS BIRTH_NO
+         , JOIN_DT
+         , ZIP1
+         , ZIP2
+         , ADDR
+         , FN_GET_CONAME('COMP', '', COMP_ID)      AS COMP_NM
+         , FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID) AS DEPT_NM
+         , FN_GET_CONAME('JC', JC_CD, COMP_ID)     AS JC_NM
+         , FN_GET_CONAME('JW', JW_ID, COMP_ID)     AS JW_NM
+         , GATE_ID
+         , WGRP_CD
+         , DEFAULT_GATE_ID
+         , HT_CD
+         , TO_CHAR(NVL(LOGIN_FAIL_CNT, 0)) AS LOGIN_FAIL_CNT
+    FROM CO_EMP
+    WHERE UPPER(ID) = UPPER(#{id})
+      AND PASSWORD = #{password}
+      AND USE_YN = 'Y'
+      AND EMP_ID > ' '
+  </select>
+
+  <select id="selectLoginUserAuth" parameterType="CoEmpDTO" resultType="String">
+    SELECT A.AUTH_ID
+    FROM CO_EMP_AUTH A,
+         CO_AUTH B
+    WHERE UPPER(EMP_ID) = (select UPPER(EMP_ID) from co_emp where UPPER(ID) = UPPER(#{id}))
+      AND A.AUTH_ID = B.AUTH_ID
+      AND A.EMP_ID > ' '
+    ORDER BY B.SEQ
+  </select>
+
+  <insert id="insertLoginUserLog" parameterType="CoEmpDTO">
+    INSERT INTO SY_LOG_LOGIN
+    ( LOGIN_ID
+    , AC_IP
+    , LOGIN_DTM)
+    VALUES (  UPPER(#{id})
+           , #{acIp}
+           ,  SYSDATE)
+  </insert>
+
+  <update id="insertLoginUserInfo" parameterType="CoEmpDTO">
+    MERGE INTO SY_LOG_LOGIN_INFO A
+      USING (SELECT UPPER(#{id}) AS LOGIN_ID
+             FROM DUAL) B
+      ON (A.LOGIN_ID = B.LOGIN_ID)
+      WHEN MATCHED THEN
+        UPDATE SET
+          A.LOGIN_SESSION_ID = #{sessionId},
+          A.AC_IP = #{acIp},
+          A.LOGIN_DTM = SYSDATE
+      WHEN NOT MATCHED THEN
+        INSERT
+          (LOGIN_ID, LOGIN_SESSION_ID, AC_IP, LOGIN_DTM)
+          VALUES ( UPPER(B.LOGIN_ID)
+                 , UPPER(#{sessionId})
+                 , #{acIp}
+                 , SYSDATE)
+  </update>
+
+  <select id="selectLoginUserPassChk" parameterType="CoEmpDTO" resultType="CoEmpDTO">
+    SELECT CASE
+             WHEN ID = PASSWORD THEN 'I'
+             WHEN PASSWORD = SUBSTR(JUMIN_NO, -7) THEN 'Z'
+             ELSE 'Y' END AS CHK
+    FROM CO_EMP
+    WHERE UPPER(ID) = UPPER(#{id})
+      AND USE_YN = 'Y'
+      AND EMP_ID > ' '
+  </select>
+
+  <select id="selectLoginAdminUserAuth" parameterType="CoEmpDTO" resultType="CoEmpAuthDTO">
+    SELECT *
+    FROM CO_EMP_AUTH
+    WHERE UPPER(EMP_ID) = (SELECT UPPER(EMP_ID) FROM CO_EMP WHERE UPPER(ID) = UPPER(#{ID}))
+      AND AUTH_ID = '1'
+  </select>
+
+  <select id="selectLoginUserAccountCheck" parameterType="String" resultType="CoEmpDTO">
+    SELECT *
+    FROM CO_EMP
+    WHERE UPPER(ID) = UPPER(#{id})
+  </select>
+
+  <update id="updateUpdateLoginUserFailCount" parameterType="String">
+    UPDATE CO_EMP
+    SET LOGIN_FAIL_CNT = NVL(LOGIN_FAIL_CNT, 0) + 1
+    WHERE UPPER(ID) = UPPER(#{id})
+  </update>
+
+  <update id="updateUpdateLoginUserFailResetCount" parameterType="String">
+    UPDATE CO_EMP
+    SET LOGIN_FAIL_CNT = 0
+    WHERE UPPER(ID) = UPPER(#{id})
+  </update>
+
+</mapper>
+
+

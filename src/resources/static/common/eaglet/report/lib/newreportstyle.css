@@ -1,0 +1,276 @@
+/***********************************************************************/
+/* 작 성  일 자: 2007.06.26                                                             */
+/* 작   성   자: 김태훈                                                                     */
+/**********************************************************************/
+/* 수정 이력:                                                                                */
+/**********************************************************************/
+
+/*정렬*/
+.center { text-align:center;}
+.left { text-align:left;}
+.right { text-align:right;}
+.bottom { text-align:bottom;}
+
+/*폰트지정*/
+.font1 { font-size:12px; color:#FFFFFF;}
+.font2 { font-size:10px; color:#142B6D; font-weight: bold;}
+.font3 { font-size:30px; color:#142B6D; font-weight: bold; font-family: "tahoma";}
+.font4 { font-size:12px; color:#142B6D;}
+.font5 { font-size:10px; color:#FFFFFF;}
+.font6 { font-size:9px; color:#FFFFFF;}
+
+.b {font-weight: bold;}
+
+
+/*컬러지정*/
+.bg1 {background-color:#142B6D;}
+.bg2 {background-color:#F5F8FF;}
+
+/*$$$$$$$$$$$$$$$$$$$$ 참고 $$$$$$$$$$$$$$$$$$$$$$$$$*/
+/* title1,cell1 일경우 첫줄을 뜻한다.*/
+/* title2,cell2 일경우 끝줄을 뜻한다.*/
+
+
+/*#####################################################################################################################*/
+
+
+/*첫줄 연한 파란색 맨왼쪽 스타일  td_list3*/
+.title1_left{
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 0px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#F5F8FF;
+}
+
+/*첫줄 연한 파란색 맨왼쪽 스타일  td_list3*/
+.title1_left2{
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#F5F8FF;
+}
+
+
+
+/*연한 파란색 중간 스타일 td_list3_1*/
+.title1_center {
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#F5F8FF;
+}
+
+/*끝줄 연한 파란색 맨왼쪽 스타일 td_list14*/
+.title2_left {
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 0px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#F5F8FF;
+}
+
+/*끝줄 연한 파란색 중간 스타일 td_list14_1*/
+.title2_center {
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#F5F8FF;
+}
+
+
+/*첫줄 맨왼쪽 연한 파란색이 하얀색일경우 td_list14*/
+.title1_left_c {
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#ffffff;
+}
+
+/*끝줄 맨왼쪽 연한 파란색이 하얀색일경우 td_list14_2*/
+.title2_left_c {
+	border: 1px solid #142B6D;
+	height: 30px;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 0px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 8pt;	
+	background-color:#ffffff;
+}
+
+
+/*첫줄 하얀색 필드일경우 td_list12 */
+.cell1 {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 7pt;	
+}
+
+.cell1_sfont {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 6pt;	
+	background-color:#ffffff;
+}
+
+/*끝줄 하얀색 필드일경우 td_list13*/
+.cell2 {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 7pt;	
+	background-color:#ffffff;
+}
+
+.cell2_sfont {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 0px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 6pt;	
+	background-color:#ffffff;
+}
+
+/*첫줄 하얀색 필드일경우 td_list12 */
+.cell3 {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 7pt;	
+}
+
+.cell3_sfont {
+	border: 1px solid #142B6D;
+	padding-left:5px;
+	padding-right:5px;
+	border-top-width: 1px;
+	border-right-width: 1px;
+	border-bottom-width: 0px;
+	border-left-width: 1px;
+	border-top-style: solid;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: solid;
+	font-family: "tahoma";
+	font-size: 6pt;	
+	background-color:#ffffff;
+}
+

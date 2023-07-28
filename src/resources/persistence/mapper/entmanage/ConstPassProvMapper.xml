@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.ConstPassProvRepository">
+	
+	<select id="selectConstPassProvList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT 
+			ROW_NUMBER() OVER ( ORDER BY T1.CONST_PASS_NO  DESC ) AS ROW_NUM,
+			T1.CONST_PASS_NO,
+			T2.CONST_PRJ_NM, 
+			T2.CONST_ORDER_NO, 
+			(SELECT DETL_NM FROM CO_CODE_D
+				WHERE GRP_CD = 'A064'
+				AND DETL_CD =  T1.CONST_COMP_ID) AS COMP_NM, 
+			(SELECT EMP_NM FROM IO_EMP A WHERE A.IO_EMP_ID =  T1.IO_EMP_ID) AS EMP_NM, 
+			T1.IO_COMP_ID ,
+			T1.CONST_PASS_COUNT,
+            (SELECT COMP_KO_NM  FROM IO_COMP WHERE IO_COMP_ID =   T1.IO_COMP_ID) AS IO_COMP_NM,
+			T1.APPL_STAT,
+			FN_GET_CODE( 'Z033', T1.APPL_STAT, 'DETL_CD')  AS APPL_STAT_NM,
+			TO_CHAR(T1.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+		FROM IO_CONST_PASS T1, IO_CONST_PRJ_INFO T2
+		WHERE T1.CONST_ORDER_NO = T2.CONST_ORDER_NO
+			AND T1.CONST_PRJ_NO = T2.CONST_PRJ_NO
+			AND T1.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIdcardId)">
+		 	AND EXISTS (SELECT 1 FROM IO_CONST_PASS_CARD X WHERE X.CONST_PASS_NO = T1.CONST_PASS_NO AND X.IDCARD_ID = #{searchIdcardId})	
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstStrtDt)">
+		 	AND TO_CHAR(t1.CRT_DTM,'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{searchConstStrtDt},'-','') 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstEndDt)">
+		 	AND TO_CHAR(t1.CRT_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchConstEndDt},'-','')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+		 	AND T1.IO_EMP_ID IN (SELECT B.IO_EMP_ID FROM IO_EMP B WHERE UPPER(B.EMP_NM) LIKE  '%'||UPPER(#{searchIoEmpNm})||'%')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstPrjNm)">
+		 	AND UPPER(T1.CONST_PRJ_NM) LIKE '%'||UPPER(#{searchConstPrjNm})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstOrderNo)">
+		 	AND UPPER(T1.CONST_ORDER_NO) LIKE '%'||UPPER(#{searchConstOrderNo})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstCompId)">
+		 	AND T1.CONST_COMP_ID = #{searchConstCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+		 	AND T1.APPL_STAT = #{searchApplStat}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoCompNmSh)">
+		 	AND T1.IO_COMP_ID IN (SELECT  B.IO_COMP_ID FROM IO_COMP B WHERE UPPER(B.COMP_KO_NM) LIKE  '%'||UPPER(#{searchIoCompNmSh})||'%')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(projYn)">
+		 	<if test='"Y".equals(projYn)'>
+		 	AND T1.CONST_START_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYYMMDD')
+			AND T1.CONST_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYYMMDD')
+			</if>
+		 	<if test='"N".equals(projYn)'>
+		 	AND T1.CONST_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYYMMDD')	
+			</if>
+		</if>
+		ORDER BY ROW_NUM
+	</select>
+	
+	<select id="selectConstPassProvView" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			T1.CONST_PASS_NO,
+		    (SELECT COMP_NM FROM CO_COMP WHERE COMP_ID =  T1.COMP_ID) AS COMP_NM,
+		    (SELECT DEPT_NM FROM CO_DEPT WHERE DEPT_ID = T1.DEPT_ID) AS DEPT_NM,
+		    (SELECT JW_NM FROM CO_JW WHERE JW_ID =  T1.JW_ID) AS JW_NM,
+		    (SELECT EMP_NM FROM CO_EMP WHERE EMP_ID =   T1.EMP_ID) AS EMP_NM,
+		    (SELECT EMAIL FROM CO_EMP WHERE EMP_ID =   T1.EMP_ID) AS EMAIL,
+		    (SELECT COMP_KO_NM FROM IO_COMP WHERE IO_COMP_ID = T1.IO_COMP_ID)AS IO_COMP_NM,
+		    T1.EMP_ID,
+		    T1.IO_COMP_ID,
+		    T1.IO_EMP_ID,
+		    FN_GET_IO_EMP_NM(T1.IO_EMP_ID) AS IO_EMP_NM,
+		    FN_GET_IO_EMP_EMAIL_ADDR(T1.IO_EMP_ID) AS IO_EMAIL_ADDR,
+		    T1.CONST_ORDER_NO,
+		    T1.CONST_PRJ_NM,
+		    TO_CHAR(TO_DATE(T1.CONST_ORDER_DT,'YYYY-MM-DD'),'YYYY-MM-DD') AS CONST_ORDER_DT,
+		    TO_CHAR(TO_DATE(T1.CONST_START_DT,'YYYY-MM-DD'),'YYYY-MM-DD') AS CONST_START_DT,
+		    TO_CHAR(TO_DATE(T1.CONST_END_DT,'YYYY-MM-DD'),'YYYY-MM-DD') AS CONST_END_DT,      
+		    T1.CONST_COMP_ID,
+		    T1.MOD_DTM,
+		    (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A064' AND DETL_CD = T1.CONST_COMP_ID) AS CONST_COMP_NM,
+		    T1.CONST_PASS_COUNT,
+		    T1.CONTRACT_GBN,
+	        (SELECT COMP_KO_NM  FROM IO_COMP WHERE IO_COMP_ID = T1.SUPPLIER_NM ) AS SUPPLIER_NM,
+	        T1.DOC_ID,
+	        T1.APPL_STAT,
+		    T1.SUB_CONT_LVL,
+		    T1.SUB_CONT_ID1,
+		    T1.SUB_CONT_NM1 ,
+		    T1.SUB_CONT_CEO1,
+		    T1.SUB_CONT_ID2,
+		    T1.SUB_CONT_NM2,
+		    T1.SUB_CONT_CEO2,
+		    T1.SUB_CONT_ID3,
+		    T1.SUB_CONT_NM3,
+		    T1.SUB_CONT_CEO3,
+		    T1.FILE_PATH AS FILES,
+    	    replace (SUBSTR(T1.FILE_PATH, INSTR(T1.FILE_PATH, 'data', 1, 1), INSTR(T1.FILE_PATH, ';', 1, 1) - INSTR(T1.FILE_PATH, 'data', 1, 1)), '\','/') AS FILE_PATH,
+   		    SUBSTR(SUBSTR(T1.FILE_PATH, INSTR(T1.FILE_PATH,';',1,1) +1),1,LENGTH(SUBSTR(T1.FILE_PATH, INSTR(T1.FILE_PATH,';',1,1) +1)) -(LENGTH(T1.FILE_PATH) - INSTR(T1.FILE_PATH,';',1,2) + 1)) AS FILE_ID,         
+            SUBSTR(T1.FILE_PATH,INSTR(T1.FILE_PATH,';',1,2) + 1) AS FILE_NAME
+		FROM
+			IO_CONST_PASS T1,
+			IO_CONST_PRJ_INFO T2
+		WHERE 1=1
+			AND T1.CONST_ORDER_NO = T2.CONST_ORDER_NO
+			AND T1.CONST_PRJ_NO = T2.CONST_PRJ_NO
+			AND T1.CONST_PASS_NO  = #{constPassNo}
+	</select>
+
+	<select id="selectConstPassMngList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			ROW_NUMBER() OVER ( ORDER BY T1.CONST_PASS_NO  DESC ) AS ROW_NUM
+			,T1.CONST_PASS_NO
+			,TO_CHAR(CRT_DTM,'YYYY-MM-DD') AS CRT_DTM 
+			, CONST_PRJ_NM
+			, CONST_ORDER_NO
+			, ( SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD  = 'A064' AND    DETL_CD =  T1.CONST_COMP_ID) AS COMP_NM
+			, TO_CHAR(TO_DATE(CONST_START_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_START_DT
+			, TO_CHAR(TO_DATE(CONST_END_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_END_DT
+			, TO_CHAR(TO_DATE(CONST_START_DT,'YYYYMMDD'),'YYYY-MM-DD') || ' ~ ' || TO_CHAR(TO_DATE(CONST_END_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_PERIOD
+			, (SELECT COMP_KO_NM  FROM IO_COMP  WHERE IO_COMP_ID= T1.IO_COMP_ID) AS IO_COMP_NM
+			, (SELECT COUNT(1) FROM IO_CONST_PASS_CARD WHERE CONST_PASS_NO = T1.CONST_PASS_NO) CARD_CNT
+			, (SELECT COUNT(1) FROM IO_CONST_PASS_CARD WHERE CONST_PASS_NO = T1.CONST_PASS_NO AND CARD_STATUS = 'A0680002')AS CARD_USE_CNT
+			, CASE WHEN SYSDATE <![CDATA[<=]]> TO_DATE(CONST_END_DT,'YYYYMMDD')  AND SYSDATE <![CDATA[>=]]> TO_DATE(CONST_START_DT,'YYYYMMDD') THEN '진행중' 
+				   WHEN  SYSDATE <![CDATA[<]]>  TO_DATE(CONST_START_DT,'YYYYMMDD') THEN '준비중' 
+				   ELSE	'종료' END AS PROJSTATE
+		FROM IO_CONST_PASS T1
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIdcardId)">
+		 	AND EXISTS (SELECT 1 FROM IO_CONST_PASS_CARD X WHERE X.CONST_PASS_NO = T1.CONST_PASS_NO AND X.IDCARD_ID = #{searchIdcardId})	
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoStrtDt)">
+		 	AND TO_CHAR(t1.CRT_DTM,'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{searchIoStrtDt},'-','') 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEndDt)">
+		 	AND TO_CHAR(t1.CRT_DTM,'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{searchIoEndDt},'-','')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstStrtDt)">
+		 	AND T1.CONST_START_DT <![CDATA[>=]]> REPLACE(#{searchConstStrtDt},'-','') 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstEndDt)">
+		 	AND T1.CONST_END_DT <![CDATA[<=]]> REPLACE(#{searchConstEndDt},'-','')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstPrjNm)">
+		 	AND UPPER(T1.CONST_PRJ_NM) LIKE '%'||UPPER(#{searchConstPrjNm})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstOrderNo)">
+		 	AND UPPER(T1.CONST_ORDER_NO) LIKE '%'||UPPER(#{searchConstOrderNo})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstCompId)">
+		 	AND T1.CONST_COMP_ID = #{searchConstCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+		 	AND T1.APPL_STAT = #{searchApplStat}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchIoCompNmSh)">
+		 	AND T1.IO_COMP_ID IN (SELECT  B.IO_COMP_ID FROM IO_COMP B WHERE UPPER(B.COMP_KO_NM) LIKE  '%'||UPPER(#{searchIoCompNmSh})||'%')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(projYn)">
+		 	<if test='"Y".equals(projYn)'>
+		 	AND T1.CONST_START_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYYMMDD')
+			AND T1.CONST_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYYMMDD')
+			</if>
+		 	<if test='"N".equals(projYn)'>
+		 	AND T1.CONST_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYYMMDD')	
+			</if>
+		</if>
+		ORDER BY CRT_DTM DESC
+	</select>
+	
+	<select id="selectConstPassMngCardList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			ROW_NUMBER() OVER ( ORDER BY A.IDCARD_ID ASC , A.CONST_PASS_APPL_NO DESC ) AS ROW_NUM, 
+			CARD_NO,
+			IDCARD_ID,
+			IO_EMP_ID,
+			(SELECT EMP_NM  FROM IO_EMP WHERE IO_EMP_ID = A. IO_EMP_ID) AS EMP_NM,
+			(SELECT BIRTH_DT  FROM IO_EMP WHERE IO_EMP_ID = A. IO_EMP_ID) AS BIRTH_DT,
+			(SELECT HP_NO  FROM IO_EMP WHERE IO_EMP_ID = A. IO_EMP_ID) AS HP_NO,
+			A.IO_START_DT,
+			A.IO_END_DT,
+			A.IO_START_DT || ' ~ ' || A.IO_END_DT AS IO_DT,
+			A.APPLY_DT,
+			A.CARD_STATUS,
+			A.STATUS,
+			(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A068' AND DETL_CD = A.CARD_STATUS) AS CARD_STATUS_NM,
+			(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A009' AND DETL_CD = A.STATUS) STATUS_NM
+		FROM IO_CONST_PASS_CARD A
+		WHERE 1=1
+			AND CONST_PASS_NO = #{constPassNo}
+		<if test='not @org.springframework.util.StringUtils@isEmpty(statusChk) and "Y".equals(statusChk)'>
+			AND A.CARD_STATUS = 'A0680002'
+		</if>
+	</select>
+	
+	<insert id="insertConstPassCard" parameterType="hashMap">
+	    INSERT INTO IO_CONST_PASS_CARD (
+			CONST_PASS_NO,
+			CONST_PASS_SEQ,
+			CONST_PASS_APPL_NO,
+			APPLY_GBN,
+			APPLY_DT,
+			IO_RSN,
+			GIVE_TYPE,
+			PURPOSE,
+			IO_START_DT,
+			IO_END_DT,
+			STATUS,
+			TAG_GBN,
+			CARD_STATUS,
+			CRT_BY,
+			CRT_DTM,
+			MOD_DTM
+		) 
+		SELECT 
+		    CONST_PASS_NO,
+		    #{seq},
+		    (CONST_PASS_NO * 10000 + #{seq}) AS CONST_PASS_APPL_NO,
+		    'A0061001' AS APPLY_GBN,
+		    TO_CHAR(SYSDATE, 'YYYYMMDD') AS APPLY_DT,
+		    '공사출입증 발급 요청 ('|| #{seq} ||'/' || A.CONST_PASS_COUNT ||')' AS IO_RSN,
+		    '99' AS GIVE_TYPE,
+		     A.CONST_PRJ_NM || ' 출입' AS PURPOSE,
+		     A.CONST_START_DT AS IO_START_DT,
+		     A.CONST_END_DT AS IO_END_DT,
+		    'A0091001' AS STATUS,
+		    '3' AS TAG_GBN,
+		    'A0680001' AS CARD_STATUS,
+		    'SYSTEM' AS CRT_BY,
+		    SYSDATE AS CRT_DTM, 
+		    SYSDATE AS MOD_DTM
+		 FROM IO_CONST_PASS A
+		 WHERE A.CONST_PASS_NO = #{constPassNo}
+	</insert>
+	
+	<update id="updateConstPassProvDocId" parameterType="hashMap">
+		UPDATE IO_CONST_PASS 
+		   SET DOC_ID  = #{docId}
+		   	  ,APPL_STAT = #{applStat}
+			  ,MOD_BY  = #{modBy}
+			  ,MOD_DTM = SYSDATE
+		 WHERE CONST_PASS_NO = #{constPassNo}
+	</update>
+	
+	<update id="updateConstPassProvApplWork" parameterType="hashMap">
+		UPDATE IO_CONST_PASS
+        SET  
+             APPL_STAT = #{applStat},
+             MOD_BY = #{empId},
+             MOD_DTM = SYSDATE
+        WHERE CONST_PASS_NO = #{constPassNo}
+	</update>
+	
+	<select id="selectConstPassProvNewSeq" parameterType="hashMap" resultType="Integer">
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and "CONST_PASS_APPL".equals(schemaNm)'>
+			SELECT SEQ_IO_CONST_PASS.NEXTVAL AS BIZ_APPL_NO FROM DUAL
+		</if>
+	</select>
+	
+	<select id="selectConstPassApplCnt" parameterType="Integer" resultType="Integer">
+		SELECT CONST_PASS_COUNT AS COUNT FROM IO_CONST_PASS	WHERE CONST_PASS_NO = #{constPassNo}
+	</select>
+
+	<select id="selectConstPassCardViewForIdCardIF" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+	        B.CONST_PASS_APPL_NO AS ES_SN,
+	        '기타' AS ENTRANCE_TYPE, 
+	        FN_GET_CODE( 'A006',   B.APPLY_GBN, 'DETL_CD') AS ISSUE_TYPE,     
+	        '' AS REISSUE_TYPE,   
+	        '' AS REISSUE_NOTE,      
+	         
+	        'Z00'             AS ENTER_COMPANY_CODE, 
+	        'SK하이닉스'         AS ENTER_COMPANY_NAME,    
+	        
+	        G.ETC2 AS EMP_ID,
+	        G.ETC3 AS NAME_KOR,
+	        G.ETC4 AS NAME_ENG,
+	        
+	        B.IO_RSN AS WHY_ENTER,
+	        SUBSTR(B.IO_START_DT,   1, 4)||'-'||SUBSTR(B.IO_START_DT,   5, 2)||'-' ||SUBSTR(B.IO_START_DT,   7, 2) AS ENTER_START_DATE,
+	        SUBSTR(B.IO_END_DT,    1, 4)||'-'||SUBSTR(B.IO_END_DT,    5, 2)||'-' ||SUBSTR(B.IO_END_DT,    7, 2) AS ENTER_END_DATE,
+	
+	        C.EMP_ID AS REG_ID,
+	        C.EMP_NM AS REG_NAME,
+	        F.DEPT_DIV_CD AS REG_DIV_CODE,
+	        FN_GET_DEPT_DIV_NM(F.DEPT_DIV_CD, F.COMP_ID) AS REG_DIV_NAME,
+	        C.TEL_NO2 AS REG_TEL_NO,
+	        D.JW_ID AS REG_RANK_CODE,
+	        D.JW_NM AS REG_RANK_NAME,
+	        TO_CHAR(SYSDATE, 'YYYY-MM-DD') AS REG_DATE,
+	        
+	        '10' AS PROCESS_STATUS,
+	        TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS PROCESS_DATE,
+	        
+	        A.COMP_ID AS AREA_CODE,              
+	        FN_GET_COMP_NM(A.COMP_ID) AS AREA_NAME,    
+	        B.TAG_GBN
+	
+		FROM IO_CONST_PASS A, IO_CONST_PASS_CARD B, CO_EMP C, CO_JW D, IO_COMP E, CO_DEPT F, CO_CODE_D G
+		WHERE A.CONST_PASS_NO = B.CONST_PASS_NO
+		 AND A.EMP_ID = C.EMP_ID
+		 AND A.JW_ID = D.JW_ID
+		 AND A.IO_COMP_ID = E.IO_COMP_ID
+		 AND A.CONST_COMP_ID = G.DETL_CD
+		 AND A.DEPT_ID = F.DEPT_ID
+		 AND B.CONST_PASS_NO = #{constPassNo}
+		 AND B.CONST_PASS_SEQ = #{seq}
+	</select>
+	
+	<update id="rejectConstPassProv" >
+		UPDATE IO_CONST_PASS SET APPL_STAT = 'Z0331003'
+			   , MOD_BY =#{empId}
+			   , MOD_DTM = SYSDATE 
+		WHERE CONST_PASS_NO =#{constPassNo} 
+	</update>
+	
+	<insert id="insertIfIdcardOtherLogInsert" parameterType="hashMap">
+		INSERT INTO IF_IDCARD 
+			(
+				SCHEMA_NM, 
+				APPL_NO,
+				STATUS, 
+				CARD_NO,
+				CRT_BY, 
+				CRT_DTM,
+				IDCARD_ID,
+				TAG_GBN
+			) 
+			VALUES 
+			( 
+				'OTHER',
+			 	#{esSn},
+			 	'10',
+			 	NULL,
+			 	#{regId},
+				SYSDATE,
+				NULL,
+			    #{tagGbn}
+			)
+	</insert>
+	
+</mapper>

@@ -1,0 +1,283 @@
+<!-- REPORTHEADER-SATRT -->
+<!-- PRINTORIENTATION[PORTRAIT]PRINTORIENTATION -->
+<!-- LEFTMARGINE[-1]LEFTMARGINE -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<title>&lt;업체물품 반출입증&gt;</title>
+<link rel="stylesheet" href="/eSecurity/common/report/reportstyle.css" />
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="purple" alink="red" topmargin="1" marginheight="1" class="PaperA4SERO">
+<!-- REPORTHEADER-END -->
+<!-- REPORTPAGEHEADER-START -->
+<!-- REPORTPAGEHEADER-HEIGHT[105]REPORTPAGEHEADER-HEIGHT -->
+<table border="0" cellspacing="0" cellpadding="0" width="650" align="center" >
+	<tr>
+		<td align="left">{{pfc1}}</td>
+		<td align="left"><h2>입주사 전산기기 반입 신청서</h2></td>
+		<td align="right"><h5>{{today}}</h5></td>
+	</tr>	
+</table>
+<table class="table_border" border="1" cellspacing="0" cellpadding="1" width="650" align="center">
+    <tr height="25">
+        <td align="center" valign="middle" width="25%" style="font-size:12px;">반입기간</td>
+        <td align="center" valign="middle" width="25%" style="font-size:12px;">반입사업장</td>
+        <td align="center" valign="middle" width="25%" style="font-size:12px;">반출일</td>
+        <td align="center" valign="middle" width="25%" style="font-size:12px;">반출확인(보안요원)</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" style="font-size:12px;">&nbsp;{{in_expt_date}} ~{{out_expt_date}}&nbsp;</td>
+        <td align="center" valign="middle" style="font-size:12px;">&nbsp;{{company_nm}}&nbsp;</td>
+        <td align="center" valign="middle" style="font-size:12px;">&nbsp;&nbsp;</td>
+        <td align="center" valign="middle" style="font-size:12px;">&nbsp;&nbsp;</td>
+    </tr>
+</table>
+<table class="table_border" border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="margin-top:10px;">
+    <tr height="25">
+        <td colspan="2" align="center" valign="middle" style="font-size:12px;">전산기기 관리번호</td>
+        <td colspan="2" align="center" valign="middle" style="font-size:12px;"><p style="font-size:25px; font-family:'3 of 9 Barcode';">*{{inout_pc_id}}*</p>{{inout_pc_id}}</td>
+    </tr>
+    <tr height="25" style="display:none;">
+        <td colspan="4" align="left" valign="middle" style="font-size:12px;">&nbsp;※ 이천캠퍼스의 경우 전산기기 관리번호 뒤에 -EP가 있는 경우 협력2관 EP센터에 방문하여 확인 후 사용 가능합니다.<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;분당/청주캠처스의 경우 기존과 동일한 프로세스로 사용하시면 됩니다.&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;구분&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;회사명&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;성명/사번&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;연락처&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;반입예약(구성원)&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{co_comp_nm}} {{co_dept_nm}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;{{co_emp_nm}} / {{co_emp_id}}&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{co_tel_no1}}&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;구분&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;업체명&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;성명/ID&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;연락처&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;반입신청자&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{io_comp_nm}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;{{io_emp_nm}} / {{io_emp_id}}&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{io_tel_no}}&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;실 사용자&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{io_comp_nm}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px;">&nbsp;{{io_user_emp_nm}} / {{io_user_emp_id}}&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{io_user_tel_no}}&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td colspan="4" align="center" valign="middle" style="font-size:12px; background-color:#7F7F7F; color:#fff;">&nbsp;전산기기정보&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;반입물품&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{pc_type}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;제조사&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{marker}}&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;S/N&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{serial_no}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;OS&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{pc_os}}&nbsp;</td>
+    </tr>
+    <tr height="25">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;보안솔루션<br/>설치가능여부&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{scrt_sltn_inst_yn}}&nbsp;</td>
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;Mac Address&nbsp;</td>
+        <td align="center" valign="middle" width="30%" style="font-size:12px;">&nbsp;{{mac_addr}}&nbsp;</td>
+    </tr>
+    <tr height="25" style="display:none;">
+        <td align="center" valign="middle" width="20%" style="font-size:12px; background-color:#DBDAD9;">&nbsp;개방요청항목&nbsp;</td>
+        <td colspan="3" align="center" valign="middle" width="80%" style="font-size:12px;">&nbsp;{{co_comp_nm}} {{co_dept_nm}}&nbsp;</td>
+    </tr>
+</table>
+<table class="table_border" border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="margin-top:10px;">
+    <tr height="25">
+        <td>
+            <p style="font-size: 12px; font-weight:bold; margin-top:5px;">&nbsp;&nbsp;[실 사용자 보안서약서]</p>
+            
+            <p style="font-size: 12px;">
+                                    상기 본인은 __________(이하 회사라 한다)를 출입함에 있어 허가된 목적 외 산업보안에 위배되는 행동을 하지 않을 것이며, 출입 회사의 허가 없이 자료를 저장하지 않겠습니다.
+                                    회사 영업 비밀 등 자료의 반출이 필요한 경우 사전 예약부서팀장 승인을 득하여 저장할 것이며, 반출 시 사전승인 된 자료라 할지라도 보안목적 상 삭제 시에도 이의를 제기하지 않겠습니다.
+                                    또한, 회사 영업 비밀 등 업무자료를 불법 저장하거나 반출 시도 時 어떠한 법적 조치도 감수하겠습니다.
+            </p>
+            <p align="right" style="font-size: 12px;">
+                &lt;사용자 서약 확인&gt;&nbsp;&nbsp;업체명 : 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        성명 : 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                (서명)
+                &nbsp;&nbsp;&nbsp;
+            </p>
+        </td>
+    </tr>
+</table>
+<table class="table_border" border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="margin-top:10px;">
+    <tr height="25">
+        <td>
+            <p style="font-size: 12px; font-weight:bold; margin-top:5px;">&nbsp;&nbsp;[반입예약자(구성원) 보안서약]</p>
+            
+            <p style="font-size: 12px;">
+                                    상기반입회사의 전산기기를 반입함에 있어 회사 업무자료가 유출되지 않도록 입ㆍ출문 시 용량을 점검하는 등의 반출 시 철저한 보안 조치를 할 것이며, 회사 영업비밀 등 자료 불법 유출 시 동반 책임을 질 것을 서약합니다.
+            </p>
+            <p align="right" style="font-size: 12px;">
+                &lt;사용자 서약 확인&gt;&nbsp;&nbsp;업체명 : 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        성명 : 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                (서명)
+                &nbsp;&nbsp;&nbsp;
+            </p>
+        </td>
+    </tr>
+</table>
+<table class="table_border" border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="margin-top:10px;">
+    <tr height="25">
+        <td align="left" valign="middle" width="30%" style="font-size:12px; display:none;">
+            <p align="center" style="font-weight:bold; margin-top:5px;">Low Format 처리결과</p>
+            &nbsp; - 이천 : EP센터<br/>
+            &nbsp; - 청주&amp;분당 : 해당사항 없음
+        </td>
+        <td align="left" valign="middle" width="30%" style="font-size:12px;">
+            <p align="center" style="font-weight:bold; margin-top:5px;">Low Format 처리결과</p>
+            <p align="center">&nbsp; (30일 이상 반입 시<br/> 각 캠퍼스 OA서비스 확인)</p>
+        </td>
+        <td align="center" valign="middle" width="70%" style="font-size:12px;">
+                            검색일 : 
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            처리결과 :
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                           성명 : 
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+           (서명)
+           &nbsp;&nbsp;&nbsp;
+        </td>
+    </tr>
+    <tr height="25" style="display:none;">
+        <td align="left" valign="middle" width="30%" style="font-size:12px;">
+            <p align="center" style="font-weight:bold; margin-top: 5px; margin-bottom: 5px;">[EP센터 처리 불가 시]<br/>보안주관부서 추가 확인</p>
+        </td>
+        <td align="center" valign="middle" width="70%" style="font-size:12px;">
+                            검색일 : 
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            처리결과 :
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                           성명 : 
+           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+           (서명)
+           &nbsp;&nbsp;&nbsp;
+        </td>
+    </tr>
+</table>
+<!-- REPORTPAGEHEADER-END -->
+<!-- 기존 버전과의 호완성을 위해 유지함.(START) -->
+<!-- REPORTDETAIL-START -->
+<!-- REPORTDETAIL-HEIGHT[42]REPORTDETAIL-HEIGHT -->
+<!-- REPORTDETAIL-END -->
+<!-- 기존 버전과의 호완성을 위해 유지함.(END) -->
+<!-- TABLEHEADER1-START -->
+<!-- TABLEHEADER1-HEIGHT[25]TABLEHEADER1-HEIGHT -->
+
+<!-- TABLEHEADER1-END -->
+<!-- TABLEDETAIL1-START -->
+<!-- TABLEDETAIL1-HEIGHT[25]TABLEDETAIL1-HEIGHT -->
+  <!-- TABLEDETAIL1-END -->
+<!-- TABLEFOOTER1-START -->
+
+<!-- TABLEFOOTER1-END -->
+<!-- TABLEHEADER2-START -->
+<!-- TABLEHEADER2-HEIGHT[60]TABLEHEADER2-HEIGHT -->
+
+<!-- TABLEHEADER2-END -->
+<!-- TABLEDETAIL2-START -->
+<!-- TABLEDETAIL2-HEIGHT[25]TABLEDETAIL2-HEIGHT -->
+
+<!-- TABLEDETAIL2-END -->
+<!-- TABLEFOOTER2-START -->
+
+<!-- TABLEFOOTER2-END -->
+<!-- TABLEHEADER3-START -->
+<!-- TABLEHEADER3-HEIGHT[25]TABLEHEADER3-HEIGHT -->
+
+<!-- TABLEHEADER3-END -->
+<!-- TABLEDETAIL3-START -->
+<!-- TABLEDETAIL3-HEIGHT[25]TABLEDETAIL3-HEIGHT -->
+
+<!-- TABLEDETAIL3-END -->
+<!-- TABLEFOOTER3-START -->
+
+<!-- TABLEFOOTER3-END -->
+<!-- TABLEHEADER4-START -->
+<!-- TABLEHEADER4-HEIGHT[60]TABLEHEADER4-HEIGHT -->
+
+<!-- TABLEHEADER4-END -->
+<!-- TABLEDETAIL4-START -->
+<!-- TABLEDETAIL4-HEIGHT[20]TABLEDETAIL4-HEIGHT -->
+
+<!-- TABLEDETAIL4-END -->
+<!-- TABLEFOOTER4-START -->
+
+<!-- TABLEFOOTER4-END -->
+<!-- 구성되지 않은 테이블도 정의해 두어야 한다.(필수) -->
+<!-- TABLEHEADER5-START -->
+<!-- TABLEHEADER5-HEIGHT[0]TABLEHEADER5-HEIGHT -->
+<!-- TABLEHEADER5-END -->
+<!-- TABLEDETAIL5-START -->
+<!-- TABLEDETAIL5-HEIGHT[0]TABLEDETAIL5-HEIGHT -->
+<!-- TABLEDETAIL5-END -->
+<!-- TABLEFOOTER5-START -->
+<!-- TABLEFOOTER5-END -->
+<!-- TABLEHEADER6-START -->
+<!-- TABLEHEADER6-HEIGHT[0]TABLEHEADER6-HEIGHT -->
+<!-- TABLEHEADER6-END -->
+<!-- TABLEDETAIL6-START -->
+<!-- TABLEDETAIL6-HEIGHT[0]TABLEDETAIL6-HEIGHT -->
+<!-- TABLEDETAIL6-END -->
+<!-- TABLEFOOTER6-START -->
+<!-- TABLEFOOTER6-END -->
+<!-- TABLEHEADER7-START -->
+<!-- TABLEHEADER7-HEIGHT[0]TABLEHEADER7-HEIGHT -->
+<!-- TABLEHEADER7-END -->
+<!-- TABLEDETAIL7-START -->
+<!-- TABLEDETAIL7-HEIGHT[0]TABLEDETAIL7-HEIGHT -->
+<!-- TABLEDETAIL7-END -->
+<!-- TABLEFOOTER7-START -->
+<!-- TABLEFOOTER7-END -->
+<!-- TABLEHEADER8-START -->
+<!-- TABLEHEADER8-HEIGHT[0]TABLEHEADER8-HEIGHT -->
+<!-- TABLEHEADER8-END -->
+<!-- TABLEDETAIL8-START -->
+<!-- TABLEDETAIL8-HEIGHT[0]TABLEDETAIL8-HEIGHT -->
+<!-- TABLEDETAIL8-END -->
+<!-- TABLEFOOTER8-START -->
+<!-- TABLEFOOTER8-END -->
+<!-- TABLEHEADER9-START -->
+<!-- TABLEHEADER9-HEIGHT[0]TABLEHEADER9-HEIGHT -->
+<!-- TABLEHEADER9-END -->
+<!-- TABLEDETAIL9-START -->
+<!-- TABLEDETAIL9-HEIGHT[0]TABLEDETAIL9-HEIGHT -->
+<!-- TABLEDETAIL9-END -->
+<!-- TABLEFOOTER9-START -->
+<!-- TABLEFOOTER9-END -->
+<!-- TABLEHEADER10-START -->
+<!-- TABLEHEADER10-HEIGHT[0]TABLEHEADER10-HEIGHT -->
+<!-- TABLEHEADER10-END -->
+<!-- TABLEDETAIL10-START -->
+<!-- TABLEDETAIL10-HEIGHT[0]TABLEDETAIL10-HEIGHT -->
+<!-- TABLEDETAIL10-END -->
+<!-- TABLEFOOTER10-START -->
+<!-- TABLEFOOTER10-END -->
+<!-- REPORTPAGEFOOTER-START -->
+
+<!-- REPORTPAGEFOOTER-END -->
+<!-- REPORTFOOTER-START --> 
+</body>
+</html>
+<!-- REPORTFOOTER-END -->
+<!-- salepartner_report_print_template.htm -->

@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.ApprovalLineRepository">
+
+	<select id="selectApprovalStateExcel" parameterType="ApprovalStateSearchDTO" resultType="ApprovalStateDTO"><![CDATA[
+	/* approvalLineRepository.selectApprovalStateExcel (dmApprovalState_Excel) */
+	SELECT
+        ROW_NUMBER()
+        OVER(
+            ORDER BY A.DOC_ID DESC
+        ) AS ROW_NUM,
+        A.SCHEMA_NM,
+        FN_GET_DOC_NM(A.SCHEMA_NM, G.LID) AS DOC_NM,
+        TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+        C.EMP_NM AS APPR_EMP_NM,
+        C.JC_NM AS APPR_JC_NM,
+        C.APPR_DTM AS APPR_DTM,
+        D.EMP_NM AS PERMIT_EMP_NM,
+        D.JC_NM AS PERMIT_JC_NM,
+        D.APPR_DTM AS PERMIT_DTM,
+        DECODE(NVL((SELECT DISTINCT EMP_ID FROM AP_APPOINT WHERE EMP_ID = C.EMP_ID),'N'),'N', 'N', 'Y') AS APPOINT_YN,
+        C.GRADE AS GRADE_REAL,
+        CASE
+        WHEN ( A.SCHEMA_NM = 'FINISH_CHANGE'
+               OR A.SCHEMA_NM = 'INOUT_KND_CHANGE'
+               OR A.SCHEMA_NM = 'ITEQMT_RGAD_APPL' ) THEN '3'
+        WHEN ( A.SCHEMA_NM = 'CALLING' AND (SELECT COUNT(1) AS CNT
+               FROM SCINOUTADM.CALLING_HISTORY CH, SCINOUTADM.INOUTWRITE IW
+               WHERE CH.WRITEDATE = IW.WRITEDATE
+               AND CH.WRITESEQ = IW.WRITESEQ
+               AND IW.DOC_ID = A.DOC_ID) > 1) THEN '3'
+        WHEN ( A.SCHEMA_NM = 'CORR_PLAN' AND (SELECT  NVL(ACT_DO, 'C0280002') FROM SC_CORR_PLAN WHERE SC_DOC_NO = G.LID) = 'C0280003') THEN '3'
+        ELSE '4' END GRADE_ORG,
+        E.APPR_ALL_EMP ,
+        F.PERMIT_ALL_EMP
+    FROM AP_DOC          A
+   INNER JOIN AP_APPR_PORTAL G
+      ON A.DOC_ID   = G.DOC_ID
+   INNER JOIN CO_EMP B
+      ON A.EMP_ID = B.EMP_ID
+   INNER JOIN (SELECT AA.AP_SEQ, AA.DOC_ID, AA.EMP_ID, AB.EMP_NM, AA.APPR_DTM, AC.JC_NM, AC.GRADE
+                 FROM AP_APPR  AA
+                INNER JOIN CO_EMP AB ON AA.EMP_ID = AB.EMP_ID
+                 LEFT OUTER JOIN CO_JC  AC ON AB.JC_CD = AC.JC_ID
+                WHERE AA.APPR_DEPT_GBN = '1' /*승인자*/
+                  AND AA.AP_SEQ = (SELECT MAX(AP_SEQ) FROM AP_APPR WHERE DOC_ID = AA.DOC_ID AND APPR_DEPT_GBN = '1' )
+               ) C ON A.DOC_ID = C.DOC_ID
+    LEFT OUTER JOIN (
+               SELECT AA.AP_SEQ, AA.DOC_ID, AA.EMP_ID, AB.EMP_NM, AA.APPR_DTM, AC.JC_NM, AC.GRADE
+                 FROM AP_APPR  AA
+                INNER JOIN CO_EMP AB ON AA.EMP_ID = AB.EMP_ID
+                 LEFT OUTER JOIN CO_JC  AC ON AB.JC_CD = AC.JC_ID
+                WHERE AA.APPR_DEPT_GBN = '2' /*허가자*/
+                  AND AA.AP_SEQ = ( SELECT MAX(AP_SEQ) FROM AP_APPR WHERE DOC_ID = AA.DOC_ID AND APPR_DEPT_GBN = '2')
+               ) D ON A.DOC_ID = D.DOC_ID
+   INNER JOIN (SELECT COUNT(DOC_ID) AS CNT, AA.DOC_ID,
+                      LISTAGG(AB.EMP_NM || AC.JC_NM, '|') WITHIN GROUP(ORDER BY AA.EMP_ID) AS APPR_ALL_EMP
+                 FROM AP_APPR  AA
+                INNER JOIN CO_EMP AB ON AA.EMP_ID = AB.EMP_ID
+                 LEFT OUTER JOIN CO_JC  AC ON AB.JC_CD = AC.JC_ID
+                WHERE AA.APPR_DEPT_GBN = '1' /*승인자*/
+                GROUP BY DOC_ID) E ON A.DOC_ID = E.DOC_ID
+    LEFT OUTER JOIN (
+               SELECT COUNT(DOC_ID) AS CNT, AA.DOC_ID,
+                      LISTAGG(AB.EMP_NM || AC.JC_NM, '|') WITHIN GROUP(ORDER BY AA.EMP_ID) AS PERMIT_ALL_EMP
+        		 FROM AP_APPR  AA
+                INNER JOIN CO_EMP AB ON AA.EMP_ID = AB.EMP_ID
+                 LEFT OUTER JOIN CO_JC  AC ON AB.JC_CD = AC.JC_ID
+                WHERE AA.APPR_DEPT_GBN = '2' /*허가자*/
+                GROUP BY DOC_ID ) F ON A.DOC_ID = F.DOC_ID
+    WHERE A.APPR_RESULT = '1' /*승인*/
+        AND A.DEL_YN = 'N'
+        AND G.APSEQ = '0'
+        ]]>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(fromDt)">
+             AND A.CRT_DTM BETWEEN TO_DATE(#{fromDt}, 'YYYYMMDD') AND TO_DATE(#{toDt}, 'YYYYMMDD') + 1
+        </if>
+		<if test="schemaNms != null and schemaNms.size() > 0">
+			AND A.SCHEMA_NM IN
+            <foreach collection="schemaNms" item="item" index="index" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+		</if>
+		ORDER BY A.DOC_ID DESC
+	</select>
+
+
+	<select id="selectApprLineManageList" parameterType="ApprovalLineDefSearchDTO" resultType="ApprovalLineDefDTO">
+	/* approvalLineRepository.selectApprLineManageList (dmApprManageList) */
+	SELECT
+	    A.DEF_SEQ AS DEF_SEQ,
+	    (SELECT AA.MENU_NM FROM CO_MENU AA WHERE AA.MENU_ID = B.UP_MENU_ID ) || ' > ' || B.MENU_NM AS MENU_NM,
+	    A.COMP_ID AS COMP_ID,
+	    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+	    A.DEPT_ID AS DEPT_ID,
+	    FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+	    A.APPR_DEPT_GBN AS APPR_DEPT_GBN,
+	    DECODE(
+	        A.APPR_DEPT_GBN,
+	        '1', '요청부서',
+	        '2', '허가부서',
+	        '3', '참조부서',
+	        ''
+	    ) AS APPR_DEPT_GBN_NM,
+	    A.AP_SEQ AS AP_SEQ,
+	    A.GBN AS GBN,
+	    DECODE(A.GBN, 'EMP', '직원', 'JC', '직책', 'JW', '직위', '') AS GBN_NM,
+	    A.EQUAL_GBN AS EQUAL_GBN,
+	    DECODE(A.EQUAL_GBN, 'EQUAL', '같음', 'GREAT', '이상', '') AS EQUAL_GBN_NM,
+	    A.GBN_VAL AS GBN_VAL,
+	    FN_GET_GBN_VAL_NM(A.GBN_VAL, A.GBN) AS GBN_VAL_NM,
+	    A.AUTO_SIGN AS AUTO_SIGN,
+	    A.USE_YN AS USE_YN,
+	    DECODE(A.USE_YN, 'Y', '사용', 'N', '미사용', '') AS USE_YN_NM,
+	    SUBCONT_YN
+	FROM
+	    AP_APPR_DEF A,
+	    CO_MENU B
+	WHERE
+	    A.MENU_ID = B.MENU_ID
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchMenuNm)">
+        AND (SELECT AA.MENU_NM FROM CO_MENU AA WHERE AA.MENU_ID = B.UP_MENU_ID ) || ' > ' || B.MENU_NM LIKE '%'|| #{searchMenuNm} ||'%'
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+        AND FN_GET_DEPT_NM(A.DEPT_ID) LIKE '%'|| #{searchDeptNm} ||'%'
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+        AND A.COMP_ID = #{searchCompId}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchApprDeptGbn)">
+        AND A.APPR_DEPT_GBN = #{searchApprDeptGbn}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchUseYn)">
+        AND A.USE_YN = #{searchUseYn}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchGbnValNm)">
+        AND FN_GET_EMP_NM(A.GBN_VAL) LIKE '%'|| #{searchGbnValNm} ||'%'
+        </if>
+    ORDER BY COMP_ID, 2, APPR_DEPT_GBN, AP_SEQ
+	</select>
+
+	<select id="selectApprMenuList" parameterType="String" resultType="CamelHashMap">
+	/* approvalLineRepository.selectApprMenuList (dmApprMenuList) */
+    SELECT
+          A.MENU_ID AS MENU_ID,
+          A.MENU_NM AS MENU_NM,
+          FN_GET_UP_MENU_NM(A.UP_MENU_ID)||' > '||FN_GET_UP_MENU_NM(A.MENU_ID) AS UP_MENU_NM,
+          ( SELECT MAX(AP_SEQ) FROM AP_APPR_DEF C WHERE C.MENU_ID = A.MENU_ID ) + 1 AS NEXT_AP_SEQ
+     FROM CO_MENU A
+    WHERE A.APPROVAL_YN = 'Y'
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchMenuNm)">
+      AND FN_GET_UP_MENU_NM(A.MENU_ID) || A.MENU_NM LIKE '%'|| #{searchMenuNm} ||'%'
+        </if>
+	</select>
+	
+	<select id="selectApprDeptList" parameterType="Map" resultType="CamelHashMap">
+	/* approvalLineRepository.selectApprDeptList (dmApprDeptList) */
+    SELECT
+		  DEPT_ID
+		, DEPT_NM
+        , COMP_ID
+	 FROM CO_DEPT
+	WHERE 1 = 1
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND DEPT_NM LIKE '%'|| #{searchDeptNm} ||'%'
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND COMP_ID = #{searchCompId}
+        </if>
+    ORDER BY DEPT_NM ASC
+	</select>
+
+	<select id="selectApprLineManage" parameterType="Integer" resultType="ApprovalLineDefDTO">
+	/* approvalLineRepository.selectApprLineManage (dmApprManageList) */
+	SELECT
+	    A.DEF_SEQ AS DEF_SEQ,
+        A.MENU_ID,
+	    B.MENU_NM AS MENU_NM,
+	    (SELECT AA.MENU_NM FROM CO_MENU AA WHERE AA.MENU_ID = B.UP_MENU_ID ) AS UP_MENU_NM,
+	    A.COMP_ID AS COMP_ID,
+	    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+	    A.DEPT_ID AS DEPT_ID,
+	    FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM,
+	    A.APPR_DEPT_GBN AS APPR_DEPT_GBN,
+	    DECODE(
+	        A.APPR_DEPT_GBN,
+	        '1', '요청부서',
+	        '2', '허가부서',
+	        '3', '참조부서',
+	        ''
+	    ) AS APPR_DEPT_GBN_NM,
+	    A.AP_SEQ AS AP_SEQ,
+	    A.GBN AS GBN,
+	    DECODE(A.GBN, 'EMP', '직원', 'JC', '직책', 'JW', '직위', '') AS GBN_NM,
+	    A.EQUAL_GBN AS EQUAL_GBN,
+	    DECODE(A.EQUAL_GBN, 'EQUAL', '같음', 'GREAT', '이상', '') AS EQUAL_GBN_NM,
+	    A.GBN_VAL AS GBN_VAL,
+	    FN_GET_EMP_NM(A.GBN_VAL)  AS GBN_VAL_NM,
+		FN_GET_JW_BY_EMP(A.GBN_VAL)  AS APPR_EMP_JW_NM,
+		FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.GBN_VAL)) AS APPR_EMP_DEPT_NM,
+	    A.AUTO_SIGN AS AUTO_SIGN,
+	    A.USE_YN AS USE_YN,
+	    DECODE(A.USE_YN, 'Y', '사용', 'N', '미사용', '') AS USE_YN_NM,
+	    A.CRT_BY,
+	    A.CRT_DTM,
+	    A.MOD_BY,
+	    A.MOD_DTM,
+	    A.SUBCONT_YN
+	FROM
+	    AP_APPR_DEF A,
+	    CO_MENU B
+	WHERE
+	    A.MENU_ID = B.MENU_ID
+	    AND A.DEF_SEQ = #{defSeq}
+	</select>
+
+	<insert id="insertApprLineManage" parameterType="ApprovalLineDefDTO">
+	/* approvalLineRepository.insertApprLineManage (dmApprManageInsert) */
+		INSERT INTO AP_APPR_DEF (
+			DEF_SEQ,
+			MENU_ID,
+			COMP_ID,
+			DEPT_ID,
+			APPR_DEPT_GBN,
+			AP_SEQ,
+			GBN,
+			EQUAL_GBN,
+			GBN_VAL,
+			AUTO_SIGN,
+			USE_YN,
+			SUBCONT_YN,
+			CRT_BY,
+			CRT_DTM
+		) VALUES (
+			SEQ_APPRLINE_DEF_SEQ.NEXTVAL,
+			#{menuId},
+			#{compId},
+			#{deptId},
+			#{apprDeptGbn},
+			#{apSeq},
+			#{gbn},
+			#{equalGbn},
+			#{gbnVal},
+			#{autoSign},
+			#{useYn},
+			#{subcontYn},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<update id="updateApprLineManage" parameterType="ApprovalLineDefDTO">
+	/* approvalLineRepository.updateApprLineManage (dmApprManageUpdate) */
+		UPDATE AP_APPR_DEF
+		SET
+			MENU_ID = #{menuId},
+			COMP_ID = #{compId},
+			DEPT_ID = #{deptId},
+			APPR_DEPT_GBN = #{apprDeptGbn},
+			AP_SEQ = #{apSeq},
+			GBN = #{gbn},
+			EQUAL_GBN = #{equalGbn},
+			GBN_VAL = #{gbnVal},
+			AUTO_SIGN = #{autoSign},
+			USE_YN = #{useYn},
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE,
+			SUBCONT_YN = #{subcontYn}
+		WHERE
+		    DEF_SEQ = #{defSeq}
+	</update>
+</mapper>

@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.AuthManageRepository">
+
+	<select id="selectAuthManageList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+				T.*
+		FROM
+			(
+				SELECT
+					ROW_NUMBER() OVER (
+					ORDER BY SEQ ASC
+					) AS ROW_NUM
+					,SUBSTR(T1.AUTH_ID,1,1) AS AUTH
+					,T1.AUTH_ID
+					,T1.AUTH_NM
+					,T1.AUTH_RMRK
+					,T1.USE_YN
+					,T1.AC_IP
+					,TO_CHAR(T1.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+					,TO_CHAR(T1.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+					,T1.MANAGEMENT_KND
+					,T1.AUTH_KND
+					,T1.SEQ
+				FROM CO_AUTH T1
+				WHERE 1=1
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchAuthNm)">
+				AND UPPER(AUTH_NM) LIKE '%'|| UPPER(#{searchAuthNm}) ||'%'
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchUseYn) and !"ALL".equals(searchUseYn)'>
+				AND USE_YN = #{searchUseYn}
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(authKnd)'>
+					AND AUTH_KND = #{authKnd}
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(managementKnd)'>
+					AND MANAGEMENT_KND = #{managementKnd}
+				</if>
+			) T
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectAuthManageListCnt" parameterType="hashMap" resultType="int">
+		SELECT
+			COUNT(*)
+		FROM CO_AUTH T1
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAuthNm)">
+			AND UPPER(AUTH_NM) LIKE '%'|| UPPER(#{searchAuthNm}) ||'%'
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(searchUseYn) and !"ALL".equals(searchUseYn)'>
+			AND USE_YN = #{searchUseYn}
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(authKnd)'>
+			AND AUTH_KND = #{authKnd}
+		</if>
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(managementKnd)'>
+			AND MANAGEMENT_KND = #{managementKnd}
+		</if>
+	</select>
+	
+	<update id="upsertAuthManage" parameterType="hashMap">
+		MERGE INTO CO_AUTH T1
+		    USING (
+		        SELECT #{authId} AS AUTH_ID
+		        	  ,#{authNm} AS AUTH_NM
+		        	  ,#{authRmrk}   AS AUTH_RMRK
+		        	  ,#{useYn} AS USE_YN
+		        	  ,#{acIp}  AS AC_IP
+		        	  ,#{crtBy} AS CRT_BY
+		        	  ,#{modBy} AS MOD_BY
+		        		,#{authKnd} AS AUTH_KND
+		        		,#{managementKnd} AS MANAGEMENT_KND
+		        		,#{seq} AS SEQ
+		       	FROM DUAL ) T2
+		    ON (T1.AUTH_ID = T2.AUTH_ID)
+		    WHEN MATCHED THEN
+		        UPDATE SET
+		        	 T1.AUTH_NM = T2.AUTH_NM
+		        	,T1.AUTH_RMRK = T2.AUTH_RMRK
+		        	,T1.USE_YN = T2.USE_YN
+		        	,T1.MOD_BY = T2.MOD_BY
+		        	,T1.MOD_DTM = SYSDATE
+							,T1.AUTH_KND = T2.AUTH_KND
+							,T1.MANAGEMENT_KND = T2.MANAGEMENT_KND
+							,T1.SEQ = SEQ
+		    WHEN NOT MATCHED THEN
+		        INSERT 
+		        (
+		           AUTH_ID
+		         , AUTH_NM
+		         , AUTH_RMRK
+		         , USE_YN
+		         , AC_IP
+		         , CRT_BY
+		         , CRT_DTM
+						 , AUTH_KND
+						 , MANAGEMENT_KND
+						 , SEQ
+		        )
+		        VALUES
+		        (
+		          (SELECT MAX (T3.AUTH_ID) + 1 FROM CO_AUTH T3) 	
+		         ,T2.AUTH_NM
+		         ,T2.AUTH_RMRK
+		         ,T2.USE_YN
+		         ,T2.AC_IP
+		         ,T2.CRT_BY
+		         ,SYSDATE
+						 ,T2.AUTH_KND
+						 ,T2.MANAGEMENT_KND
+						 ,T2.SEQ
+		        )
+	</update>
+
+	<select id="selectMenuManageList" resultType="MenuManageDTO">
+		/* sysmanage: menuManageRepository.selectMenuManageList */
+		SELECT
+			MENU_ID,
+			MENU_NM,
+			UP_MENU_ID,
+			FN_GET_UP_MENU_NM(UP_MENU_ID) AS UP_MENU_NM,
+			DEPTH,
+			URL,
+			SORT_SEQ,
+			USE_YN,
+			AC_IP,
+			CRT_BY,
+			TO_CHAR(CRT_DTM, 'YYYY.MM.DD HH24:MI') AS CRT_DTM,
+			MOD_BY,
+			TO_CHAR(MOD_DTM, 'YYYY.MM.DD HH24:MI') AS MOD_DTM,
+			FN_GET_SUB_MENU_COUNT(MENU_ID, '') AS SUB_MENU_COUNT,
+			IMG_NM
+		FROM CO_MENU
+		START WITH MENU_ID = 'P'
+		CONNECT BY PRIOR MENU_ID = UP_MENU_ID
+		ORDER SIBLINGS BY SORT_SEQ ASC
+	</select>
+
+	<select id="selectMenuManageDetail" parameterType="Map" resultType="MenuManageDTO">
+		/* sysmanage: menuManageRepository.selectMenuManageDetail */
+		SELECT
+			MENU_ID,
+			MENU_NM,
+			UP_MENU_ID,
+			FN_GET_UP_MENU_NM(UP_MENU_ID) AS UP_MENU_NM,
+			DEPTH,
+			URL,
+			SORT_SEQ,
+			USE_YN,
+			AC_IP,
+			CRT_BY,
+			TO_CHAR(CRT_DTM, 'YYYY.MM.DD HH24:MI') AS CRT_DTM,
+			MOD_BY,
+			TO_CHAR(MOD_DTM, 'YYYY.MM.DD HH24:MI') AS MOD_DTM,
+			IMG_NM,
+			DISPLAY_YN,
+			APPROVAL_YN
+		FROM CO_MENU
+		WHERE MENU_ID = #{menuId}
+	</select>
+
+	<select id="selectMenuManageMaxDepth" resultType="Integer" fetchSize="50">
+		/* sysmanage: menuManageRepository.selectMenuManageMaxDepth */
+		SELECT
+			MAX(DEPTH) AS MENU_MAX_DEPTH
+		FROM CO_MENU
+	</select>
+
+	<select id="selectMenuManageNewCode" parameterType="Map" resultType="CamelHashMap" fetchSize="50">
+		/* sysmanage: menuManageRepository.selectMenuManageNewCode */
+		SELECT NVL(MAX(SORT_SEQ), 0) + 1                                           AS SORT_SEQ,
+					 UP_MENU_ID || LPAD(NVL(MAX(SUBSTR(MENU_ID, -2, 2)), 0) + 1, 2, '0') AS MENU_ID
+		FROM CO_MENU
+		WHERE UP_MENU_ID = #{upMenuId}
+		GROUP BY UP_MENU_ID
+	</select>
+
+	<insert id="insertMenuManage" parameterType="Map" >
+		/* sysmanage: menuManageRepository.insertMenuManage */
+		INSERT INTO CO_MENU
+		(
+			MENU_ID, MENU_NM, UP_MENU_ID,
+			DEPTH, URL, SORT_SEQ,
+			USE_YN, AC_IP,
+			CRT_BY, CRT_DTM, IMG_NM, DISPLAY_YN, APPROVAL_YN
+		)
+		VALUES (
+						 #{menuId}, #{menuNm}, #{upMenuId},
+						 #{depth}, #{url}, #{sortSeq},
+						 #{useYn}, #{acIp},
+						 #{crtBy}, SYSDATE, #{ImgNm}, #{displayYn}, #{approvalYn}
+					 )
+	</insert>
+
+	<update id="updateMenuManage" parameterType="Map" >
+		/* sysmanage: menuManageRepository.updateMenuManage */
+		UPDATE CO_MENU
+		SET    MENU_NM  = #{menuNm},
+					 URL      = #{url},
+					 SORT_SEQ = #{sortSeq},
+					 USE_YN   = #{useYn},
+					 AC_IP    = #{acIp},
+					 MOD_BY   = #{modBy},
+					 MOD_DTM  = SYSDATE,
+					 IMG_NM	= #{imgNm},
+					 DISPLAY_YN	= #{displayYn},
+					 APPROVAL_YN = #{approvalYn}
+		WHERE  MENU_ID    = #{menuId}
+	</update>
+
+	<select id="selectMenuManageMenuCount" parameterType="Map" resultType="Integer" fetchSize="50">
+		/* sysmanage: menuManageRepository.selectMenuManageMenuCount */
+		SELECT
+			COUNT(*) AS MENU_COUNT
+		FROM CO_MENU
+		WHERE MENU_ID = #{menuId}
+	</select>
+
+	<update id="updateMenuManageSortSeq" parameterType="Map" >
+		/* sysmanage: menuManageRepository.updateMenuManageSortSeq */
+		UPDATE CO_MENU
+		SET SORT_SEQ = SORT_SEQ + 1
+		WHERE UP_MENU_ID = #{upMenuId}
+			AND SORT_SEQ <![CDATA[ >= ]]> #{sortSeq}
+	</update>
+
+	<select id="selectAuthList" parameterType="hashMap" resultType="CamelHashMap">
+			SELECT
+			AUTH_ID,
+			AUTH_NM,
+			AUTH_RMRK,
+			SEQ
+			FROM CO_AUTH
+			WHERE 1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND USE_YN = #{useYn}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+				AND AUTH_KND = #{authKnd}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(managementKnd)">
+				<if test='"2".equals(managementKnd)'>
+					AND MANAGEMENT_KND = '2'
+				</if>
+			</if>
+			ORDER BY SEQ
+	</select>
+
+	<select id="selectAuthMenuList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			A.MENU_ID AS MENU_ID,
+			A.MENU_NM AS MENU_NM,
+			A.DEPTH AS DEPTH,
+			FN_GET_SUB_MENU_COUNT(A.MENU_ID, '') AS SUB_MENU_COUNT,
+			A.USE_YN AS USE_YN,
+			DECODE(B.AUTH_ID, null, #{authId}, '', #{authId}, B.AUTH_ID) AS AUTH_ID,
+			DECODE(B.MENU_ID, null, 'N', '', 'N', 'Y') AS MENU_AUTH_YN
+		FROM 	CO_MENU A, CO_AUTH_MENU B
+		WHERE A.MENU_ID = B.MENU_ID(+)
+			AND B.AUTH_ID(+) = #{authId}
+		ORDER BY A.MENU_ID ASC
+	</select>
+
+	<delete id="deleteAuthMenuManage" parameterType="String">
+		DELETE
+		FROM
+			CO_AUTH_MENU
+		WHERE
+			AUTH_ID = #{authId}
+	</delete>
+
+	<insert id="insertAuthMenuManage" parameterType="hashMap">
+		INSERT INTO CO_AUTH_MENU
+		(
+			AUTH_ID, MENU_ID, AC_IP,
+			CRT_BY, CRT_DTM
+		)
+		VALUES
+			(
+				#{authId}, #{menuId}, #{acIp},
+				#{crtBy}, SYSDATE
+			)
+	</insert>
+
+	<select id="selectUserAuthCheckCnt" parameterType="hashMap" resultType="Integer">
+
+		/** selectUserAuthCheckList (DU_AuthMenuManage.dmMenuApprAuthCheckByUser) */
+		SELECT COUNT(*)
+		FROM CO_EMP_AUTH
+		WHERE EMP_ID = #{empId}
+		<if test="@org.springframework.util.StringUtils@isEmpty(authIdIn)">
+			AND AUTH_ID = #{authId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authIdIn)">
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchAuthIdIn)">
+				AND AUTH_ID IN (1,51,53,54,77,78)
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchAuthIdIn)">
+			<if test='"searchAuth1".equals(searchAuthIdIn)'>
+				AND AUTH_ID IN (1,45,46)
+			</if>
+		</if>
+	</select>
+
+	<select id="selectUserAuthList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			*
+		FROM (
+					SELECT
+						ROW_NUMBER()  OVER (ORDER BY COMP_ID,  EMP_ID ASC, DEPT_ID DESC) as ROW_NUM
+						,T.*
+					FROM (
+							SELECT
+								T1.EMP_ID
+								,T1.EMP_NM
+								,T1.DEPT_ID
+								,T2.DEPT_NM
+								,T1.COMP_ID
+								,T3.COMP_NM
+								,T1.JW_ID
+								,T4.JW_NM
+								,T1.AUTH_CNT
+								,T1.JC_CD
+						FROM (
+									SELECT
+										A.EMP_ID
+										,A.EMP_NM
+										,A.DEPT_ID
+										,A.JW_ID
+										,A.COMP_ID
+										,A.DIV_CD
+										,A.JC_CD
+										,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'F003' AND ETC1=A.DIV_CD AND USE_YN = 'Y') AS DIV_NM
+										,COUNT((select aa.auth_id from co_auth aa where aa.AUTH_KND = #{searchAuthKnd} and aa.auth_id = B.AUTH_ID)) as AUTH_CNT
+										<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+											,SUM(DECODE(B.AUTH_ID, #{searchAuth}, 1, 0)) as WHERE_CNT
+										</if>
+									FROM
+										CO_EMP A
+										,CO_EMP_AUTH B
+									WHERE
+										A.EMP_ID = B.EMP_ID(+)
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+											AND A.DIV_CD = #{searchDivCd}
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+											AND A.COMP_ID = #{searchCompId}
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+											AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{searchEmpNm}) || '%'
+										</if>
+										<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+											AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{searchEmpId}) || '%'
+										</if>
+										GROUP BY A.EMP_ID ,A.EMP_NM ,A.DEPT_ID ,A.JW_ID, A.COMP_ID, A.DIV_CD, A.JC_CD
+									) T1
+									,CO_DEPT T2
+									,CO_COMP T3
+									,CO_JW T4
+				WHERE 1=1
+					AND T1.DEPT_ID = T2.DEPT_ID(+)
+					AND T1.COMP_ID = T3.COMP_ID(+)
+					AND T1.JW_ID = T4.JW_ID(+)
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+					AND UPPER(T2.DEPT_NM) LIKE '%' || UPPER(#{searchDeptNm}) || '%'
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+					AND T1.WHERE_CNT > 0
+				</if>
+				) T
+		) T2
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+
+	</select>
+
+	<select id="selectUserAuthListCnt" parameterType="hashMap" resultType="Integer">
+		SELECT
+			NVL(MAX(ROW_NUM), 0) as TOT_CNT
+		FROM (
+				SELECT
+					ROW_NUMBER()  OVER (ORDER BY COMP_ID,  EMP_ID ASC, DEPT_ID DESC) as ROW_NUM
+					,T.*
+				FROM (
+							SELECT
+								T1.EMP_ID
+								,T1.EMP_NM
+								,T1.DEPT_ID
+								,T2.DEPT_NM
+								,T1.COMP_ID
+								,T3.COMP_NM
+								,T1.JW_ID
+								,T4.JW_NM
+								,T1.AUTH_CNT
+							FROM (
+										SELECT
+											A.EMP_ID
+											,A.EMP_NM
+											,A.DEPT_ID
+											,A.JW_ID
+											,A.COMP_ID
+											,COUNT(B.AUTH_ID) as AUTH_CNT
+											<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+												,SUM(DECODE(B.AUTH_ID, #{searchAuth}, 1, 0)) as WHERE_CNT
+											</if>
+									FROM
+									CO_EMP A
+									,CO_EMP_AUTH B
+									WHERE
+										A.EMP_ID = B.EMP_ID(+)
+									<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+										AND A.DIV_CD = #{searchDivCd}
+									</if>
+									<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+										AND A.COMP_ID = #{searchCompId}
+									</if>
+									<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+										AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{searchEmpNm}) || '%'
+									</if>
+									<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+										AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{searchEmpId}) || '%'
+									</if>
+									GROUP BY A.EMP_ID ,A.EMP_NM ,A.DEPT_ID ,A.JW_ID, A.COMP_ID,  A.DIV_CD, A.JC_CD
+									) T1
+								,CO_DEPT T2
+								,CO_COMP T3
+								,CO_JW T4
+				WHERE 1=1
+					AND T1.DEPT_ID = T2.DEPT_ID(+)
+					AND T1.COMP_ID = T3.COMP_ID(+)
+					AND T1.JW_ID = T4.JW_ID(+)
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+					AND UPPER(T2.DEPT_NM) LIKE '%' || UPPER(#{searchDeptNm}) || '%'
+				</if>
+				<if test='not @org.springframework.util.StringUtils@isEmpty(searchAuth) and !"ALL".equals(searchAuth)'>
+					AND T1.WHERE_CNT > 0
+				</if>
+				) T
+		)
+	</select>
+
+	<delete id="deleteUserAuthManage" parameterType="hashMap">
+		DELETE
+			CO_EMP_AUTH
+		WHERE
+			EMP_ID = #{authEmpId}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+			AND AUTH_ID IN (SELECT AUTH_ID FROM CO_AUTH WHERE AUTH_KND = #{authKnd})
+		</if>
+
+	</delete>
+
+	<insert id="insertUserAuthManage" parameterType="hashMap">
+		INSERT INTO CO_EMP_AUTH
+			(
+				EMP_ID
+				,AUTH_ID
+				,CRT_BY
+				,CRT_DTM
+				,MOD_BY
+				,MOD_DTM
+			)
+			VALUES
+		 (
+			 #{authEmpId}
+			 ,#{authId}
+			 ,#{crtBy}
+			 ,SYSDATE
+			 ,#{crtBy}
+			 ,SYSDATE
+		 )
+	</insert>
+
+	<select id="selectUserUseAuthList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+				T2.AUTH_ID
+				,T2.AUTH_NM
+				,T2.AUTH_RMRK
+				,CASE
+				WHEN NVL(T1.EMP_ID, 'N') = 'N'
+				THEN 0
+				ELSE 1
+				END AS CHECK_CNT
+		FROM (
+					SELECT
+						A.EMP_ID
+						,A.EMP_NM
+						,B.AUTH_ID
+					FROM
+						CO_EMP A
+						,CO_EMP_AUTH B
+					WHERE
+						A.EMP_ID = B.EMP_ID
+						AND A.EMP_ID = #{searchEmpId}
+					) T1
+					,CO_AUTH T2
+		WHERE T2.AUTH_ID = T1.AUTH_ID(+)
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authUseYn)">
+			AND T2.USE_YN = #{authUseYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(authKnd)">
+			AND T2.AUTH_KND = #{authKnd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(managementKnd)">
+			<if test='"2".equals(managementKnd)'>
+				AND T2.MANAGEMENT_KND = '2'
+			</if>
+		</if>
+		ORDER BY T2.SEQ
+	</select>
+	
+</mapper>
+
+

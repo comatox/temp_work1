@@ -1,0 +1,50 @@
+/*==================================
+Page Navigation
+==================================*/
+.nav_paging {height:32px; margin-top:20px; margin-bottom:20px;}
+.nav_paging .nav_paging_left {float:left; width:150px;}
+.nav_paging .nav_paging_right {float:right; width:150px; text-align:right;}
+.nav_paging .nav_paging_wrap {text-align:center; white-space:nowrap;}
+.nav_paging .nav_paging_left + .nav_paging_wrap,
+.nav_paging .nav_paging_right + .nav_paging_wrap {margin-left:170px; margin-right:170px;}
+.nav_paging .nav_paging_wrap > * {vertical-align:top;}
+.nav_paging .nav_paging_num {display:inline-block; min-width:30px; height:30px; line-height:30px;}
+.nav_paging .nav_paging_num .num_left {float:left; display:inline-block; width:15px; height:30px;margin-left:5px;}
+.nav_paging .nav_paging_num .num_right {float:left; display:inline-block; height:30px; padding-right:15px;}
+.nav_paging .nav_paging_num .num {font-family:arial, dotum, sans-serif; font-size:13px; color:#3c404a; text-align:center; display:inline-block; float:left; min-width:16px; margin-left:-8px; margin-right:-8px;}
+/* elements */
+.nav_paging .elmt {text-align:left;}
+.nav_paging .elmt > input[type="text"] {width:45px; margin-top:5px;}
+.nav_paging .elmt > select,
+.nav_paging .elmt > .btn_form {margin-top:5px;}
+.nav_paging .elmt .jqTransformInputWrapper {width:50px !important;}
+.nav_paging .elmt .txt {color:#76787c}
+/* btn */
+.nav_paging .nav_paging_btn {display:inline-block; background:url('/esecurity/assets/common/images/common/nav_paging.png') no-repeat;}
+.nav_paging .nav_paging_btn_fst {width:30px; height:30px; background-position:left top;margin:0 5px;}
+.nav_paging .nav_paging_btn_fst:hover {background-position:left -50px;}
+.nav_paging .nav_paging_btn_prev {width:30px; height:30px; background-position:-50px top;}
+.nav_paging .nav_paging_btn_prev:hover {background-position:-50px -50px;}
+.nav_paging .nav_paging_btn_next {width:30px; height:30px; background-position:-100px top;margin:0 5px;}
+.nav_paging .nav_paging_btn_next:hover {background-position:-100px -50px;}
+.nav_paging .nav_paging_btn_lst {width:30px; height:30px; background-position:-150px top;}
+.nav_paging .nav_paging_btn_lst:hover {background-position:-150px -50px;}
+.nav_paging .nav_paging_num:hover .num_left,
+.nav_paging .nav_paging_num.selected .num_left {background:url('/esecurity/assets/common/images/common/nav_paging.png') no-repeat left -100px;}
+.nav_paging .nav_paging_num:hover .num_right,
+.nav_paging .nav_paging_num.selected .num_right {background:url('/esecurity/assets/common/images/common/nav_paging.png') no-repeat right -100px;}
+.nav_paging .nav_paging_num:hover .num,
+.nav_paging .nav_paging_num.selected .num {color:#fb6c07;}
+/*==================================
+Footer 
+==================================*/
+.footer_family_light {padding:17px 0 20px 0; border-top:1px solid #e1e2e6; background-color:#fff;}
+.footer_family_light:after {content:''; display:block; clear:both; }
+/* 왼쪽 영역 */
+.footer_family_light .footer_left {clear:left;float:center;width:1152px;margin:0 auto;}
+.footer_family_light .footer_left .footer_logo {display:inline-block; margin:0 40px 0 0; vertical-align:middle; }
+.footer_family_light .footer_left .footer_txt_area {display:inline-block; vertical-align:middle; }
+.footer_family_light .footer_left .footer_txt_area .address {font-size:11px; font-weight:bold; font-style:normal; line-height:1.33em; color:#a4a7a9; margin-bottom:4px; }
+.footer_family_light .footer_left .footer_txt_area .copyright {font-size:11px; font-weight:bold; font-style:normal; line-height:1.33em; color:#a4a7a9; }
+/* logo */
+.footer_family_light .footer_logo_img {display:inline-block; width:87px; height:46px; background:url('/esecurity/assets/common/images/common/main/footer_family_light.png') 0 0; }

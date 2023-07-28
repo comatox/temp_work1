@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityDocDistRepository">
+
+	<select id="selectSecurityDocDistItemList" parameterType="Map" resultType="CamelHashMap">
+		/* SecurityDocDistRepository.selectSecurityDocDistItemList (dmSecrtDocDistItem_List_S) */
+		SELECT
+	        ROW_NUMBER() OVER(ORDER BY SC_DOC_DIST_ID DESC) AS ROW_NUM
+	        ,T.*
+	    FROM (
+	        SELECT
+                 A.SC_DOC_DIST_ID
+                ,A.COMP_ID
+                ,FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+                ,A.DEPT_ID
+                ,FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+                ,A.JW_ID
+                ,FN_GET_JW_NM(A.JW_ID) AS JW_NM
+                ,A.EMP_ID
+                ,FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM
+                ,SUBSTR(A.REG_DT, 1,4) || '-' || SUBSTR(A.REG_DT, 5, 2) || '-' || SUBSTR(A.REG_DT, 7, 2) AS REG_DT
+                ,B.ITEM_CNT
+                ,AD.DOC_ID
+				,NVL(AD.APPR_STAT , 'N') AS APPR_STAT
+             	,NVL(AD.APPR_RESULT , 'N') AS APPR_RESULT
+         	    ,CASE
+	                WHEN AD.DOC_ID IS NULL THEN '완료(자가결재)'
+	     	        WHEN AD.APPR_STAT = '0' THEN '대기'
+	 	            WHEN AD.APPR_STAT = '10' THEN '진행'
+	                WHEN AD.APPR_STAT = '20' THEN '완료'
+	                WHEN NVL(AD.APPR_STAT , 'N') = 'N' THEN '임시보관'
+                 END AS APPR_STAT_NM
+                ,CASE
+	 	            WHEN AD.DOC_ID IS NULL THEN '승인(자가결재)'
+	         	    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+	     	        WHEN AD.APPR_RESULT = '1' THEN '승인'
+	 	            WHEN AD.APPR_RESULT = '2' THEN '부결'
+	 	            WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+                 END AS APPR_RESULT_NM
+            FROM
+                SC_DOC_DIST A
+                LEFT OUTER JOIN
+                (SELECT SC_DOC_DIST_ID, COUNT(1) AS ITEM_CNT FROM SC_DOC_ITEM GROUP BY SC_DOC_DIST_ID) B ON (A.SC_DOC_DIST_ID = B.SC_DOC_DIST_ID)
+                LEFT OUTER JOIN AP_DOC AD
+                ON AD.DOC_ID = A.DOC_ID
+            WHERE A.DEL_YN = 'N'
+       		/*산업보안팀에서 본인작성외에 같은 팀에서 작성한 비문 분류 기준표 조회 가능하도록 할것 20150217 김용범책임 */
+       		<if test="not @org.springframework.util.StringUtils@isEmpty(adminYn)">
+       			<if test='"N".equals(adminYn) or "T".equals(adminYn)'>
+       				AND A.DEPT_ID IN ( SELECT T.DEPT_ID /* 대팀제에서 PL팀제로 변경이후 보안담당자 부서 권한 확대 */
+       								FROM CO_DEPT T,
+             						(SELECT MGE_CD FROM CO_DEPT WHERE DEPT_ID = #{deptId} AND USE_YN = 'Y') TT
+       								WHERE  T.MGE_CD = TT.MGE_CD
+       							  )  	
+       			</if>
+       		</if>
+       		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+				AND A.REG_DT <![CDATA[>=]]> REPLACE(#{searchStartDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.REG_DT <![CDATA[<=]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<choose>
+				<when test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+					/* 진행상태 */
+					<if test='"10".equals(applStat)'>
+						/* 검토중 */
+						AND AD.APPR_STAT = #{applStat}
+					</if>
+					<if test='"20".equals(applStat)'>
+						/* 처리완료 */
+						AND AD.APPR_STAT = #{applStat}
+					</if>
+					<if test='"1".equals(applStat)'>
+						/* 승인 */
+						AND AD.APPR_RESULT = #{applStat}
+					</if>
+					<if test='"2".equals(applStat)'>
+						/* 부결 */
+						AND AD.APPR_RESULT = #{applStat}
+					</if>
+				</when>
+				<otherwise>
+					AND AD.APPR_STAT = ''
+				</otherwise>
+			</choose>
+        ) T
+        WHERE 1=1
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+        	AND DEPT_NM like '%' || #{searchDeptNm} || '%'
+		</if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND EMP_NM like '%' || #{searchEmpNm} || '%'
+		</if>
+	</select>
+	
+	<select id="selectSecurityDocDistView" parameterType="Map" resultType="CamelHashMap">
+		/*  SecurityDocDistRepository.selectSecurityDocDistView (dmSecrtDocDist_View_S) */
+        SELECT
+            B.COMP_ID
+            ,FN_GET_COMP_NM(B.COMP_ID) AS COMP_NM
+            ,B.DEPT_ID
+            ,FN_GET_DEPT_NM(B.DEPT_ID) AS DEPT_NM
+            ,B.JW_ID
+            ,FN_GET_JW_NM(B.JW_ID) AS JW_NM
+            ,B.EMP_ID
+            ,FN_GET_EMP_NM(B.EMP_ID) AS EMP_NM
+            ,B.DOC_ID
+            ,SUBSTR(B.REG_DT, 1,4) || '-' || SUBSTR(B.REG_DT, 5, 2) || '-' || SUBSTR(B.REG_DT, 7, 2) AS REG_DT
+            ,NVL(B.FILE_PATH1, 'N') as N_FILE_PATH1
+			,SUBSTR(B.FILE_PATH1, INSTR(B.FILE_PATH1, ';')+1) AS N_FILE_PATH1_NM 
+			,REPLACE(SUBSTR(B.FILE_PATH1, 1, INSTR(B.FILE_PATH1, '\', -1)), '\', '/') AS N_FILE_PATH1_ADDR
+			,SUBSTR(SUBSTR(B.FILE_PATH1, 1, INSTR(B.FILE_PATH1, ';')-1), INSTR(SUBSTR(B.FILE_PATH1, 1, INSTR(B.FILE_PATH1, ';')-1), '\', -1)+1) AS N_FILE_PATH1_ID
+			,B.FILE_NAME  
+			,B.FILE_URL   
+        FROM
+            SC_DOC_DIST B
+        WHERE
+            B.SC_DOC_DIST_ID = #{scDocDistId}
+	</select>
+	
+	<select id="selectSecurityDocDistViewList" parameterType="Map" resultType="CamelHashMap">
+		/* SecurityDocDistRepository.selectSecurityDocDistViewList (dmSecrtDocItem_View_List_S) */
+		SELECT
+		    TB.*
+		FROM (
+		    SELECT
+		        ROW_NUMBER() OVER(ORDER BY SC_DOC_ITEM_ID ASC) AS ROW_NUM
+		        ,T.*
+		    FROM (
+		        SELECT
+		            A.SC_DOC_DIST_ID
+		            ,A.SC_DOC_ITEM_ID
+		            ,A.GUBUN1
+		            ,A.GUBUN2
+		            ,A.GUBUN3
+		        FROM
+		            SC_DOC_ITEM A
+		            ,SC_DOC_DIST B
+		        WHERE
+		            A.SC_DOC_DIST_ID = B.SC_DOC_DIST_ID
+		            AND B.SC_DOC_DIST_ID = #{scDocDistId}
+		            AND B.DEL_YN = 'N'
+		            AND A.DEL_YN = 'N'
+	        ) T
+	    ) TB
+	</select>
+	
+	<select id="selectSecurityDocDistSeq" resultType="Integer">
+		/* SecurityDocDistRepository.selectSecurityDocDistSeq (dmSecrtDocDist_Seq_S) */
+		SELECT SEQ_SC_DOC_DIST_ID.NEXTVAL AS SC_DOC_DIST_ID FROM DUAL
+	</select>
+	
+	<insert id="insertSecurityDocDist" parameterType="Map">
+		/* SecurityDocDistRepository.insertSecurityDocDist (dmSecrtDocDist_I) */
+		INSERT INTO SC_DOC_DIST
+		(
+			SC_DOC_DIST_ID
+			,COMP_ID
+			,JW_ID
+			,EMP_ID
+			,DEPT_ID
+			,DOC_ID
+			,REG_DT
+			,AC_IP
+			,DEL_YN
+			,CRT_DTM
+			,CRT_BY
+			,MOD_DTM
+			,MOD_BY
+			,FILE_URL
+			,FILE_NAME
+		) values (
+			 #{scDocDistId}
+			,#{compId}
+			,#{jwId}
+			,#{empId}
+			,#{deptId}
+			,#{docId}
+			,replace(#{regDt}, '-', '')
+			,#{acIp}
+			,'N'
+			,SYSDATE
+			,#{empId}
+			,SYSDATE
+			,#{empId}
+			,#{fileUrl}
+			,#{fileName}
+		)
+	</insert>
+	
+	<insert id="insertSecurityDocItem" parameterType="Map">
+		<selectKey keyProperty="scDocItemId" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_SC_DOC_ITEM_ID.NEXTVAL AS SC_DOC_ITEM_ID FROM DUAL
+	    </selectKey>
+		/* SecurityDocDistRepository.insertSecurityDocItem (dmSecrtDocItem_I) */
+		INSERT INTO SC_DOC_ITEM
+		(
+			SC_DOC_ITEM_ID
+			,SC_DOC_DIST_ID	
+			,GUBUN1	
+			,GUBUN2	
+			,GUBUN3	
+			,DEL_YN	
+			,AC_IP	
+			,CRT_DTM	
+			,CRT_BY	
+			,MOD_DTM	
+			,MOD_BY
+		) values (
+			 #{scDocItemId}
+			,#{scDocDistId}
+			,#{gubun1}
+			,#{gubun2}
+			,#{gubun3}
+			,'N'
+			,#{acIp}
+			,SYSDATE	
+			,#{empId}
+			,SYSDATE
+			,#{empId}
+		)
+	</insert>
+
+</mapper>

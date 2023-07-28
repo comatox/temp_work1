@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.CodeManageRepository">
+
+    <select id="selectGroupManageList" parameterType="Map" resultType="CamelHashMap">
+			/* IO: insNet.envrSetup.codemanage.DU_Groupmanage_dmGroupmanageList_S_2012-07-23T12:04:45(2012-07-23T12:48:34) */
+			WITH PAGE AS
+			(
+			SELECT ROW_NUMBER() OVER (
+			ORDER BY GRP_CD DESC
+			) AS ROW_NUM
+			,SUBSTR(T1.GRP_CD,1,1) AS GRP
+			,T1.GRP_CD
+			,T1.GRP_NM
+			,T1.RMRK
+			,T1.USE_YN
+			,TO_CHAR(T1.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+			,TO_CHAR(T1.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+			FROM CO_CODE_M T1
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrp)">
+			AND SUBSTR(GRP_CD,1,1) = UPPER(#{searchgrp})
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpCd)">
+				AND GRP_CD LIKE '%'||UPPER(#{searchgrpCd})||'%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpNm)">
+				AND GRP_NM LIKE '%'||#{searchgrpNm}||'%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchuseYn)">
+				AND USE_YN = #{searchuseYn}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchrmrk)">
+				AND RMRK LIKE '%'||#{searchrmrk}||'%' ESCAPE '['
+			</if>
+			)
+			SELECT *
+			FROM PAGE T2
+			WHERE T2.ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+		</select>
+
+	<select id="selectGroupManageListCnt" parameterType="Map" resultType="Integer">
+		/* IO: insNet.envrSetup.codemanage.DU_Groupmanage_dmGroupmanageCnt_S_2012-07-23T12:04:45(2012-07-23T12:57:14) */
+		SELECT COUNT(*) AS CNT
+		FROM (
+		SELECT T1.*
+		FROM CO_CODE_M T1
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrp)">
+			AND SUBSTR(GRP_CD,1,1) = UPPER(#{searchgrp})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpCd)">
+			AND GRP_CD LIKE '%'||UPPER(#{searchgrpCd})||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpNm)">
+			AND GRP_NM LIKE '%'||#{searchgrpNm}||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchuseYn)">
+			AND USE_YN = #{searchuseYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchrmrk)">
+			AND RMRK LIKE '%'||#{searchrmrk}||'%' ESCAPE '['
+		</if>
+		) T
+	</select>
+
+	<update id="updateGroupManage" parameterType="Map">
+	<![CDATA[
+	/*  CodeManageRepository.updateGroupManage (dmGroupmanageAdd_I) */
+
+	MERGE INTO CO_CODE_M T1
+    USING (
+        SELECT #{grpCd} AS GRP_CD
+        	  ,#{grpNm} AS GRP_NM
+        	  ,#{rmrk}   AS RMRK
+        	  ,#{useYn} AS USE_YN
+        	  ,#{acIp}  AS AC_IP
+        	  ,#{empId} AS CRT_BY
+       	FROM DUAL ) T2
+    ON (T1.GRP_CD = T2.GRP_CD)
+    WHEN MATCHED THEN
+        UPDATE SET
+        	 T1.GRP_NM = T2.GRP_NM
+        	,T1.RMRK = T2.RMRK
+        	,T1.USE_YN = T2.USE_YN
+        	,T1.MOD_BY = T2.CRT_BY
+        	,T1.MOD_DTM = SYSDATE
+    WHEN NOT MATCHED THEN
+        INSERT
+        (
+           GRP_CD
+         , GRP_NM
+         , RMRK
+         , USE_YN
+         , AC_IP
+         , CRT_BY
+         , CRT_DTM
+         , MOD_BY
+         , MOD_DTM
+        )
+        VALUES
+        (
+          T2.GRP_CD
+         ,T2.GRP_NM
+         ,T2.RMRK
+         ,T2.USE_YN
+         ,T2.AC_IP
+         ,T2.CRT_BY
+         ,SYSDATE
+         ,T2.CRT_BY
+         ,SYSDATE
+        )
+    ]]>
+	</update>
+
+	<select id="selectDetailManageList" parameterType="Map" resultType="CamelHashMap">
+		/* IO: insNet.envrSetup.codemanage.DU_Detailmanage_dmDetailmanageList_S_2012-07-23T15:49:40(2012-07-23T15:50:14) */
+		WITH PAGE AS
+		(
+		SELECT ROW_NUMBER() OVER (
+		ORDER BY T1.GRP_CD , T1.DETL_CD DESC
+		) AS ROW_NUM
+		,SUBSTR(T1.GRP_CD,1,1) AS GRP
+		,T1.GRP_CD
+		,(SELECT CM.GRP_NM FROM CO_CODE_M CM WHERE CM.GRP_CD = T1.GRP_CD) AS GRP_NM
+		,T1.DETL_CD
+		,T1.DETL_NM
+		,T1.ETC1
+		,T1.ETC2
+		,T1.ETC3
+		,T1.ETC4
+		,T1.SORT_SEQ
+		,T1.USE_YN
+		,T1.DETL_EN_NM
+		,TO_CHAR(T1.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+		,TO_CHAR(T1.MOD_DTM, 'YYYY-MM-DD HH24:MI:SS') AS MOD_DTM
+		,'Y' AS FLAG
+		FROM CO_CODE_D T1
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrp)">
+		AND SUBSTR(GRP_CD,1,1) = UPPER(#{searchgrp})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpCd)">
+		AND GRP_CD = UPPER(#{searchgrpCd})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchuseYn)">
+		AND USE_YN = #{searchuseYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchdetlCd)">
+			AND DETL_CD LIKE '%'||#{searchdetlCd}||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchdetlNm)">
+			AND DETL_NM LIKE '%'||#{searchdetlNm}||'%' ESCAPE '['
+		</if>
+		)
+		SELECT *
+		FROM PAGE T2
+
+		WHERE T2.ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectDetailManageListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*) AS CNT
+		FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY T1.GRP_CD) AS ROWM
+			,T1.*
+			FROM CO_CODE_D T1
+			WHERE 1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrp)">
+				AND SUBSTR(GRP_CD,1,1) = UPPER(#{searchgrp})
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchgrpCd)">
+				AND GRP_CD = UPPER(#{searchgrpCd})
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchuseYn)">
+				AND USE_YN = #{searchuseYn}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchdetlCd)">
+				AND DETL_CD LIKE '%'||#{searchdetlCd}||'%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchdetlNm)">
+				AND DETL_NM LIKE '%'||#{searchdetlNm}||'%' ESCAPE '['
+			</if>
+		) T
+	</select>
+
+	<update id="updateDetailManage" parameterType="Map">
+	<![CDATA[
+	/*  CodeManageRepository.updateDetailManage (dmDetailmanageAdd_I) */
+
+	MERGE INTO CO_CODE_D T1
+    USING (
+        SELECT #{grpCd} AS GRP_CD
+        	  ,#{detlCd} AS DETL_CD
+        	  ,TRIM(#{detlNm}) AS DETL_NM
+        	  ,#{etc1} AS ETC1
+        	  ,#{etc2} AS ETC2
+        	  ,#{etc3} AS ETC3
+        	  ,#{etc4} AS ETC4
+        	  ,TO_NUMBER(#{sortSeq}) AS SORT_SEQ
+        	  ,#{useYn} AS USE_YN
+        	  ,TRIM(#{detlEnNm}) AS DETL_EN_NM
+        	  ,#{acIp}  AS AC_IP
+        	  ,#{empId} AS CRT_BY
+       	FROM DUAL ) T2
+    ON (T1.GRP_CD = T2.GRP_CD AND T1.DETL_CD = T2.DETL_CD)
+    WHEN MATCHED THEN
+        UPDATE SET
+        	 T1.DETL_NM = T2.DETL_NM
+          ,T1.ETC1 = T2.ETC1
+          ,T1.ETC2 = T2.ETC2
+          ,T1.ETC3 = T2.ETC3
+          ,T1.ETC4 = T2.ETC4
+          ,T1.SORT_SEQ = T2.SORT_SEQ
+          ,T1.DETL_EN_NM = T2.DETL_EN_NM
+        	,T1.USE_YN = T2.USE_YN
+        	,T1.MOD_BY = T2.CRT_BY
+        	,T1.MOD_DTM = SYSDATE
+    WHEN NOT MATCHED THEN
+        INSERT
+        (
+           GRP_CD
+         , DETL_CD
+         , DETL_NM
+         , ETC1
+         , ETC2
+         , ETC3
+         , ETC4
+         , SORT_SEQ
+         , USE_YN
+         , DETL_EN_NM
+         , AC_IP
+         , CRT_BY
+         , CRT_DTM
+         , MOD_BY
+         , MOD_DTM
+        )
+        VALUES
+        (
+          T2.GRP_CD
+         ,T2.DETL_CD
+         ,T2.DETL_NM
+         ,T2.ETC1
+         ,T2.ETC2
+         ,T2.ETC3
+         ,T2.ETC4
+         ,T2.SORT_SEQ
+         ,T2.USE_YN
+         ,T2.DETL_EN_NM
+         ,T2.AC_IP
+         ,T2.CRT_BY
+         ,SYSDATE
+         ,T2.CRT_BY
+         ,SYSDATE
+        )
+    ]]>
+	</update>
+
+	<select id="selectDetailManageDetail" parameterType="Map" resultType="CamelHashMap">
+    <![CDATA[
+    /*  CodeManageRepository.selectDetailManageDetail (dmDetailmodify_Info) */
+
+	SELECT
+		SUBSTR(a.GRP_CD,1,1) AS GRP
+		, CASE WHEN SUBSTR(a.GRP_CD,1,1) = 'A' THEN '출입관리[A]'
+		 		WHEN SUBSTR(a.GRP_CD,1,1) = 'B' THEN '서비스신청[B]'
+		 		WHEN SUBSTR(a.GRP_CD,1,1) = 'C' THEN '보안활동[C]'
+		 		WHEN SUBSTR(a.GRP_CD,1,1) = 'Z' THEN '공통[Z]'
+		 	ELSE '기타' END AS G_NM
+		,   a.GRP_CD AS GRP_CD
+		,  (SELECT CM.GRP_NM FROM CO_CODE_M CM WHERE CM.GRP_CD = a.GRP_CD) AS GRP_NM
+		,  a.DETL_CD AS DETL_CD
+		,  a.DETL_NM AS DETL_NM
+		,  a.ETC1 AS ETC1
+		,  a.ETC2 AS ETC2
+		,  a.ETC3 AS ETC3
+		,  a.ETC4 AS ETC4
+		,  a.SORT_SEQ AS SORT_SEQ
+		,  a.USE_YN AS USE_YN
+		,  a.DETL_EN_NM AS DETL_EN_NM
+		,  TO_CHAR(a.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM
+		,  a.RMRK
+	FROM  CO_CODE_D a
+	WHERE  a.GRP_CD = #{grpCd}
+	AND  a.DETL_CD = #{detlCd}
+	]]>
+	</select>
+
+	<update id="updateDetailCodeInfo" parameterType="Map">
+	<![CDATA[
+	/*  CodeManageRepository.updateDetailCodeInfo (dmDetailmodify_Up) */
+
+	UPDATE  CO_CODE_D a
+	SET
+       a.ETC1 = #{etc1}
+     ,  a.ETC2 = #{etc2}
+     ,  a.ETC3 = #{etc3}
+     ,  a.ETC4 = #{etc4}
+     ,  a.SORT_SEQ = #{sortSeq}
+     ,  a.DETL_EN_NM = #{detlEnNm}
+     ,  a.MOD_BY = #{empId}
+     ,  a.MOD_DTM = SYSDATE
+     ,  a.RMRK = #{detlRmrk}
+	WHERE a.GRP_CD = #{grpCd}
+ 	AND a.DETL_CD = #{detlCd}
+	]]>
+	</update>
+</mapper>

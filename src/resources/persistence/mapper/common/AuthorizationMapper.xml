@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.AuthorizationRepository">
+
+	<select id="selectAuthorizedMenu" resultType="String">
+		/* common: authorizationRepository.selectAuthorizedMenu */
+		SELECT
+			DISTINCT
+			A.MENU_ID
+		 FROM CO_AUTH_MENU A, CO_EMP_AUTH B
+		    , CO_MENU C, CO_AUTH D
+		WHERE A.AUTH_ID = B.AUTH_ID
+		  AND A.MENU_ID = C.MENU_ID AND C.USE_YN = 'Y'
+		  AND A.AUTH_ID = D.AUTH_ID AND D.USE_YN = 'Y'
+		  AND B.EMP_ID = #{empId}
+		ORDER BY A.MENU_ID ASC
+	</select>
+
+	<select id="selectMenuAuthCheck" resultType="Integer" parameterType="MenuAuthCheckDTO">
+		/* common: authorizationRepository.selectMenuAuthCheck */
+		SELECT
+			COUNT(DISTINCT A.MENU_ID) AS AUTH_MENU_COUNT
+		 FROM CO_AUTH_MENU A, CO_EMP_AUTH B
+		    , CO_MENU C, CO_AUTH D
+		WHERE A.AUTH_ID = B.AUTH_ID
+		  AND A.MENU_ID = C.MENU_ID AND C.USE_YN = 'Y'
+		  AND A.AUTH_ID = D.AUTH_ID AND D.USE_YN = 'Y'
+		  AND B.EMP_ID = #{empId}
+		  AND A.MENU_ID = #{menuId}
+	</select>
+		
+</mapper>

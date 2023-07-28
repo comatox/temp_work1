@@ -1,0 +1,323 @@
+<!-- REPORTHEADER-SATRT -->
+<!-- PRINTORIENTATION[PORTRAIT]PRINTORIENTATION -->
+<!-- LEFTMARGINE[-1]LEFTMARGINE -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=euc-kr">
+<title>&lt;업체물품 반출입증&gt;</title>
+<link rel="stylesheet" href="/eSecurity/common/report/reportstyle.css" />
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="purple" alink="red" topmargin="1" marginheight="1" class="PaperA4SERO">
+<!-- REPORTHEADER-END -->
+<!-- REPORTPAGEHEADER-START -->
+<!-- REPORTPAGEHEADER-HEIGHT[105]REPORTPAGEHEADER-HEIGHT -->
+<table border="0" cellspacing="0" cellpadding="0" width="650" bordercolordark="white" bordercolorlight="black" align="center" >
+	<tr>
+		<td align="right">{{pfc1}}</td>
+	</tr>	
+</table>
+<table border="0" cellspacing="0" cellpadding="0" width="650" bordercolordark="white" bordercolorlight="black" align="center" >
+	<tr>
+		<td align="center" valign="middle" height=65 colspan="3"><u><h2>업체물품 반출입증</h2></u></td>
+	</tr>
+	<tr>
+		<td width="100%" align="left" valign="bottom" colspan="3">
+			<table border="1" cellspacing="0" cellpadding="1" width="650" style="boder-style:solid"  align="center" style="border-collapse: collapse; border: thin solid #000000">
+				<tr height="20">
+					<td align="center" valign="middle"  width="15%" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입증 번호</strong></p></td>
+					<td align="left" valign="middle"  width="35%"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{ioinoutserialno}}</p></td>
+					<td align="center" valign="middle"  width="15%" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>작성일</strong></p></td>
+					<td align="left" valign="middle"  width="35%"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{crt_dtm}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>사업자번호</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_comp_id}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"  style="font-size:10px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>협력사명</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_comp_nm}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입자명</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_emp_nm}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>휴대폰번호</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_tel_no}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입사업장</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{company}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입건물</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{gate_nm}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입사유</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_cause}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>구분</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{inout_gbn}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>요청자</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{co_emp_nm}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>요청자 연락처</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{co_tel_no}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입/반출 예정일</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{in_expt_date}} ~{{out_expt_date}}</p></td>
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>Warranty 기간</strong></p></td>
+					<td align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{warranty_start_dt}} ~ {{warranty_end_dt}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>반입사유 상세설명</strong></p></td>
+					<td colspan='3' align="left" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:12px'>&nbsp;{{io_cause_detail}}</p></td>
+				</tr>
+				<tr height="20">
+					<td align="center" valign="middle" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><p style='font-size:12px'><strong>BARCODE</strong></p></td>
+					<td colspan='3' align="center" valign="middle"  style="font-size:12px; border-top-width:0px; border-color:black; border-style:solid;"><p style='font-size:25px;font-family:'3 of 9 Barcode';'>*{{ioinoutserialno}}*</p></td>
+				</tr>				
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td height=3 colspan="3"></td>
+	</tr>
+<!-- REPORTPAGEHEADER-END -->
+<!-- 기존 버전과의 호완성을 위해 유지함.(START) -->
+<!-- REPORTDETAIL-START -->
+<!-- REPORTDETAIL-HEIGHT[42]REPORTDETAIL-HEIGHT -->
+<!-- REPORTDETAIL-END -->
+<!-- 기존 버전과의 호완성을 위해 유지함.(END) -->
+<!-- TABLEHEADER1-START -->
+<!-- TABLEHEADER1-HEIGHT[25]TABLEHEADER1-HEIGHT -->
+
+<!-- TABLEHEADER1-END -->
+<!-- TABLEDETAIL1-START -->
+<!-- TABLEDETAIL1-HEIGHT[25]TABLEDETAIL1-HEIGHT -->
+  <!-- TABLEDETAIL1-END -->
+<!-- TABLEFOOTER1-START -->
+	<tr>
+		<td colspan="3">
+			<table border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="border-collapse: collapse; border: thin solid #000000">
+					<tr>
+		<td colspan="3">
+			<table border="0" cellspacing="0" cellpadding="0" width="650" bordercolordark="white" bordercolorlight="black" align="center">
+				<tr height="15">
+					<td colspan="3"></td>
+				</tr>
+				<tr>
+					<td  align="left" ><p style='font-size:12px'>업체물품 반입신청 품목에 대해서는 업체물품 소유의 물품으로 작업 공구 / 기자재 / Warranty 기간 內 무상교환품만 해당되어 있으며, 
+Warranty 기간 內 발생한 교체건은 비용발생 없이 무상교체를 진행함을 동의합니다. (하이스텍에 비용을 청구하지 않는 물품)</br>
+&nbsp;※ 업체물품은 협력사 또는 제3자 소유물품으로, 하이스텍이 구매대금을 지급하지 않습니다  &nbsp;&nbsp;<input type="checkbox" checked="checked">    
+   <font color=red bold>   동의 합니다.</font><p></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+
+
+			</table>
+		</td>
+	</tr>
+
+<!-- TABLEFOOTER1-END -->
+<!-- TABLEHEADER2-START -->
+<!-- TABLEHEADER2-HEIGHT[60]TABLEHEADER2-HEIGHT -->
+	<tr>
+		<td height=3 colspan="3"></td>
+	</tr>
+	<tr>
+		<td width=100% colspan="3">
+			<table border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="border-collapse: collapse; border: thin solid #000000">
+				<tr height="25">
+					<td align="center" valign="middle" width="100%" colspan="10" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><b>물품정보</b></td>
+				</tr>
+				<tr height="25">
+					<td align="center" valign="middle" width="5%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">NO</td>
+					<td align="center" valign="middle" width="20%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">품명</td>
+					<td align="center" valign="middle" width="13%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">모델명</td>
+					<td align="center" valign="middle" width="10%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">Serial no.</td>
+					<td align="center" valign="middle" width="10%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">단위</td>
+					<td align="center" valign="middle" width="10%" style="font-size:12px; border-top-width:1px; border-color:black; border-style:solid;">수량</td>
+				</tr>
+<!-- TABLEHEADER2-END -->
+<!-- TABLEDETAIL2-START -->
+<!-- TABLEDETAIL2-HEIGHT[25]TABLEDETAIL2-HEIGHT -->
+				<tr height="25">
+					<td align="center" valign="middle" style="font-size:12px; border-width:1px; border-color:black; border-right-style:solid; border-left-style:solid; vertical-align: center;">&nbsp;{{r1c1}}&nbsp;</td>
+					<td align="left" valign="middle" style="font-size:12px; border-width:1px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;">&nbsp;{{r1c2}}&nbsp;</td>
+					<td align="left" valign="middle" style="font-size:12px; border-width:1px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;">&nbsp;{{r1c3}}&nbsp;</td>
+					<td align="left" valign="middle" style="font-size:12px; border-width:1px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;">&nbsp;{{r1c4}}&nbsp;</td>
+					<td align="center" valign="middle" style="font-size:12px; border-width:1px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;">&nbsp;{{r1c5}}&nbsp;</td>
+					<td align="right" valign="middle" style="font-size:12px; border-width:1px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;">&nbsp;{{r1c6}}&nbsp;</td>
+				</tr>
+<!-- TABLEDETAIL2-END -->
+<!-- TABLEFOOTER2-START -->
+			</table>
+		</td>
+	</tr>
+
+<!-- TABLEFOOTER2-END -->
+<!-- TABLEHEADER3-START -->
+<!-- TABLEHEADER3-HEIGHT[25]TABLEHEADER3-HEIGHT -->
+	<tr>
+		<td height=3 colspan="3"></td>
+	</tr>
+	<!--
+	<tr>
+		<td width=100%>
+			<table border="1" cellspacing="0" cellpadding="1" width="650" align="center" style="border-collapse: collapse; border: thin solid #000000">
+				<tr height="25">
+					<td align="center" valign="middle" width="10%" colspan="4" style="font-size:10px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><b>사진정보</b></td>
+				</tr>
+				<tr height="25">
+					<td align="center" valign="middle" width="100%" style="font-size:10px; border-top-width:0px; border-color:black; border-style:none;" colspan="4"></td>	
+				</tr>
+	-->
+	<tr>
+		<td>
+			<table border="1" cellspacing="0" cellpadding="0" width="300" align="left" style="border-collapse: collapse; border: thin solid #000000">
+				<tr height="25">
+					<td align="center" valign="middle" width="50" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;" rowspan="2"><b>입<br>출<br>문<br><br>확<br>인</b></td>
+					<td align="center" valign="middle" width="125" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><b>반 입</b></td>
+					<td align="center" valign="middle" width="125" style="font-size:12px; background-color:rgb(192,223,255); border-top-width:1px; border-color:black; border-style:solid;"><b>반 출</b></td>
+				</tr>
+				<tr height="50">
+					<td align="center" valign="middle" style="font-size:12px; border-top-width:0px; border-color:black; border-style:inline;" ></td>	
+					<td align="center" valign="middle" style="font-size:12px; border-top-width:0px; border-color:black; border-style:inline;" ></td>	
+				</tr>
+			</table>
+		</td>
+		<td width="50">
+		</td>
+		<td {{styleid}}>
+
+		</td>
+	</tr>
+<!-- TABLEHEADER3-END -->
+<!-- TABLEDETAIL3-START -->
+<!-- TABLEDETAIL3-HEIGHT[25]TABLEDETAIL3-HEIGHT -->
+	<!--
+				<tr height="50">
+					<td align="center" valign="middle" style="font-size:10px; border-width:0px; border-color:black;  border-right-style:solid;  border-left-style:solid; vertical-align: center;" colspan="4"></td>
+				</tr>
+				<tr height="25">
+					<td align="center" valign="middle" width="10%" style="font-size:10px; border-top-width:1px; border-color:black; border-style:solid;">입문확인</td>
+					<td align="center" valign="middle" width="30%" style="font-size:10px; border-top-width:1px; border-color:black; border-style:solid;"></td>
+					<td align="center" valign="middle" width="10%" style="font-size:10px; border-top-width:1px; border-color:black; border-style:solid;">출문확인</td>
+					<td align="center" valign="middle" width="30%" style="font-size:10px; border-top-width:1px; border-color:black; border-style:solid;"></td>
+				</tr>
+	-->
+<!-- TABLEDETAIL3-END -->
+<!-- TABLEFOOTER3-START -->
+	<!--
+			</table>
+		</td>
+	</tr>
+	-->
+
+<!-- TABLEFOOTER3-END -->
+<!-- TABLEHEADER4-START -->
+<!-- TABLEHEADER4-HEIGHT[60]TABLEHEADER4-HEIGHT -->
+
+<!-- TABLEHEADER4-END -->
+<!-- TABLEDETAIL4-START -->
+<!-- TABLEDETAIL4-HEIGHT[20]TABLEDETAIL4-HEIGHT -->
+
+<!-- TABLEDETAIL4-END -->
+<!-- TABLEFOOTER4-START -->
+
+<!-- TABLEFOOTER4-END -->
+<!-- 구성되지 않은 테이블도 정의해 두어야 한다.(필수) -->
+<!-- TABLEHEADER5-START -->
+<!-- TABLEHEADER5-HEIGHT[0]TABLEHEADER5-HEIGHT -->
+<!-- TABLEHEADER5-END -->
+<!-- TABLEDETAIL5-START -->
+<!-- TABLEDETAIL5-HEIGHT[0]TABLEDETAIL5-HEIGHT -->
+<!-- TABLEDETAIL5-END -->
+<!-- TABLEFOOTER5-START -->
+<!-- TABLEFOOTER5-END -->
+<!-- TABLEHEADER6-START -->
+<!-- TABLEHEADER6-HEIGHT[0]TABLEHEADER6-HEIGHT -->
+<!-- TABLEHEADER6-END -->
+<!-- TABLEDETAIL6-START -->
+<!-- TABLEDETAIL6-HEIGHT[0]TABLEDETAIL6-HEIGHT -->
+<!-- TABLEDETAIL6-END -->
+<!-- TABLEFOOTER6-START -->
+<!-- TABLEFOOTER6-END -->
+<!-- TABLEHEADER7-START -->
+<!-- TABLEHEADER7-HEIGHT[0]TABLEHEADER7-HEIGHT -->
+<!-- TABLEHEADER7-END -->
+<!-- TABLEDETAIL7-START -->
+<!-- TABLEDETAIL7-HEIGHT[0]TABLEDETAIL7-HEIGHT -->
+<!-- TABLEDETAIL7-END -->
+<!-- TABLEFOOTER7-START -->
+<!-- TABLEFOOTER7-END -->
+<!-- TABLEHEADER8-START -->
+<!-- TABLEHEADER8-HEIGHT[0]TABLEHEADER8-HEIGHT -->
+<!-- TABLEHEADER8-END -->
+<!-- TABLEDETAIL8-START -->
+<!-- TABLEDETAIL8-HEIGHT[0]TABLEDETAIL8-HEIGHT -->
+<!-- TABLEDETAIL8-END -->
+<!-- TABLEFOOTER8-START -->
+<!-- TABLEFOOTER8-END -->
+<!-- TABLEHEADER9-START -->
+<!-- TABLEHEADER9-HEIGHT[0]TABLEHEADER9-HEIGHT -->
+<!-- TABLEHEADER9-END -->
+<!-- TABLEDETAIL9-START -->
+<!-- TABLEDETAIL9-HEIGHT[0]TABLEDETAIL9-HEIGHT -->
+<!-- TABLEDETAIL9-END -->
+<!-- TABLEFOOTER9-START -->
+<!-- TABLEFOOTER9-END -->
+<!-- TABLEHEADER10-START -->
+<!-- TABLEHEADER10-HEIGHT[0]TABLEHEADER10-HEIGHT -->
+<!-- TABLEHEADER10-END -->
+<!-- TABLEDETAIL10-START -->
+<!-- TABLEDETAIL10-HEIGHT[0]TABLEDETAIL10-HEIGHT -->
+<!-- TABLEDETAIL10-END -->
+<!-- TABLEFOOTER10-START -->
+<!-- TABLEFOOTER10-END -->
+<!-- REPORTPAGEFOOTER-START -->
+	<tr>
+		<td colspan="3">
+			<table border="0" cellspacing="0" cellpadding="0" width="650" bordercolordark="white" bordercolorlight="black" align="center">
+				<tr height="15">
+					<td colspan="3"></td>
+				</tr>
+				<tr>
+					<td  align="left" valign="bottom"><p style='font-size:12px'>1. 결재완료된 반출입증은 작성일로부터 14일이내 반입 완료하시기바랍니다.(미사용시 자동삭제)<p></td>
+				</tr>
+				<tr>
+					<td  align="left" valign="bottom"><p style='font-size:12px'>2. 업체물품 반출입 전산처리는 외곽 보안요원에게 확인 받은 후 반입하시기 바랍니다.</br> (이천:행복1문~5문,통근버스주차장, 청주:1캠퍼스~3캠퍼스,원자재통합창고, 분당:4층GATE)<p></td>
+				</tr>
+				<tr>
+					<td  align="left" valign="bottom"><p style='font-size:12px'>3. 보안요원에게 확인받지않고 반입된 업체물품에 대해서는 반출 필요시 하이스텍 현업담당자에게 반출증작성을 요청해주시기
+   바랍니다.(실물사진파일필요)<p></td>
+				</tr>
+				<tr>
+					<td  align="left" valign="bottom"><p style='font-size:12px'>4. 업체물품 반출입증 분실시 Welcome시스템에서 재출력 가능하오니 참고하시기 바랍니다.<p></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	
+</table>
+<!-- REPORTPAGEFOOTER-END -->
+<!--</table>-->
+<!-- REPORTFOOTER-START --> 
+<!--
+			</table>
+			<table border="0" cellspacing="0" cellpadding="0" width="100%" bordercolordark="white" bordercolorlight="black" align="center">
+				<tr height="5">
+					<td></td>
+				</tr>
+				<tr align="right">
+					<td ><p style='font-size:12px'>{{companyname_1}}<p></td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
+-->
+</body>
+</html>
+<!-- REPORTFOOTER-END -->
+<!-- salepartner_report_print_template.htm -->

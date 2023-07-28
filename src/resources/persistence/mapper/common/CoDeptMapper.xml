@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CoDeptRepository">
+
+	<select id="selectCoDeptList" parameterType="CoDeptDTO" resultType="CoDeptDTO">
+		/* inoutcommon: coDeptRepository.selectCoDeptList */
+		SELECT
+		    A.DEPT_ID,
+		    A.DEPT_NM,
+		    A.COMP_ID,
+		    (SELECT NVL(T.COMP_NM, '') FROM CO_COMP T WHERE T.COMP_ID = A.COMP_ID) AS COMP_NM,
+		    A.UPDEPT_ID,
+		    (SELECT NVL(T.DEPT_NM, '') FROM CO_DEPT T WHERE T.DEPT_ID = A.UPDEPT_ID) AS UPDEPT_NM,
+		    A.DIV_CD,
+		    A.DIV_NM,
+		    A.GB_CD,
+		    A.DEPT_DIV_CD,
+		    A.MGR_EMP_ID,
+		    (SELECT NVL(T.EMP_NM, '') FROM CO_EMP T WHERE T.EMP_ID = A.MGR_EMP_ID) AS MGR_EMP_NM,
+		    A.USE_YN,
+		    A.TRGFLAG,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM,
+		    A.ORG_UN_CD,
+		    A.UN_ORG_FLG,
+		    A.MGE_CD,
+		    A.DEPT_LV1,
+		    A.DEPT_LV2,
+		    A.DEPT_LV3,
+		    A.DEPT_LV4,
+		    A.DEPT_LV5,
+		    A.DEPT_LV6,
+		    A.DEPT_LV7,
+		    A.DEPT_LV1_ID,
+		    A.DEPT_LV2_ID,
+		    A.DEPT_LV3_ID,
+		    A.DEPT_LV4_ID,
+		    A.DEPT_LV5_ID,
+		    A.DEPT_LV6_ID,
+		    A.DEPT_LV7_ID,
+		    A.DEPT_FPATH_ID
+		FROM CO_DEPT A
+		WHERE A.USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		  AND UPPER(A.DEPT_NM) LIKE '%'|| UPPER(#{deptNm}) ||'%'				
+		</if>
+		ORDER BY A.DEPT_ID ASC
+	</select>
+	
+	<select id="selectCoDeptListCnt" parameterType="CoDeptDTO" resultType="Integer">
+		/* inoutcommon: coDeptRepository.selectCoDeptListCnt */
+		SELECT COUNT(*)
+		FROM CO_DEPT A
+		WHERE A.USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptNm)">
+		  AND UPPER(A.DEPT_NM) LIKE '%'||UPPER(#{deptNm})||'%'				
+		</if>
+	</select>
+	
+	<select id="selectCoDept" parameterType="String" resultType="CoDeptDTO">
+		/* inoutcommon: coDeptRepository.selectCoDept */
+		SELECT
+		    A.DEPT_ID,
+		    A.DEPT_NM,
+		    A.COMP_ID,
+		    (SELECT NVL(T.COMP_NM, '') FROM CO_COMP T WHERE T.COMP_ID = A.COMP_ID) AS COMP_NM,
+		    A.UPDEPT_ID,
+		    (SELECT NVL(T.DEPT_NM, '') FROM CO_DEPT T WHERE T.DEPT_ID = A.UPDEPT_ID) AS UPDEPT_NM,
+		    A.DIV_CD,
+		    A.DIV_NM,
+		    A.GB_CD,
+		    A.DEPT_DIV_CD,
+		    A.MGR_EMP_ID,
+		    (SELECT NVL(T.EMP_NM, '') FROM CO_EMP T WHERE T.EMP_ID = A.MGR_EMP_ID) AS MGR_EMP_NM,
+		    A.USE_YN,
+		    A.TRGFLAG,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM
+		FROM CO_DEPT A
+		WHERE A.DEPT_ID = #{deptId}
+	</select>
+	
+	<select id="selectPtOrgList" resultType="HashMap">
+		/* inoutcommon: coDeptRepository.selectPtOrgList */
+		SELECT
+		    T1.RN         AS key,
+		    T1.DEPT_NM    AS NAME_KOR,
+		    T1.DEPT_NM    AS NAME_ENG,
+		    T1.DEPT_NM    AS NAME_JPN,
+		    T1.DEPT_NM    AS NAME_ETC,
+		    T1.DEPT_NM    AS NAME_CHN,
+		    T1.DEPT_ID    AS DEPT_CD,
+		    T1.UPDEPT_ID  AS UPDEPT_CD
+		FROM (
+			SELECT
+			    ROWNUM AS RN,
+			    ORG_LVL_NUM AS LEV,
+			    LEVEL-2 AS DEPTH,
+			    ORG_NAM AS DEPT_NM,
+			    ORG_CD AS DEPT_ID,
+			    PRNT_ORG_CD AS UPDEPT_ID,
+			    ORG_SORT_NUM
+			FROM TBL_PT_ORG A 
+			/*START WITH PRNT_ORG_CD = 'A0'  사번/조직 변경 */
+			START WITH PRNT_ORG_CD = '10103709' 
+			CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD 
+			ORDER SIBLINGS BY ORG_SORT_NUM 
+		) T1
+	</select>
+
+	<select id="selectCompDeptList" parameterType="map" resultType="CamelHashMap">
+		/* inoutcommon: coDeptRepository.selectCompDeptList */
+		SELECT *
+		FROM CO_DEPT
+		WHERE COMP_ID = #{compId}
+			AND UPDEPT_ID != '00000000'
+			AND USE_YN = 'Y'
+		ORDER BY GRADE
+	</select>
+    
+</mapper>
+
+

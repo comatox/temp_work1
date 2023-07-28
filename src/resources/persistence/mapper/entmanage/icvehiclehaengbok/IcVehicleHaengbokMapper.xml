@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.icvehiclehaengbok.IcVehicleHaengbokRepository">
+
+	<select id="sendICSpmsInsertMemberInner" statementType="CALLABLE" parameterType="SendSpmsDTO" resultType="CamelHashMap">
+		
+        EXEC sp_InsertMember_Inner   
+        						 @Division=#{Division}, 	 				 @MemberType=#{MemberType}
+	                            ,@VehicleNumber=#{VehicleNumber},			 @VehicleName=#{VehicleName}
+	                            ,@EnterDateTime=#{EnterDateTime},			 @NoEntryDateTime=#{NoEntryDateTime}
+      							,@VisitPurpose=#{VisitPurpose},				 @ApproverName=#{ApproverName}	
+      							,@VisitorName=#{VisitorName},				 @AffiliatedCompany=#{AffiliatedCompany}
+      							,@DeptName=#{DeptName}
+      							,@ContactNumber=#{ContactNumber},			 @Destination=#{Destination}
+                        		,@Location=#{Location},					 	 @BirthDay=#{BirthDay}
+                        		,@Note=#{Note},								 @SecurityID=#{SecurityID}	
+                        		,@UnionNumber=#{UnionNumber}
+	</select>
+	
+</mapper>

@@ -1,0 +1,1050 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.ApprovalRepository">
+
+	<select id="selectApDocList" resultType="ApDocDTO">
+		/* inoutcommon: approvalRepository.selectApDocList */
+		SELECT
+		    A.DOC_ID,
+		    A.SCHEMA_NM,
+		    A.AP_SEQ,
+		    A.COMP_ID,
+		    A.DEPT_ID,
+		    A.JW_ID,
+		    A.EMP_ID,
+		    FN_GET_EMP_NM(A.EMP_ID)  AS EMP_NM,
+			FN_GET_JW_BY_EMP(A.EMP_ID)  AS JW_NM,
+			FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.EMP_ID))  AS DEPT_NM,
+		    A.APPR_DEPT_GBN,
+		    TO_CHAR(A.APPR_DTM, 'YYYY-MM-DD HH24:MI:SS') AS APPR_DTM,
+		    A.APPR_STAT,
+		    A.APPR_RESULT,
+		    A.CANCELETC,
+		    A.APPL_EMP_ID,
+		    A.APPL_EMP_NM,
+		    A.APPL_DEPT_ID,
+		    A.APPL_DEPT_NM,
+		    A.APPL_JW_NM,
+		    A.DEL_YN,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+		    A.MOD_BY,
+		    B.CANCELETC,
+		    FN_GET_APPR_LINE(A.DOC_ID, '1') AS PUB_APPR,
+	        FN_GET_APPR_LINE(A.DOC_ID, '2') AS AGR_APPR,
+	        CASE WHEN A.APPR_STAT = '0' THEN '결재대기'
+	            WHEN A.APPR_STAT = '10' THEN '결재진행'
+	            WHEN A.APPR_STAT = '20' THEN '결재완료'
+	        END AS APPR_STAT_NM,
+	       CASE WHEN A.APPR_RESULT = '0' THEN '결과전'
+	            WHEN A.APPR_RESULT = '1' THEN '승인'
+	            WHEN A.APPR_RESULT = '2' THEN '부결'
+	        END AS APPR_RESULT_NM,
+	        (SELECT CANCELETC FROM AP_APPR WHERE DOC_ID = A.DOC_ID AND EMP_ID = A.EMP_ID)  AS APPR_CANCELETC
+		FROM AP_DOC A
+		LEFT OUTER JOIN AP_APPR B
+		 ON B.DOC_ID = A.DOC_ID
+		AND B.EMP_ID = A.EMP_ID
+		WHERE A.DOC_ID IN
+		<foreach collection="list" item="docId" open="(" close=")" separator=",">
+			#{docId}
+		</foreach>
+		ORDER BY A.DOC_ID ASC
+	</select>
+
+	<select id="selectApDoc" parameterType="Integer" resultType="ApDocDTO">
+		/* inoutcommon: approvalRepository.selectApDoc */
+		SELECT
+		    A.DOC_ID,
+	        A.APPR_STAT,
+	        A.APPR_RESULT,
+		    FN_GET_APPR_LINE(A.DOC_ID, '1') AS PUB_APPR,
+	        FN_GET_APPR_LINE(A.DOC_ID, '2') AS AGR_APPR,
+	        CASE WHEN A.APPR_STAT = '0' THEN '결재대기'
+	            WHEN A.APPR_STAT = '10' THEN '결재진행'
+	            WHEN A.APPR_STAT = '20' THEN '결재완료'
+	        END AS APPR_STAT_NM,
+	       CASE WHEN A.APPR_RESULT = '0' THEN '결과전'
+	            WHEN A.APPR_RESULT = '1' THEN '승인'
+	            WHEN A.APPR_RESULT = '2' THEN '부결'
+	        END AS APPR_RESULT_NM
+		FROM AP_DOC A
+		WHERE A.DOC_ID = #{docId}
+	</select>
+
+	<select id="selectApDocEmpList" resultType="ApDocEmpDTO">
+		/* inoutcommon: approvalRepository.selectApDocEmpList */
+		SELECT
+			  T.DOC_ID
+			, T.PUBLISH_ID0
+			, T.PUBLISH_ID1
+			, T.PUBLISH_ID2
+			, T.LEAVE_ID0
+			, T.LEAVE_ID1
+			, T.LEAVE_ID2
+			, FN_GET_EMP_DEPT_JW_NM(PUBLISH_ID0) AS PUBLISH0
+			, FN_GET_EMP_DEPT_JW_NM(PUBLISH_ID1) AS PUBLISH1
+			, FN_GET_EMP_DEPT_JW_NM(PUBLISH_ID2) AS PUBLISH2
+			, FN_GET_EMP_DEPT_JW_NM(LEAVE_ID0) AS LEAVE0
+			, FN_GET_EMP_DEPT_JW_NM(LEAVE_ID1) AS LEAVE1
+			, FN_GET_EMP_DEPT_JW_NM(LEAVE_ID2) AS LEAVE2
+			, FN_GET_EMP_NM(PUBLISH_ID1) AS PUBLISH_EMPNM1
+			, FN_GET_JW_BY_EMP(PUBLISH_ID1) AS PUBLISH_JWNM1
+			, FN_GET_DEPT_NM(SECURITYADM.FN_GET_DEPT_ID(PUBLISH_ID1))  AS PUBLISH_DEPTNM1
+		FROM (
+		    SELECT
+		        DOC.DOC_ID,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '1'
+		            AND AP_SEQ = (SELECT MIN(AP_SEQ) FROM AP_APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '1' AND APPR_RESULT = 0 ))  AS PUBLISH_ID0,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '1'
+		            AND AP_SEQ = (SELECT MIN(AP_SEQ) FROM AP_APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '1' AND APPR_RESULT = '1' ))  AS PUBLISH_ID1,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '1' AND APPR_RESULT = '2') AS PUBLISH_ID2,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '2'
+		            AND AP_SEQ = (SELECT MIN(AP_SEQ) FROM AP_APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '2' AND APPR_RESULT = 0 ))  AS LEAVE_ID0,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '2'
+		            AND AP_SEQ = (SELECT MIN(AP_SEQ) FROM AP_APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '2' AND APPR_RESULT = '1' ))  AS LEAVE_ID1,
+		        (SELECT EMP_ID FROM AP_APPR APPR WHERE DOC_ID = DOC.DOC_ID AND APPR_DEPT_GBN = '2' AND APPR_RESULT = '2') AS LEAVE_ID2
+		    FROM AP_DOC DOC
+			WHERE DOC.DOC_ID IN
+			<foreach collection="list" item="docId" open="(" close=")" separator=",">
+				#{docId}
+			</foreach>
+		) T
+		ORDER BY T.DOC_ID ASC
+	</select>
+
+	<select id="selectDocCd" parameterType="ApprovalDTO" resultType="String">
+		/* approvalRepository.selectDocCd */
+		SELECT FN_GET_DOC_CD(#{schemaNm}, #{lid}, #{docId}) AS DOC_CD FROM DUAL
+	</select>
+
+	<select id="selectDocNewCd" parameterType="ApprovalDTO" resultType="String">
+		/* approvalRepository.selectDocNewCd */
+		SELECT FN_GET_DOC_NEW_CD(#{schemaNm}, #{lid}, #{docId}) AS DOC_CD FROM DUAL
+	</select>
+
+	<insert id="insertAPNotProcessWsdl" parameterType="ApprovalEAIDocDTO" >
+		/* approvalRepository.insertAPNotProcessWsdl */
+		INSERT INTO AP_NOT_PROC_WSDL
+		(  P_LEGACY_PK
+		  ,P_LEGACY_GUBUN
+		  ,P_FORM_PREFIX
+		  ,P_INTERFACE_ID
+		  ,CRT_DTM
+		  ,CRT_BY
+		)
+		VALUES
+		(  #{legacyPk}
+		  ,#{legacyGubun}
+		  ,#{fromPrefix}
+		  ,#{interfaceId}
+		  ,SYSDATE
+		  ,#{crtBy}
+		)
+	</insert>
+
+
+	<select id="selectNewDocId" resultType="Integer" >
+		/* approvalRepository.selectNewDocId */
+		SELECT
+			SEQ_DOC_ID.NEXTVAL AS DOC_ID
+		FROM DUAL
+	</select>
+
+
+	<insert id="insertApprovalDocPre" parameterType="ApprovalDTO">
+		/* approvalRepository.insertApprovalDocPre */
+		INSERT INTO SECURITYADM.AP_DOC_PRE (
+			DOC_ID,
+			SCHEMA_NM,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			APPR_DTM,
+			APPL_EMP_ID,
+			APPL_EMP_NM,
+			APPL_DEPT_ID,
+			APPL_DEPT_NM,
+			APPL_JW_NM,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_STAT,
+			APPR_RESULT,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			CANCELETC,
+			VIP_YN,
+			FILE_YN,
+			ETC1
+		)
+		VALUES (
+			#{docId},
+			#{schemaNm},
+			#{apSeq},
+			#{apprDeptGbn},
+			#{apprDtm},
+			#{applEmpId},
+			#{applEmpNm},
+			#{applDeptId},
+			#{applDeptNm},
+			#{applJwNm},
+			#{compId},
+			#{deptId},
+			#{jwId},
+			#{empId},
+			#{apprStat},
+			#{apprResult},
+			#{delYn},
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{canceletc},
+			#{vipYn},
+			#{fileYn},
+			#{etc1}
+		)
+	</insert>
+
+	<insert id="insertApprovalDoc" parameterType="Integer">
+		/* approvalRepository.insertApprovalDoc */
+		INSERT INTO SECURITYADM.AP_DOC
+		(
+			DOC_ID,
+			SCHEMA_NM,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			APPR_DTM,
+			APPL_EMP_ID,
+			APPL_EMP_NM,
+			APPL_DEPT_ID,
+			APPL_DEPT_NM,
+			APPL_JW_NM,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_STAT,
+			APPR_RESULT,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			CANCELETC
+		)
+		SELECT
+			DOC_ID,
+			SCHEMA_NM,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			APPR_DTM,
+			APPL_EMP_ID,
+			APPL_EMP_NM,
+			APPL_DEPT_ID,
+			APPL_DEPT_NM,
+			APPL_JW_NM,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_STAT,
+			APPR_RESULT,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			SYSDATE,
+			CANCELETC
+		 FROM SECURITYADM.AP_DOC_PRE
+		WHERE DOC_ID = #{docId}
+	</insert>
+
+	<insert id="insertApproverPre" parameterType="SavedApproverLineDTO">
+		/* approvalRepository.insertApproverPre */
+		INSERT INTO SECURITYADM.AP_APPR_PRE (
+			DOC_ID,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_RESULT,
+			AUTO_SIGN,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			JC_CD
+		)
+		VALUES (
+			#{docId},
+			#{apSeq},
+			#{apprDeptGbn},
+			#{compId},
+			#{deptId},
+			#{jwId},
+			#{empId},
+			'0',
+			#{autoSign},
+			#{delYn},
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			(SELECT Y.JC_CD FROM CO_EMP Y WHERE Y.EMP_ID = #{empId})
+		)
+	</insert>
+
+	<insert id="insertApprover" parameterType="Integer">
+		/* approvalRepository.insertApprover */
+		INSERT INTO SECURITYADM.AP_APPR
+		(
+		    DOC_ID,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_RESULT,
+			AUTO_SIGN,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			JC_CD
+		)
+		SELECT
+		    DOC_ID,
+			AP_SEQ,
+			APPR_DEPT_GBN,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			APPR_RESULT,
+			AUTO_SIGN,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			SYSDATE,
+			JC_CD
+		 FROM SECURITYADM.AP_APPR_PRE
+		WHERE DOC_ID = #{docId}
+		  AND APPR_DEPT_GBN != '3'
+	</insert>
+
+
+	<select id="selectApprovalLineReferLine" parameterType="ApprovalDTO" resultType="SavedApproverLineDTO" >
+		/* approvalRepository.selectApprovalLineReferLine */
+		SELECT DISTINCT
+				A.AP_SEQ,
+				A.COMP_ID,
+				B.EMP_ID,
+				B.DEPT_ID,
+				B.JW_ID,
+				B.JC_CD,
+				A.APPR_DEPT_GBN,
+				A.AUTO_SIGN
+		FROM AP_APPR_DEF A, CO_EMP B
+		WHERE A.MENU_ID = #{menuId}
+		AND A.COMP_ID = #{compId}
+		AND A.APPR_DEPT_GBN = '3'
+		AND B.HT_CD = 'C'
+		AND A.USE_YN = 'Y'
+		AND B.USE_YN = 'Y'
+		AND A.GBN='EMP'
+		AND B.EMP_ID = A.GBN_VAL
+		AND A.MENU_ID NOT IN ('P02021502', 'P02021602', 'P02021702', 'P02021802', 'P02021902', 'P02022002')
+		UNION ALL
+
+		SELECT DISTINCT
+				A.AP_SEQ,
+				#{applCompId} AS COMP_ID,
+				B.EMP_ID,
+				B.DEPT_ID,
+				B.JW_ID,
+				B.JC_CD,
+				A.APPR_DEPT_GBN,
+				A.AUTO_SIGN
+		FROM AP_APPR_DEF A, CO_EMP B
+		WHERE A.MENU_ID = #{menuId}
+		AND A.APPR_DEPT_GBN = '3'
+		AND B.HT_CD = 'C'
+		AND A.USE_YN = 'Y'
+		AND B.USE_YN = 'Y'
+		AND A.GBN='EMP'
+		AND B.EMP_ID = A.GBN_VAL
+		/* 보안양식6종은 사업장에 상관없이 같은 참조 결재선을 제공함*/
+		AND A.MENU_ID IN ('P02021502', 'P02021602', 'P02021702', 'P02021802', 'P02021902', 'P02022002')
+
+		ORDER BY AP_SEQ
+	</select>
+
+
+	<insert id="insertApprovalHtml" parameterType="ApprovalDTO">
+		/* approvalRepository.insertApprovalHtml */
+		INSERT INTO SECURITYADM.AP_APPR_HTML
+		(
+		 DOC_ID
+		,HTML_CONTENT
+		,DOC_TITLE
+		,F_PARAM
+		,CRT_DTM
+		,CRT_BY
+		,MOD_DTM
+		,MOD_BY
+		)
+		VALUES
+		(
+		 #{docId}
+		,#{htmlContents}
+		,FN_GET_DOC_NM_AP(#{schemaNm}, #{lid}, #{docId})
+		,#{param}
+		,SYSDATE
+		,#{crtBy}
+		,SYSDATE
+		,#{modBy}
+		)
+	</insert>
+
+
+	<insert id="insertApprovalPortalPre" parameterType="ApprovalDTO">
+		/* approvalRepository.insertApprovalPortalPre */
+		INSERT INTO SECURITYADM.AP_APPR_PORTAL_PRE
+		(
+		   DOC_ID,
+		   LID,
+		   APSEQ,
+		   STATE,
+		   TRG_DATE,
+		   SND_DATE,
+		   UI_URL
+		)
+		VALUES
+		(
+			#{docId},
+			#{lid},
+			0,
+			#{apprStat},
+			SYSDATE,
+			SYSDATE,
+			#{cnfmUrl}
+		)
+	</insert>
+
+	<insert id="insertApprovalPortal" parameterType="Integer">
+		/* approvalRepository.insertApprovalPortal */
+		INSERT INTO SECURITYADM.AP_APPR_PORTAL
+		(
+		   DOC_ID,
+		   LID,
+		   APSEQ,
+		   STATE,
+		   TRG_DATE,
+		   SND_DATE,
+		   UI_URL
+		)
+		SELECT
+		   DOC_ID,
+		   LID,
+		   APSEQ,
+		   STATE,
+		   SYSDATE,
+		   SYSDATE,
+		   UI_URL
+		 FROM SECURITYADM.AP_APPR_PORTAL_PRE
+		WHERE DOC_ID = #{docId}
+	</insert>
+
+
+	<delete id="deleteApAppr" parameterType="Integer">
+		DELETE FROM AP_APPR
+		WHERE DOC_ID = #{docId}
+	</delete>
+
+	<delete id="deleteApApprPortal" parameterType="List">
+		DELETE FROM AP_APPR_PORTAL
+		WHERE DOC_ID IN
+       	<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+       		#{item}
+       	</foreach>
+	</delete>
+
+	<delete id="deleteApDoc" parameterType="List">
+		DELETE FROM AP_DOC
+		WHERE DOC_ID IN
+       	<foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+       		#{item}
+       	</foreach>
+	</delete>
+
+	<update id="updateApDocDelYn" parameterType="Integer">
+		UPDATE AP_DOC
+           SET DEL_YN='N'
+	    WHERE DOC_ID = #{docId}
+	</update>
+
+	<update id="updateApApprDelYn" parameterType="Integer">
+	    UPDATE AP_APPR
+	       SET DEL_YN='N'
+	     WHERE DOC_ID = #{docId}
+	</update>
+
+	<select id="selectApApprList" parameterType="Integer" resultType="ApApprDTO">
+		SELECT
+			A.DOC_ID AS DOC_ID,
+			A.AP_SEQ AS AP_SEQ,
+			A.APPR_DEPT_GBN AS APPR_DEPT_GBN,
+			A.COMP_ID AS COMP_ID,
+			A.DEPT_ID AS DEPT_ID,
+			A.JW_ID AS JW_ID,
+			A.EMP_ID AS EMP_ID,
+			A.APPR_DTM AS APPR_DTM,
+			A.APPR_RESULT AS APPR_RESULT,
+			A.CANCELETC AS CANCELETC,
+			A.AUTO_SIGN AS AUTO_SIGN,
+			A.TRGFLAG AS TRGFLAG,
+			A.DEL_YN AS DEL_YN,
+			A.AC_IP AS AC_IP,
+			A.CRT_BY AS CRT_BY,
+			TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+			A.MOD_BY AS MOD_BY,
+			TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+			B.SCHEMA_NM AS SCHEMA_NM
+		FROM SECURITYADM.AP_APPR A, AP_DOC B
+		WHERE A.DOC_ID = B.DOC_ID
+		  AND A.DOC_ID = #{docId}
+		ORDER BY A.AP_SEQ ASC
+	</select>
+
+	<select id="selectApDocInfo" resultType="ApDocDTO" parameterType="String">
+		/* approvalRepository.selectApDocInfo */
+		SELECT A.DOC_ID, A.SCHEMA_NM
+		FROM AP_DOC A
+		WHERE A.DOC_ID = #{docId}
+	</select>
+
+	<insert id="insertApDoc" parameterType="ApprovalDTO">
+		/* approvalRepository.insertApDoc */
+		INSERT INTO SECURITYADM.AP_DOC (
+			DOC_ID, SCHEMA_NM, AP_SEQ,
+			APPR_DEPT_GBN, APPR_DTM,
+			APPL_EMP_ID, APPL_EMP_NM, APPL_DEPT_ID,
+			APPL_DEPT_NM, APPL_JW_NM, DEL_YN,
+			AC_IP, CRT_BY, CRT_DTM, CANCELETC
+		) VALUES (
+			#{docId}, #{schemaNm}, #{apSeq},
+			#{apprDeptGbn}, #{apprDtm},
+			#{applEmpId}, #{applEmpNm}, #{applDeptId},
+			#{applDeptNm}, #{applJwNm}, #{delYn},
+			#{acIp}, #{crtBy}, SYSDATE, #{canceletc}
+		)
+	</insert>
+
+	<insert id="insertApAppr" parameterType="SavedApproverLineDTO">
+		/* approvalRepository.insertApDoc */
+		INSERT INTO SECURITYADM.AP_APPR (
+			DOC_ID, AP_SEQ, APPR_DEPT_GBN,
+			COMP_ID, DEPT_ID, JW_ID, EMP_ID,
+			APPR_RESULT, AUTO_SIGN, DEL_YN,
+			AC_IP, CRT_BY, CRT_DTM
+		) VALUES (
+			#{docId}, #{apSeq}, #{apprDeptGbn},
+			#{compId}, #{deptId}, #{jwId}, #{empId},
+			'0', #{autoSign}, #{delYn},
+			#{acIp}, #{crtBy}, SYSDATE
+		)
+	</insert>
+
+	<update id="updateApDoc" parameterType="ApprovalDTO">
+		/* approvalRepository.updateApDoc */
+		UPDATE AP_DOC SET
+			  COMP_ID 		= #{compId},
+			  AP_SEQ 		= #{apSeq},
+			  DEPT_ID 		= #{deptId},
+			  JW_ID 		= #{jwId},
+			  EMP_ID 		= #{empId},
+			  APPR_DEPT_GBN = #{apprDeptGbn},
+			  APPR_STAT 	= #{apprStat},
+			  APPR_RESULT 	= #{apprResult},
+			  MOD_BY 		= #{modBy},
+			  MOD_DTM		= SYSDATE
+		WHERE DOC_ID = #{docId}
+	</update>
+
+	<insert id="insertApApprPortal" parameterType="ApprovalDTO">
+		/* approvalRepository.insertApApprPortal */
+		INSERT INTO AP_APPR_PORTAL
+		(
+			DOC_ID,
+			LID,
+			APSEQ,
+			STATE,
+			TRG_DATE,
+			SND_DATE,
+			UI_URL
+		)
+		VALUES
+		(
+			#{docId},
+			#{lid},
+			#{apSeq},
+			#{state},
+			SYSDATE,
+			SYSDATE,
+			#{cnfmUrl}
+		)
+	</insert>
+
+	<select id="selectRequestApprovalLine" resultType="SpecifiedApproverLineDTO" parameterType="ApproverLineQueryDTO">
+		SELECT
+			DISTINCT
+			COMP_ID,
+			APPR_JW_ID,
+			APPR_JW_NM,
+			APPR_JC_ID,
+			APPR_JC_NM,
+			APPR_DEPT_ID,
+			APPR_DEPT_NM,
+			APPR_EMP_ID,
+			APPR_EMP_NM,
+			APPR_DIV_NM,
+			AUTO_SIGN,
+			JC_GRADE,
+			JW_GRADE,
+			ORDER_SEQ,
+			ENTRUST_YN,
+			ENTRUST_DEPT_ID,
+			ENTRUST_JW_ID,
+			ENTRUST_JC_ID,
+			ENTRUST_EMP_ID,
+
+			ENTRUST_DEPT_NM,
+			ENTRUST_JW_NM,
+			ENTRUST_JC_NM,
+			ENTRUST_EMP_NM,
+
+			SUBCONT_YN
+		FROM (
+				 SELECT
+					 B.COMP_ID AS COMP_ID,
+					 B.JW_ID AS APPR_JW_ID,
+					 FN_GET_JW_NM(B.JW_ID) AS APPR_JW_NM,
+					 B.JC_CD AS APPR_JC_ID,
+					 FN_GET_JC_NM(B.JC_CD) AS APPR_JC_NM,
+					 B.DEPT_ID AS APPR_DEPT_ID,
+					 FN_GET_DEPT_NM(B.DEPT_ID) AS APPR_DEPT_NM,
+					 B.EMP_ID AS APPR_EMP_ID,
+					 FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+					 FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+					 A.AUTO_SIGN AS AUTO_SIGN,
+					 FN_GET_JC_GRADE(A.ENTRUST_JC_ID) AS JC_GRADE,
+					 FN_GET_JW_GRADE(A.ENTRUST_JW_ID) AS JW_GRADE,
+					 DECODE( SUBSTR(B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+					 A.ENTRUST_YN AS ENTRUST_YN,
+					 A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+					 A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+					 A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+					 A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+					 FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+					 FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+					 FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+					 FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+					 A.SUBCONT_YN AS SUBCONT_YN
+				 FROM
+					 (
+						 SELECT
+							 DISTINCT
+							 A.AP_SEQ AS AP_SEQ,
+							 B.EMP_ID AS APPR_EMP_ID,
+							 'N' AS ENTRUST_YN,
+							 B.DEPT_ID AS ENTRUST_DEPT_ID,
+							 B.JW_ID AS ENTRUST_JW_ID,
+							 B.JC_CD AS ENTRUST_JC_ID,
+							 B.EMP_ID AS ENTRUST_EMP_ID,
+							 A.AUTO_SIGN AS AUTO_SIGN,
+							 A.SUBCONT_YN AS SUBCONT_YN
+						 FROM AP_APPR_DEF A, CO_EMP B
+						 WHERE A.MENU_ID = #{menuId}
+						   AND A.DEPT_ID = #{deptId}
+						   AND A.USE_YN = 'Y'
+						   AND A.APPR_DEPT_GBN = '1'
+						   AND B.HT_CD = 'C'
+						   AND B.USE_YN = 'Y'
+						   AND A.GBN='EMP'
+						   AND B.EMP_ID =  A.GBN_VAL
+
+						 UNION
+
+						 SELECT
+							 DISTINCT
+							 A.AP_SEQ AS AP_SEQ,
+							 B.EMP_ID AS APPR_EMP_ID,
+							 'N' AS ENTRUST_YN,
+							 B.DEPT_ID AS ENTRUST_DEPT_ID,
+							 B.JW_ID AS ENTRUST_JW_ID,
+							 B.JC_CD AS ENTRUST_JC_ID,
+							 B.EMP_ID AS ENTRUST_EMP_ID,
+							 A.AUTO_SIGN AS AUTO_SIGN,
+							 A.SUBCONT_YN AS SUBCONT_YN
+						 FROM AP_APPR_DEF A, CO_EMP B
+						 WHERE A.MENU_ID = #{menuId}
+						   AND A.USE_YN = 'Y'
+						   AND A.APPR_DEPT_GBN = '1'
+						   AND B.HT_CD = 'C'
+						   AND B.DEPT_ID IN (#{deptId},(SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId}))
+						   AND B.USE_YN = 'Y'
+						   AND (
+								 (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+								 OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+
+							 )
+						   AND A.DEPT_ID IS NULL
+
+						 UNION
+
+						 SELECT
+							 DISTINCT
+							 A.AP_SEQ AS AP_SEQ,
+							 B.EMP_ID AS APPR_EMP_ID,
+							 'N' AS ENTRUST_YN,
+							 B.DEPT_ID AS ENTRUST_DEPT_ID,
+							 B.JW_ID AS ENTRUST_JW_ID,
+							 B.JC_CD AS ENTRUST_JC_ID,
+							 B.EMP_ID AS ENTRUST_EMP_ID,
+							 A.AUTO_SIGN AS AUTO_SIGN,
+							 A.SUBCONT_YN AS SUBCONT_YN
+						 FROM AP_APPR_DEF A, CO_EMP B
+						 WHERE A.DEPT_ID = B.DEPT_ID
+						   AND A.MENU_ID = #{menuId}
+						   AND A.USE_YN = 'Y'
+						   AND A.APPR_DEPT_GBN = '1'
+						   AND B.HT_CD = 'C'
+						   AND B.DEPT_ID IN (#{deptId},(SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId}))
+						   AND B.USE_YN = 'Y'
+						   AND (
+								 (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+								 OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+							 )
+						   AND A.DEPT_ID IS NOT NULL
+
+						 UNION
+
+						 SELECT
+							 DISTINCT
+							 1 AS AP_SEQ,
+							 B.EMP_ID AS APPR_EMP_ID,
+							 'N' AS ENTRUST_YN,
+							 B.DEPT_ID AS ENTRUST_DEPT_ID,
+							 B.JW_ID AS ENTRUST_JW_ID,
+							 B.JC_CD AS ENTRUST_JC_ID,
+							 B.EMP_ID AS ENTRUST_EMP_ID,
+							 A.AUTO_SIGN AS AUTO_SIGN,
+							 A.SUBCONT_YN AS SUBCONT_YN
+						 FROM AP_APPR_DEF A, CO_EMP B
+						 WHERE A.MENU_ID = #{menuId}
+						   AND A.COMP_ID = #{compId}
+						   AND A.USE_YN = 'Y'
+						   AND A.APPR_DEPT_GBN = '1'
+						   AND B.HT_CD = 'C'
+						   AND B.DEPT_ID IN ( SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId} )
+						   AND B.USE_YN = 'Y'
+						   AND (
+								 (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+								 OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+								 OR (  A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+
+							 )
+					 ) A, CO_EMP B
+				 WHERE A.APPR_EMP_ID = B.EMP_ID
+			 )
+		ORDER BY ORDER_SEQ ASC, JC_GRADE ASC, JW_GRADE ASC, APPR_EMP_NM ASC
+	</select>
+
+	<select id="selectPermitApprovalLine" resultType="SpecifiedApproverLineDTO" parameterType="ApproverLineQueryDTO">
+		SELECT
+			B.COMP_ID AS COMP_ID,
+			B.JW_ID AS APPR_JW_ID,
+			FN_GET_JW_NM(B.JW_ID) AS APPR_JW_NM,
+			B.JC_CD AS APPR_JC_ID,
+			FN_GET_JC_NM(B.JC_CD) AS APPR_JC_NM,
+			B.DEPT_ID AS APPR_DEPT_ID,
+			FN_GET_DEPT_NM(B.DEPT_ID) AS APPR_DEPT_NM,
+			B.EMP_ID AS APPR_EMP_ID,
+			FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+			FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+			A.AUTO_SIGN AS AUTO_SIGN,
+			A.ENTRUST_YN AS ENTRUST_YN,
+			A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+			A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+			A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+			FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+			FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+			FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+			FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+			A.SUBCONT_YN AS SUBCONT_YN
+		FROM
+			(
+				SELECT
+					DISTINCT
+					A.AP_SEQ AS AP_SEQ,
+					B.EMP_ID AS APPR_EMP_ID,
+					'N' AS ENTRUST_YN,
+					B.DEPT_ID AS ENTRUST_DEPT_ID,
+					B.JW_ID AS ENTRUST_JW_ID,
+					B.JC_CD AS ENTRUST_JC_ID,
+					B.EMP_ID AS ENTRUST_EMP_ID,
+					A.AUTO_SIGN AS AUTO_SIGN,
+					A.SUBCONT_YN AS SUBCONT_YN
+				FROM AP_APPR_DEF A, CO_EMP B
+				WHERE A.MENU_ID = #{menuId}
+				  AND A.DIV_CD = #{divCd}
+				  AND (A.COMP_ID = #{compId} OR NVL(A.COMP_ID,'000') = '000')
+				  AND (A.DEPT_ID = #{deptId} OR NVL(A.DEPT_ID,'000') = '000')
+				  AND A.APPR_DEPT_GBN = '2'
+				  AND B.HT_CD = 'C'
+				  AND A.USE_YN = 'Y'
+				  AND B.USE_YN = 'Y'
+				  AND (
+						(A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+						OR (A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL)
+						OR (A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+					)
+
+				UNION ALL
+
+				SELECT
+					DISTINCT
+					A.AP_SEQ AS AP_SEQ,
+					B.EMP_ID AS APPR_EMP_ID,
+					'N' AS ENTRUST_YN,
+					B.DEPT_ID AS ENTRUST_DEPT_ID,
+					B.JW_ID AS ENTRUST_JW_ID,
+					B.JC_CD AS ENTRUST_JC_ID,
+					B.EMP_ID AS ENTRUST_EMP_ID,
+					A.AUTO_SIGN AS AUTO_SIGN,
+					A.SUBCONT_YN AS SUBCONT_YN
+				FROM AP_APPR_DEF A, CO_EMP B
+				WHERE A.MENU_ID = #{menuId}
+				  AND A.GBN_VAL = B.EMP_ID
+				  AND A.APPR_DEPT_GBN = '2'
+				  AND A.USE_YN = 'Y'
+				  AND B.HT_CD = 'C'
+				  AND B.USE_YN = 'Y'
+				  AND A.MENU_ID IN ('P01040301')
+				  AND (
+						(A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+						OR (A.GBN='JW'  AND B.JW_ID  <![CDATA[<=]]> A.GBN_VAL)
+						OR (A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+					)
+
+			) A, CO_EMP B
+		WHERE A.APPR_EMP_ID = B.EMP_ID
+		ORDER BY A.AP_SEQ ASC, B.JW_ID ASC
+	</select>
+
+	<select id="selectApprovalSaveList" resultType="ApApprDTO" parameterType="Integer">
+		SELECT DISTINCT
+			   X.DOC_ID,
+			   X.AP_SEQ,
+			   X.APPR_DEPT_GBN,
+			   X.COMP_ID,
+			   X.DEPT_ID,
+			   X.JW_ID,
+			   X.EMP_ID,
+			   X.APPR_DTM,
+			   X.APPR_RESULT,
+			   X.CANCELETC,
+			   X.AUTO_SIGN,
+			   X.TRGFLAG,
+			   X.DEL_YN,
+			   X.AC_IP,
+			   X.CRT_BY,
+			   TO_CHAR(X.CRT_DTM, 'YYYY-MM-DD HH24:MI') AS CRT_DTM,
+			   X.MOD_BY,
+			   TO_CHAR(X.MOD_DTM, 'YYYY-MM-DD HH24:MI') AS MOD_DTM,
+			   FN_GET_EMP_NM(X.EMP_ID) AS EMP_NM,
+			   FN_GET_CONAME('DEPT', X.DEPT_ID, X.COMP_ID) AS DEPT_NM,
+			   FN_GET_CONAME('JW', X.JW_ID, X.COMP_ID) AS JW_NM,
+			   Y.TO_EMP_ID AS ENTRUS_EMP_ID,
+			   FN_GET_EMP_NM(Y.TO_EMP_ID) AS ENTRUS_EMP_NM,
+			   FN_GET_CONAME('JW', Z.JW_ID, X.COMP_ID) AS ENTRUS_JW_NM,
+			   X.RETR_EMP_ID,
+			   FN_GET_EMP_NM(X.RETR_EMP_ID) AS RETR_EMP_NM,
+			   FN_GET_CONAME('DEPT', X.RETR_DEPT_ID, X.COMP_ID) AS RETR_DEPT_NM,
+			   FN_GET_CONAME('JW', X.RETR_JW_ID, X.COMP_ID) AS RETR_JW_NM
+		  FROM SECURITYADM.AP_APPR X
+			   LEFT OUTER JOIN AP_ENTRUST Y ON (Y.EMP_ID = X.EMP_ID AND TO_CHAR(NVL(X.APPR_DTM, SYSDATE), 'YYYYMMDDHH24MISS') BETWEEN Y.FROM_DT AND Y.TO_DT AND Y.REQ_STAT IN ('2', '9') AND Y.DEL_YN = 'N')
+			   LEFT OUTER JOIN CO_EMP Z ON (Y.TO_EMP_ID = Z.EMP_ID)
+		 WHERE X.DOC_ID = #{docId}
+		ORDER BY X.APPR_DEPT_GBN, X.AP_SEQ ASC
+	</select>
+
+	<select id="selectRequestDeptList" resultType="CamelHashMap" parameterType="String">
+		SELECT DISTINCT
+				ORG_LVL_NUM AS LEV,
+				LEVEL-2 AS DEPTH,
+				ORG_NAM AS DEPT_NM,
+				ORG_CD AS DEPT_ID,
+				DECODE(ORG_LVL_NUM, 1, NULL, PRNT_ORG_CD) AS UPDEPT_ID,
+				A.ORG_SORT_NUM,
+				 ( SELECT COUNT(*) FROM TBL_PT_ORG B WHERE A.ORG_CD = B.PRNT_ORG_CD AND B.USE_YN = 'Y' ) AS SUB_DEPT_COUNT
+		FROM TBL_PT_ORG A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptId)">
+		AND SUBSTR(ORG_CD,1,4) = SUBSTR(#{deptId},1,4)
+		</if>
+		AND A.USE_YN = 'Y'
+		START WITH PRNT_ORG_CD = '10103709'
+		CONNECT BY PRIOR ORG_CD = PRNT_ORG_CD
+		ORDER BY A.ORG_LVL_NUM, A.ORG_SORT_NUM ASC
+	</select>
+
+	<select id="selectApprEmpListByDept" resultType="CamelHashMap" parameterType="ApproverLineQueryDTO">
+		SELECT
+				DISTINCT
+				COMP_ID,
+				APPR_JW_ID,
+				APPR_JW_NM,
+				APPR_JC_ID,
+				APPR_JC_NM,
+				APPR_DEPT_ID,
+				APPR_DEPT_NM,
+				APPR_EMP_ID,
+				APPR_EMP_NM,
+				APPR_DIV_NM,
+				AUTO_SIGN,
+				JC_GRADE,
+				JW_GRADE,
+				ORDER_SEQ,
+				ENTRUST_YN,
+				ENTRUST_DEPT_ID,
+				ENTRUST_JW_ID,
+				ENTRUST_JC_ID,
+				ENTRUST_EMP_ID,
+				ENTRUST_DEPT_NM,
+				ENTRUST_JW_NM,
+				ENTRUST_JC_NM,
+				ENTRUST_EMP_NM,
+				SUBCONT_YN
+		FROM (
+						SELECT
+										B.COMP_ID AS COMP_ID,
+										B.JW_ID AS APPR_JW_ID,
+										FN_GET_JW_NM(B.JW_ID) AS APPR_JW_NM,
+										B.JC_CD AS APPR_JC_ID,
+										FN_GET_JC_NM(B.JC_CD) AS APPR_JC_NM,
+										B.DEPT_ID AS APPR_DEPT_ID,
+										FN_GET_DEPT_NM(B.DEPT_ID) AS APPR_DEPT_NM,
+										B.EMP_ID AS APPR_EMP_ID,
+										FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+										FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+										A.AUTO_SIGN AS AUTO_SIGN,
+										FN_GET_JC_GRADE(A.ENTRUST_JC_ID) AS JC_GRADE,
+										FN_GET_JW_GRADE(A.ENTRUST_JW_ID) AS JW_GRADE,
+										DECODE( SUBSTR(B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+										A.ENTRUST_YN AS ENTRUST_YN,
+										A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+										A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+										A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+										A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+										FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+										FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+										FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+										FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+										A.SUBCONT_YN AS SUBCONT_YN
+						FROM
+						(
+										SELECT
+																DISTINCT
+																0 AS AP_SEQ,
+																A.EMP_ID AS APPR_EMP_ID,
+																(CASE WHEN Y.EMP_ID IS NOT NULL THEN 'Y' ELSE 'N' END) AS ENTRUST_YN,
+																Y.DEPT_ID AS ENTRUST_DEPT_ID,
+																Y.JW_ID AS ENTRUST_JW_ID,
+																Y.JC_CD AS ENTRUST_JC_ID,
+																Y.EMP_ID AS ENTRUST_EMP_ID,
+																0 AS AUTO_SIGN,
+																'N' AS SUBCONT_YN
+										FROM  CO_EMP A
+													LEFT OUTER JOIN AP_ENTRUST X ON (A.EMP_ID = X.EMP_ID AND X.REQ_STAT IN ('2', '9') AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN X.FROM_DT AND X.TO_DT AND X.DEL_YN = 'N')
+													LEFT OUTER JOIN CO_EMP Y ON (X.TO_EMP_ID = Y.EMP_ID AND Y.USE_YN = 'Y' AND Y.HT_CD = 'C')
+										WHERE 1 = 1
+											<choose>
+												<when test='"11020026".equals(deptId)'>
+													AND (A.DEPT_ID = #{deptId} OR A.EMP_ID = '9110499')
+												</when>
+												<otherwise>
+													AND A.DEPT_ID = #{deptId}
+												</otherwise>
+											</choose>
+										AND A.USE_YN = 'Y'
+										AND A.HT_CD = 'C'
+
+			UNION
+
+			SELECT
+					DISTINCT
+					0 AS AP_SEQ,
+					A.GBN_VAL AS APPR_EMP_ID,
+					'N' AS ENTRUST_YN,
+					A.DEPT_ID AS ENTRUST_DEPT_ID,
+					B.JW_ID AS ENTRUST_JW_ID,
+					B.JC_CD AS ENTRUST_JC_ID,
+					B.EMP_ID AS ENTRUST_EMP_ID,
+					0 AS AUTO_SIGN,
+					'N' AS SUBCONT_YN
+			FROM SECURITYADM.AP_APPR_DEF A, CO_EMP B
+			WHERE A.GBN_VAL = B.EMP_ID
+			AND A.APPR_DEPT_GBN = '1'
+			AND A.GBN = 'EMP'
+							AND A.DEPT_ID = #{deptId}
+							AND A.MENU_ID = #{menuId}
+			) A, CO_EMP B
+			WHERE A.APPR_EMP_ID = B.EMP_ID
+			AND B.JC_CD IN ('JZ', '39', '60', '72', '76', 'AA', '80', 'B0', 'B2', 'B1', 'KA', 'O1','GA','17')
+		)
+		ORDER BY JW_GRADE
+	</select>
+
+	<select id="selectApprDocView" parameterType="Integer" resultType="CamelHashMap">
+		/* ApprovalRepository.selectApprDocView */
+		SELECT
+			SCHEMA_NM,
+			CANCELETC,
+			APPL_DEPT_NM,
+			APPL_EMP_NM,
+			TO_CHAR(CRT_DTM, 'YYYY-MM-DD HH24:MI') AS MOD_DTM,
+			(
+				SELECT
+					CASE WHEN TO_EMP_ID IS NOT NULL THEN TO_EMP_ID ELSE SSX.EMP_ID END EMP_ID
+				FROM
+					SECURITYADM.AP_APPR SSX
+						LEFT OUTER JOIN AP_ENTRUST SAE ON SAE.EMP_ID = SSX.EMP_ID AND SAE.DEL_YN = 'N' AND TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') BETWEEN SAE.FROM_DT AND SAE.TO_DT AND SAE.REQ_STAT IN ('2','9')
+				WHERE
+					SSX.DOC_ID = X.DOC_ID
+					AND AP_SEQ = (
+					SELECT
+						MIN(AP_SEQ)
+					FROM
+						SECURITYADM.AP_APPR SX
+					WHERE
+						SX.APPR_RESULT = 0
+						AND SX.DOC_ID = X.DOC_ID )) AS APPR_EMP
+		FROM AP_DOC X
+		WHERE NVL(DEL_YN,'N') = 'N'
+			AND DOC_ID = #{docId}
+	</select>
+
+</mapper>

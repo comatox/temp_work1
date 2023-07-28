@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.SafetyCarPassRepository">
+
+  <select id="selectSafetyCarPassReqstNewSeq" parameterType="hashMap" resultType="Integer">
+    /* sysmanage: safetyCarPass.selectSafetyCarPassReqstNewSeq */
+    SELECT SEQ_IO_TMPCAR.NEXTVAL AS SEQ
+    FROM DUAL
+  </select>
+
+  <insert id="insertSafetyCarPassRequest" parameterType="hashMap">
+    INSERT INTO IO_TMPCAR_D( TMPCAR_APP_NO
+                           , SEQ
+                           , IO_DT
+                           , COMP_GBN
+                           , COMP_NM
+                           , DEPT_NM
+                           , JW_NM
+                           , EMP_NM
+                           , HP_NO
+                           , CAR_KND
+                           , CAR_NO
+                           , DEL_YN
+                           , AC_IP
+                           , CRT_BY
+                           , CRT_DTM
+                           , MOD_BY
+                           , MOD_DTM
+                           , M_ID
+                           , EMP_ID)
+    VALUES ( #{tmpcarAppNo}
+           , #{seq}
+           , REPLACE(REPLACE(#{ioDt}, ';', ''), ' ', '')
+           , #{compGbn}
+           , REPLACE(#{compNm}, ' ', '')
+           , REPLACE(#{deptNm}, ' ', '')
+           , REPLACE(#{jwNm}, ' ', '')
+           , REPLACE(#{empNm}, ' ', '')
+           , REPLACE(#{hpNo}, ' ', '')
+           , REPLACE(#{carKnd}, ' ', '')
+           , REPLACE(#{carNo}, ' ', '')
+           , 'N'
+           , #{acIp}
+           , #{crtBy}
+           , SYSDATE
+           , #{crtBy}
+           , SYSDATE
+           , #{idcardId}
+           , #{ioEmpId})
+  </insert>
+  <insert id="insertSafetyCarPassRequestUser" parameterType="hashMap">
+    /* sysmanage: safetyCarPass.insertSafetyCarPassRequestUser */
+    INSERT
+    INTO IO_TMPCAR_M( TMPCAR_APP_NO
+                    , APPL_GBN
+                    , DEPT_ID
+                    , COMP_ID
+                    , JW_ID
+                    , EMP_ID
+                    , STRT_DT
+                    , END_DT
+                    , GATE_ID
+                    , APP_RSN
+                    , APPL_RSN
+                    , APPL_OBJ
+                    , FILE_CAR
+                    , DOC_ID
+                    , DEL_YN
+                    , AC_IP
+                    , CRT_BY
+                    , CRT_DTM
+                    , MOD_BY
+                    , MOD_DTM)
+    VALUES ( #{tmpcarAppNo}
+           , #{applGbn}
+           , #{deptId}
+           , #{compId}
+           , #{jwId}
+           , #{empId}
+           , replace(#{strtDt}, '-', '')
+           , replace(#{endDt}, '-', '')
+           , #{gateId}
+           , #{appRsn}
+           , #{applRsn}
+           , #{applObj}
+           , #{filePath}
+           , #{docId}
+           , 'N'
+           , #{acIp}
+           , #{crtBy}
+           , SYSDATE
+           , #{crtBy}
+           , SYSDATE)
+
+  </insert>
+
+  <select id="selectSafetyCarPassList" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: safetyCarPass.selectSafetyCarPassList */
+    SELECT A.*
+    FROM
+    (
+    SELECT ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO asc) as ROW_NUM
+    ,TB.* FROM
+    (
+    SELECT
+    a.TMPCAR_APP_NO
+    ,a.APPL_GBN
+    ,FN_GET_CODE('Z035',a.APPL_GBN,'DETL_CD') as APPL_NM
+    ,a.COMP_ID
+    ,a.DEPT_ID
+    ,a.JW_ID
+    ,a.EMP_ID
+    ,TO_CHAR(a.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    ,a.CRT_BY
+    ,FN_GET_EMP_NM(a.CRT_BY) as CRT_NM
+    ,(
+    SUBSTR(a.STRT_DT, 1,4) || '-' || SUBSTR(a.STRT_DT, 5,2) || '-' || SUBSTR(a.STRT_DT, 7,2) || '~'
+    ||
+    SUBSTR(a.END_DT, 1,4) || '-' || SUBSTR(a.END_DT, 5,2) || '-' || SUBSTR(a.END_DT, 7,2)
+    ) as IO_DT
+    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A033', 'A029', 'A028') AND DETL_CD =
+    A.GATE_ID) as GATE_NM
+    ,a.GATE_ID
+    ,a.APP_RSN
+    ,FN_GET_CODE('Z036',a.APP_RSN,'DETL_CD') as APP_NM
+    ,a.APPL_RSN
+    ,a.APPL_OBJ
+    ,a.FILE_CAR
+    ,a.FILE_MEDICAL
+    ,a.FILE_ORDER
+    ,a.FILE_PROJECT
+    ,AD.DOC_ID
+    ,NVL(AD.APPR_STAT, 'N') as APPR_STAT
+    ,NVL(AD.APPR_RESULT, 'N') as APPR_RESULT
+    ,CASE
+    WHEN AD.APPR_STAT = '0' THEN '대기'
+    WHEN AD.APPR_STAT = '10' THEN '진행'
+    WHEN AD.APPR_STAT = '20' THEN '완료'
+    WHEN NVL(AD.APPR_STAT, 'N') = 'N' THEN '임시보관'
+    END as APPR_STAT_NM
+    ,CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+    ,CASE
+    WHEN a.APP_RSN = 'Z0361001' THEN 'P01040105'
+    WHEN a.APP_RSN = 'Z0361002' THEN 'P01040105'
+    ELSE 'P01040102'
+    END as MENU_ID
+    FROM
+    IO_TMPCAR_M a
+    ,AP_DOC AD
+    WHERE 1=1
+    AND NVL(a.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.APP_RSN=#{appRsn}
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchType)">
+      <if test="searchType != null and 1.equals(searchType)">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+          AND A.CRT_BY = #{searchEmpId}
+        </if>
+      </if>
+      <if test="searchType != null and 2.equals(searchType)">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+          AND AD.CRT_BY = #{searchEmpId}
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND a.TMPCAR_APP_NO in (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE TMPCAR_APP_NO =
+      A.TMPCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      AND A.GATE_ID = #{searchGateId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+      /* 진행상태 */
+      <if test='"10".equals(applStat)'>
+        /* 검토중 */
+        AND AD.APPR_STAT = #{applStat}
+      </if>
+      <if test='"20".equals(applStat)'>
+        /* 처리완료 */
+        AND AD.APPR_STAT = #{applStat}
+      </if>
+      <if test='"1".equals(applStat)'>
+        /* 승인 */
+        AND AD.APPR_RESULT = #{applStat}
+      </if>
+      <if test='"2".equals(applStat)'>
+        /* 부결 */
+        AND AD.APPR_RESULT = #{applStat}
+      </if>
+    </if>
+    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+      AND AD.APPR_STAT = ''
+    </if>
+    ) TB
+    ) A
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+  <select id="selectSafetyCarPassListCnt" resultType="Integer">
+    /* sysmanage:
+    safetyCarPass.DU_SafetyCarReqst_SafetyCarPass_List_Count_S_2015-05-28T21:55:48(2015-05-28T21:56:52)
+    */
+    SELECT NVL(MAX(ROW_NUM),0) as TOT_CNT
+    FROM
+    (
+    SELECT ROW_NUMBER() OVER(ORDER BY IO_DT asc) as ROW_NUM
+    ,TB.* FROM
+    (
+    SELECT
+    a.TMPCAR_APP_NO
+    ,a.APPL_GBN
+    ,FN_GET_CODE('Z035',a.APPL_GBN,'DETL_CD') as APPL_NM
+    ,a.COMP_ID
+    ,a.DEPT_ID
+    ,a.JW_ID
+    ,a.EMP_ID
+    ,TO_CHAR(a.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    ,a.CRT_BY
+    ,FN_GET_EMP_NM(a.CRT_BY) as CRT_NM
+    ,(
+    SUBSTR(a.STRT_DT, 1,4) || '-' || SUBSTR(a.STRT_DT, 5,2) || '-' || SUBSTR(a.STRT_DT, 7,2) || '~'
+    ||
+    SUBSTR(a.END_DT, 1,4) || '-' || SUBSTR(a.END_DT, 5,2) || '-' || SUBSTR(a.END_DT, 7,2)
+    ) as IO_DT
+    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A033', 'A029', 'A028') AND DETL_CD =
+    A.GATE_ID) as GATE_NM
+    ,a.GATE_ID
+    ,a.APP_RSN
+    ,FN_GET_CODE('Z036',a.APP_RSN,'DETL_CD') as APP_NM
+    ,a.APPL_RSN
+    ,a.APPL_OBJ
+    ,a.FILE_CAR
+    ,a.FILE_MEDICAL
+    ,a.FILE_ORDER
+    ,a.FILE_PROJECT
+    FROM
+    IO_TMPCAR_M a
+    ,AP_DOC AD
+    WHERE 1=1
+    AND NVL(a.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.APP_RSN=#{appRsn}
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchType)">
+      <if test="searchType != null and 1.equals(searchType)">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+          AND A.CRT_BY = #{searchEmpId}
+        </if>
+      </if>
+      <if test="searchType != null and 2.equals(searchType)">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+          AND AD.CRT_BY = #{searchEmpId}
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND a.TMPCAR_APP_NO in (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE TMPCAR_APP_NO =
+      A.TMPCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      AND A.GATE_ID = #{searchGateId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+      /* 진행상태 */
+      <if test='"10".equals(applStat)'>
+        /* 검토중 */
+        AND AD.APPR_STAT = #{applStat}
+      </if>
+      <if test='"20".equals(applStat)'>
+        /* 처리완료 */
+        AND AD.APPR_STAT = #{applStat}
+      </if>
+      <if test='"1".equals(applStat)'>
+        /* 승인 */
+        AND AD.APPR_RESULT = #{applStat}
+      </if>
+      <if test='"2".equals(applStat)'>
+        /* 부결 */
+        AND AD.APPR_RESULT = #{applStat}
+      </if>
+    </if>
+    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+      AND AD.APPR_STAT = ''
+    </if>
+    ) TB
+    ) A
+  </select>
+
+  <select id="selectSafetyCarPassReqstUserNewSeq" parameterType="hashMap" resultType="Integer">
+    /* sysmanage: safetyCarPass.selectSafetyCarPassReqstUserNewSeq */
+    SELECT SEQ_IO_TMPCAR_D.NEXTVAL AS SEQ
+    FROM DUAL
+  </select>
+
+  <select id="selectSafetyCarPassView" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: safetyCarPass.selectSafetyCarPassView */
+    SELECT
+    TMPCAR_APP_NO
+    ,APPL_GBN
+    ,APPL_NM
+    ,COMP_ID
+    ,COMP_NM
+    ,DEPT_ID
+    ,DEPT_NM
+    ,JW_ID
+    ,JW_NM
+    ,EMP_ID
+    ,EMP_NM
+    ,EMP_JW_NM
+    ,TEL_NO
+    ,IO_DT
+    ,STRT_DT
+    ,END_DT
+    ,GATE_ID
+    ,GATE_NM
+    ,APP_RSN
+    ,APP_NM
+    ,APPL_RSN
+    ,IO_HP_NO
+    ,IO_EMP_NM
+    ,APPL_OBJ
+    ,FILE_CAR
+    ,FILE_MEDICAL
+    ,FILE_ORDER
+    ,FILE_PROJECT
+    ,DOC_ID
+    ,FILE_CAR_ADDR
+    ,FILE_CAR_NM
+    ,SUBSTR(FILE_CAR_TMP_NM, 0, INSTR(FILE_CAR_TMP_NM, ';')-1) as FILE_CAR_ID
+    ,DIV_CD
+    ,TO_CHAR(CRT_DTM, 'YYYYMM') AS CRT_DTM
+    FROM (
+    SELECT
+    a1.TMPCAR_APP_NO
+    ,a1.CRT_DTM
+    ,a1.APPL_GBN
+    ,FN_GET_CODE('Z035',a1.APPL_GBN,'DETL_CD') as APPL_NM
+    ,a1.COMP_ID
+    ,FN_GET_CONAME('COMP','', a1.COMP_ID) as COMP_NM
+    ,a1.DEPT_ID
+    ,FN_GET_CONAME('DEPT', a1.DEPT_ID, COMP_ID) as DEPT_NM
+    ,a1.JW_ID
+    ,FN_GET_CONAME('JW', a1.JW_ID,'') as JW_NM
+    ,a1.EMP_ID
+    ,(SELECT HP_NO FROM IO_EMP WHERE IO_EMP_ID = a1.EMP_ID) AS IO_HP_NO
+    ,(SELECT EMP_NM FROM IO_EMP WHERE IO_EMP_ID=a1.EMP_ID) AS IO_EMP_NM
+    ,FN_GET_EMP_NM(a1.CRT_BY) as EMP_NM
+    ,FN_GET_EMP_JW_NM(a1.CRT_BY) as EMP_JW_NM
+    ,NVL((SELECT TEL_NO2 FROM CO_EMP b WHERE b.EMP_ID = a1.CRT_BY), (SELECT TEL_NO1 FROM CO_EMP
+    WHERE EMP_ID = a1.CRT_BY)) AS TEL_NO
+    ,(
+    SUBSTR(a1.STRT_DT, 1,4) || '-' || SUBSTR(a1.STRT_DT, 5,2) || '-' || SUBSTR(a1.STRT_DT, 7,2) ||
+    '~' ||
+    SUBSTR(a1.END_DT, 1,4) || '-' || SUBSTR(a1.END_DT, 5,2) || '-' || SUBSTR(a1.END_DT, 7,2)
+    ) as IO_DT
+    ,SUBSTR(a1.STRT_DT, 1,4) || '-' || SUBSTR(a1.STRT_DT, 5,2) || '-' || SUBSTR(a1.STRT_DT, 7,2) as
+    STRT_DT
+    ,SUBSTR(a1.END_DT, 1,4) || '-' || SUBSTR(a1.END_DT, 5,2) || '-' || SUBSTR(a1.END_DT, 7,2) as
+    END_DT
+    ,a1.GATE_ID
+    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A033', 'A029', 'A028') AND DETL_CD =
+    a1.GATE_ID) as GATE_NM
+    ,a1.APP_RSN
+    ,FN_GET_CODE('Z036',a1.APP_RSN,'DETL_CD') as APP_NM
+    ,A1.APPL_RSN
+    ,a1.APPL_OBJ
+    ,a1.FILE_CAR
+    ,a1.FILE_MEDICAL
+    ,a1.FILE_ORDER
+    ,a1.FILE_PROJECT
+    ,REPLACE(SUBSTR(a1.FILE_CAR, 1, INSTR(a1.FILE_CAR, ';')-1 ),'\', '/') as FILE_CAR_ADDR
+    ,SUBSTR(a1.FILE_CAR, INSTR(a1.FILE_CAR, 'L_SAFETYCAR')) as FILE_CAR_TMP_NM
+    ,SUBSTR(a1.FILE_CAR, INSTR(a1.FILE_CAR, ';')+1) as FILE_CAR_NM
+    ,a1.DOC_ID
+    ,(SELECT DECODE(GRP_CD, 'A029', 'YP', 'CP') FROM CO_CODE_D WHERE GRP_CD in ('A033', 'A029',
+    'A028') AND DETL_CD = a1.GATE_ID) AS DIV_CD
+    FROM
+    IO_TMPCAR_M a1
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(tmpcarAppNo)">
+      AND a1.TMPCAR_APP_NO = #{tmpcarAppNo}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+      AND A1.DOC_ID = #{docId}
+    </if>
+    )
+  </select>
+  <select id="selectSafetyCarPassUserList" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: safetyCarPass.selectSafetyCarPassUserList */
+    SELECT DISTINCT
+    TMPCAR_APP_NO
+    ,COMP_NM
+    ,COMP_GBN
+    ,COMP_GBN_NM
+    ,DEPT_NM
+    ,JW_NM
+    ,EMP_NM
+    ,HP_NO
+    ,CAR_KND
+    ,CAR_NO
+    FROM (
+    SELECT
+    ROW_NUMBER() OVER(ORDER BY SEQ ASC) as ROW_NUM
+    ,A.*
+    FROM (
+    SELECT
+    D.TMPCAR_APP_NO
+    ,D.SEQ
+    ,D.COMP_NM
+    ,D.COMP_GBN
+    ,FN_GET_CODE('A010', D.COMP_GBN, 'DETL_CD') as COMP_GBN_NM
+    ,D.DEPT_NM
+    ,D.JW_NM
+    ,nvl(D.EMP_NM,(SELECT EMP_NM FROM IO_EMP WHERE IO_EMP_ID = a.EMP_ID)) as EMP_NM
+    ,nvl(D.HP_NO,(SELECT HP_NO FROM IO_EMP WHERE IO_EMP_ID = a.EMP_ID)) as HP_NO
+    ,D.CAR_KND
+    ,D.CAR_NO
+    FROM
+    IO_TMPCAR_D D, IO_TMPCAR_M A
+    WHERE 1=1
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(tmpcarAppNo)">
+      AND D.TMPCAR_APP_NO = #{tmpcarAppNo}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(docId)">
+      AND A.DOC_ID = #{docId}
+    </if>
+    ) A
+    ) T
+  </select>
+</mapper>

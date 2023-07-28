@@ -1,0 +1,960 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.GroupManageRepository">
+
+    <select id="selectCorpManageList" parameterType="Map" resultType="CamelHashMap">
+			/* IO: insNet.envrSetup.corpmanage.DU_CorpManage_dmCorpManageSearchList_2012-07-23T11:08:05(2012-08-13T20:37:03) */
+			SELECT A.*
+			FROM
+			(
+			SELECT ROW_NUMBER() OVER
+			(
+    		ORDER BY COMP_ID ASC
+			) as ROW_NUM
+			, T.*
+			FROM
+			(
+			SELECT
+			a.COMP_ID AS COMP_ID /*  */
+			,  a.COMP_NM AS COMP_NM /*  */
+			,  a.COMP_KND AS COMP_KND /*  */
+			,  a.COMP_AREA_KND AS COMP_AREA_KND /*  */
+			,  a.COMP_CD AS COMP_CD /*  */
+			,  a.LEGAL_NO AS LEGAL_NO /*  */
+			,  a.BOSS AS BOSS /*  */
+			,  a.TEL_NO AS TEL_NO /*  */
+			,  a.EMAIL AS EMAIL /*  */
+			,  a.ZIP1 AS ZIP1 /*  */
+			,  a.ZIP2 AS ZIP2 /*  */
+			,  a.ADDR AS ADDR /*  */
+			,  a.ADMIN_LIST AS ADMIN_LIST /*  */
+			,  a.ADMIN_EMAIL AS ADMIN_EMAIL /*  */
+			,  a.UNIQUEKEY AS UNIQUEKEY /*  */
+			,  a.DEL_YN AS DEL_YN /*  */
+			,  a.TRG_FLAG AS TRG_FLAG /*  */
+			,  a.AC_IP AS AC_IP /*  */
+			,  a.CRT_BY AS CRT_BY /*  */
+			,  a.CRT_DTM AS CRT_DTM /*  */
+			,  a.MOD_BY AS MOD_BY /*  */
+			,  a.MOD_DTM AS MOD_DTM /*  */
+			FROM  CO_COMP a
+			WHERE  1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">AND
+				a.COMP_NM like '%'||#{searchCompNm}||'%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompCd)">AND
+				a.COMP_ID like '%'|| #{searchCompCd} ||'%'
+			</if>
+			) T
+			) A
+			WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+		</select>
+    
+    <select id="selectCorpManageListCnt" parameterType="Map" resultType="Integer">
+			/* IO: insNet.envrSetup.corpmanage.DU_CorpManage_dmCorpManageSearchListCount_2012-07-23T11:08:05(2012-08-13T20:37:08) */
+			SELECT NVL(MAX(ROW_NUM),0) as TOT_CNT
+			FROM
+			(
+			SELECT ROW_NUMBER() OVER
+			(
+			ORDER BY COMP_ID DESC
+			) as ROW_NUM
+			, T.*
+			FROM
+			(
+			SELECT
+			a.COMP_ID AS COMP_ID /*  */
+			,  a.COMP_NM AS COMP_NM /*  */
+			,  a.COMP_KND AS COMP_KND /*  */
+			,  a.COMP_AREA_KND AS COMP_AREA_KND /*  */
+			,  a.COMP_CD AS COMP_CD /*  */
+			,  a.LEGAL_NO AS LEGAL_NO /*  */
+			,  a.BOSS AS BOSS /*  */
+			,  a.TEL_NO AS TEL_NO /*  */
+			,  a.EMAIL AS EMAIL /*  */
+			,  a.ZIP1 AS ZIP1 /*  */
+			,  a.ZIP2 AS ZIP2 /*  */
+			,  a.ADDR AS ADDR /*  */
+			,  a.ADMIN_LIST AS ADMIN_LIST /*  */
+			,  a.ADMIN_EMAIL AS ADMIN_EMAIL /*  */
+			,  a.UNIQUEKEY AS UNIQUEKEY /*  */
+			,  a.DEL_YN AS DEL_YN /*  */
+			,  a.TRG_FLAG AS TRG_FLAG /*  */
+			,  a.AC_IP AS AC_IP /*  */
+			,  a.CRT_BY AS CRT_BY /*  */
+			,  a.CRT_DTM AS CRT_DTM /*  */
+			,  a.MOD_BY AS MOD_BY /*  */
+			,  a.MOD_DTM AS MOD_DTM /*  */
+			FROM  CO_COMP a
+			WHERE  1=1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">AND
+				a.COMP_NM like '%'||#{searchCompNm}||'%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompCd)">AND
+				a.COMP_ID like '%'|| #{searchCompCd} ||'%'
+			</if>
+			) T
+			) A
+	</select>
+	
+	<select id="selectDeptManageList" parameterType="Map" resultType="CamelHashMap">
+		/* IO: insNet.envrSetup.deptmanage.DU_DeptManage_dmDetpManageSearchList_2012-07-23T17:28:51(2012-08-13T20:35:36) */
+		SELECT A.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER
+		( ORDER BY DEPT_ID ASC
+		) AS ROW_NUM
+		, T.*
+		FROM
+		(
+		SELECT
+		a.DEPT_ID AS DEPT_ID /*  */
+		,  a.DEPT_NM AS DEPT_NM /*  */
+		,  a.COMP_ID AS COMP_ID /*  */
+		,  FN_GET_COMP_NM(a.COMP_ID) AS COMP_NM
+		,  a.UPDEPT_ID AS UPDEPT_ID /*  */
+		,  a.DIV_CD AS DIV_CD /*  */
+		,  a.DIV_NM AS DIV_NM /*  */
+		,  a.GB_CD AS GB_CD /*  */
+		,  a.DEPT_DIV_CD AS DEPT_DIV_CD /*  */
+		,  a.MGR_EMP_ID AS MGR_EMP_ID /*  */
+		,  a.USE_YN AS USE_YN /*  */
+		,  a.TRGFLAG AS TRGFLAG /*  */
+		,  a.AC_IP AS AC_IP /*  */
+		,  a.CRT_BY AS CRT_BY /*  */
+		,  a.CRT_DTM AS CRT_DTM /*  */
+		,  a.MOD_BY AS MOD_BY /*  */
+		,  a.MOD_DTM AS MOD_DTM /*  */
+		FROM  CO_DEPT a
+		WHERE 1 = 1
+		AND UPDEPT_ID != '00000000'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND a.DEPT_NM like '%'||#{searchDeptNm}||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+			<if test="search_DIV_CD.equals('IC')">
+				AND a.DIV_CD in ('IC', 'YP')
+			</if>
+			AND a.DIV_CD = #{searchDivCd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+			AND a.COMP_ID = #{searchCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseYn)">
+			AND a.USE_YN = #{searchUseYn}
+		</if>
+		) T
+		) A
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+	
+	<select id="selectDeptManageListCnt" parameterType="Map" resultType="Integer">
+		/* IO: insNet.envrSetup.deptmanage.DU_DeptManage_dmDeptManageSearchListCount_2012-07-23T17:28:51(2012-08-13T20:35:44) */
+		SELECT NVL(MAX(ROW_NUM),0) as TOT_CNT
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER
+		(
+		ORDER BY DEPT_ID DESC
+		) as ROW_NUM
+		, T.*
+		FROM
+		(
+		SELECT
+		a.DEPT_ID AS DEPT_ID /*  */
+		,  a.DEPT_NM AS DEPT_NM /*  */
+		,  a.COMP_ID AS COMP_ID /*  */
+		,  a.UPDEPT_ID AS UPDEPT_ID /*  */
+		,  a.DIV_CD AS DIV_CD /*  */
+		,  a.DIV_NM AS DIV_NM /*  */
+		,  a.GB_CD AS GB_CD /*  */
+		,  a.DEPT_DIV_CD AS DEPT_DIV_CD /*  */
+		,  a.MGR_EMP_ID AS MGR_EMP_ID /*  */
+		,  a.USE_YN AS USE_YN /*  */
+		,  a.TRGFLAG AS TRGFLAG /*  */
+		,  a.AC_IP AS AC_IP /*  */
+		,  a.CRT_BY AS CRT_BY /*  */
+		,  a.CRT_DTM AS CRT_DTM /*  */
+		,  a.MOD_BY AS MOD_BY /*  */
+		,  a.MOD_DTM AS MOD_DTM /*  */
+		FROM  CO_DEPT a
+		WHERE 1 = 1
+		AND UPDEPT_ID != '00000000'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND a.DEPT_NM like '%'||#{searchDeptNm}||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+			<if test="search_DIV_CD.equals('IC')">
+				AND a.DIV_CD in ('IC', 'YP')
+			</if>
+			AND a.DIV_CD = #{searchDivCd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+			AND a.COMP_ID = #{searchCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseYn)">
+			AND a.USE_YN = #{searchUseYn}
+		</if>
+		) T
+		) A
+	</select>
+
+	<select id="selectJwManageList" parameterType="Map" resultType="CamelHashMap">
+		/* IO: insNet.envrSetup.jwmanage.DU_JwManage_dmJwManageSearchList_2012-07-24T15:02:55(2012-08-13T20:19:00) */
+		SELECT A.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER
+		(
+		ORDER BY JW_ID ASC
+		) as ROW_NUM
+		, T.*
+		FROM
+		(
+		SELECT
+		a.JW_ID AS JW_ID /*  */
+		,  a.JW_NM AS JW_NM /*  */
+		,  a.USE_YN AS USE_YN /*  */
+		,  a.AC_IP AS AC_IP /*  */
+		,  a.CRT_BY AS CRT_BY /*  */
+		,  a.CRT_DTM AS CRT_DTM /*  */
+		,  a.MOD_BY AS MOD_BY /*  */
+		,  a.MOD_DTM AS MOD_DTM /*  */
+		FROM  CO_JW a
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchJwNm)">AND
+			a.JW_NM like '%'||#{searchJwNm}||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseYn)">AND
+			a.USE_YN = #{searchUseYn}
+		</if>
+		ORDER BY a.GRADE ASC
+		) T
+		) A
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+	
+	<select id="selectJwManageListCnt" parameterType="Map" resultType="Integer">
+		/* IO: insNet.envrSetup.jwmanage.DU_JwManage_dmJwManageSearchListCount_2012-07-24T15:02:55(2012-08-10T14:29:24) */
+		SELECT COUNT(*) AS CNT
+		FROM
+		(
+		SELECT
+		a.JW_ID AS JW_ID /*  */
+		,  a.JW_NM AS JW_NM /*  */
+		,  a.USE_YN AS USE_YN /*  */
+		,  a.AC_IP AS AC_IP /*  */
+		,  a.CRT_BY AS CRT_BY /*  */
+		,  a.CRT_DTM AS CRT_DTM /*  */
+		,  a.MOD_BY AS MOD_BY /*  */
+		,  a.MOD_DTM AS MOD_DTM /*  */
+		FROM  CO_JW a
+		WHERE  1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchJwNm)">AND
+			a.JW_NM like '%'||#{searchJwNm}||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">AND
+			a.COMP_ID = #{searchCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseYn)">AND
+			a.USE_YN = #{searchUseYn}
+		</if>
+		) T
+	</select>
+
+	<insert id="insertDeptManage" parameterType="map">
+		<selectKey keyProperty="deptId" resultType="Integer" order="BEFORE">
+			SELECT MAX(DEPT_ID) + 1 AS DEPT_ID FROM CO_DEPT WHERE COMP_ID = #{compId}
+		</selectKey>
+
+/* IO: insNet.envrSetup.deptmanage.DU_DeptManage_dmDeptManageInster_2012-07-23T17:28:51(2014-11-24T18:55:18) */
+	INSERT INTO CO_DEPT
+	(
+		DEPT_ID,
+		DEPT_NM,
+		COMP_ID,
+		UPDEPT_ID,
+		DEPT_DIV_CD,
+		USE_YN,
+		AC_IP,
+		CRT_BY,
+		CRT_DTM,
+		MOD_BY,
+		MOD_DTM
+	)
+	VALUES (
+					 #{deptId},
+					 #{deptNm},
+					 #{compId},
+					 (select updept_id from co_dept where (select max(dept_id) from co_dept where comp_id = #{compId}) = dept_id),
+					 (select dept_div_cd from co_dept where (select max(dept_id) from co_dept where comp_id = #{compId}) = dept_id),
+					 #{useYn},
+					 #{acIp},
+					 #{crtBy},
+					 SYSDATE,
+					 #{modBy},
+					 SYSDATE
+				 )
+	</insert>
+
+	<update id="updateDeptManage" parameterType="map">
+		/* IO: insNet.envrSetup.deptmanage.DU_DeptManage_dmDeptManageModify_2012-07-23T17:28:51(2014-12-18T15:13:21) */
+		UPDATE CO_DEPT SET
+		DEPT_NM        = #{deptNm}                ,
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			COMP_ID        = #{compId}                ,
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(updeptId)">
+			UPDEPT_ID      = #{updeptId}              ,
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(deptDivCd)">
+			DEPT_DIV_CD    = #{deptDivCd}            ,
+		</if>
+		USE_YN         = #{useYn}                 ,
+		AC_IP          = #{acIp}                  ,
+		MOD_BY         = #{modBy}                 ,
+		MOD_DTM        = SYSDATE
+		WHERE DEPT_ID = #{deptId}
+	</update>
+
+	<select id="selectUserManageList" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUserManageList */
+		WITH PAGE AS
+		(
+		SELECT ROW_NUMBER() OVER (
+		ORDER BY T1.COMP_ID,T1.JOBLOCAT, T1.DEPT_ID, T1.GRADE, T1.EMP_ID
+		) AS ROW_NUM
+		,T1.*
+		FROM (
+		SELECT T1.*,T2.*
+		FROM (
+		SELECT T1.*, T2.COMP_NM, SUBSTR(T2.COMP_AREA_KND,-1) AS COMP_AREA_KND, T3.DEPT_NM,T4.JW_NM,T4.GRADE
+		FROM (
+		SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, JC_CD, JW_ID, JOBLOCAT
+		FROM CO_EMP
+		WHERE EMP_ID <![CDATA[ > ]]> ' '
+		AND USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+			AND UPPER(EMP_ID) LIKE '%'||UPPER(#{searchEmpId})||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND UPPER(EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '['
+		</if>
+		) T1,
+		(SELECT COMP_ID, COMP_NM, COMP_AREA_KND
+		FROM CO_COMP
+		WHERE COMP_ID <![CDATA[ > ]]> ' '
+		AND NVL(DEL_YN,'N') = 'N'
+		) T2
+		,(SELECT DEPT_ID, DEPT_NM, COMP_ID
+		FROM CO_DEPT
+		WHERE DEPT_ID <![CDATA[ > ]]> ' '
+		AND USE_YN = 'Y'
+		) T3
+		,(SELECT JW_ID, JW_NM, GRADE
+		FROM CO_JW
+		WHERE JW_ID <![CDATA[ > ]]> ' '
+		AND USE_YN = 'Y'
+		ORDER BY GRADE ASC
+		) T4
+		WHERE T1.DEPT_ID = T3.DEPT_ID(+)
+		AND T1.COMP_ID   = T2.COMP_ID(+)
+		AND T1.JW_ID       = T4.JW_ID(+)
+		) T1,
+		(SELECT DETL_NM, ETC1
+		FROM CO_CODE_D
+		WHERE GRP_CD <![CDATA[ > ]]> ' '
+		AND DETL_CD <![CDATA[ > ]]> ' '
+		AND GRP_CD = 'Z031'
+		AND USE_YN = 'Y'
+		) T2
+
+		WHERE COMP_AREA_KND = T2.ETC1(+)
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+			AND COMP_ID = #{searchCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND DEPT_NM LIKE '%'||#{searchDeptNm}||'%' ESCAPE '['
+		</if>
+		) T1
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKndNm)">
+			AND T1.JOBLOCAT LIKE '%'||#{searchKndNm}||'%' ESCAPE '['
+		</if>
+		<if test="searchCompKind != null and &quot;Y&quot;.equals(searchCompKind)">
+			AND T1.DETL_NM <![CDATA[ <> ]]> T1.COMP_NM
+		</if>
+		)
+		SELECT ROW_NUM
+		,EMP_ID
+		,EMP_NM || ' / ' || T1.JW_NM AS FULL_NAME
+		,COMP_NM || ' / '|| T1.JOBLOCAT AS FULL_COMP
+		,DEPT_NM
+		FROM PAGE T1
+		WHERE 1=1
+
+		AND T1.ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectUserManageListCnt" parameterType="map" resultType="Integer">
+		/* sysmanage: groupManageRepository.selectUserManageListCnt */
+		WITH PAGE AS
+		(
+
+		SELECT ROWNUM AS ROWM
+		,T1.*
+		FROM (
+		SELECT T1.*,T2.*
+		FROM (
+		SELECT T1.*, T2.COMP_NM, SUBSTR(T2.COMP_AREA_KND,-1) AS COMP_AREA_KND, T3.DEPT_NM
+		FROM (
+		SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, JC_CD, JW_ID, JOBLOCAT
+		FROM CO_EMP
+		WHERE EMP_ID <![CDATA[ > ]]> ' '
+		AND USE_YN = 'Y'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+			AND UPPER(EMP_ID) LIKE '%'||UPPER(#{searchEmpId})||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+			AND UPPER(EMP_NM) LIKE '%'||UPPER(#{searchEmpNm})||'%' ESCAPE '['
+		</if>
+		) T1,
+		(SELECT COMP_ID, COMP_NM, COMP_AREA_KND
+		FROM CO_COMP
+		WHERE COMP_ID <![CDATA[ > ]]> ' '
+		AND NVL(DEL_YN,'N') = 'N'
+		) T2
+		,(SELECT DEPT_ID, DEPT_NM, COMP_ID
+		FROM CO_DEPT
+		WHERE DEPT_ID <![CDATA[ > ]]> ' '
+		AND USE_YN = 'Y'
+		) T3
+		WHERE T1.DEPT_ID = T3.DEPT_ID(+)
+		AND T1.COMP_ID = T2.COMP_ID(+)
+		) T1,
+		(SELECT DETL_NM, ETC1
+		FROM CO_CODE_D
+		WHERE GRP_CD <![CDATA[ > ]]> ' '
+		AND DETL_CD <![CDATA[ > ]]> ' '
+		AND GRP_CD = 'Z031'
+		AND USE_YN = 'Y'
+		) T2
+
+		WHERE COMP_AREA_KND = T2.ETC1(+)
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+			AND COMP_ID = #{searchCompId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+			AND DEPT_NM LIKE '%'||#{searchDeptNm}||'%' ESCAPE '['
+		</if>
+		) T1
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchKndNm)">
+			AND T1.JOBLOCAT LIKE '%'||#{searchKndNm}||'%' ESCAPE '['
+		</if>
+		<if test="searchCompKind != null and &quot;Y&quot;.equals(searchCompKind)">
+			AND T1.DETL_NM <![CDATA[ <> ]]> T1.COMP_NM
+		</if>
+		)
+		SELECT NVL(MAX(ROWM),0) AS TOT_CNT
+		FROM PAGE T2
+
+	</select>
+
+	<select id="selectUserManageDetail" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUserManageDetail */
+		SELECT
+			EMP_ID ,
+			EMP_NM ,
+			COMP_ID ,
+			FN_GET_COMP_NM(COMP_ID) AS COMP_NM ,
+			DEPT_ID ,
+			FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM ,
+			JC_CD ,
+			FN_GET_JC_NM(JC_CD) AS JC_NM ,
+			JW_ID ,
+			FN_GET_JW_NM(JW_ID) AS JW_NM ,
+			ID ,
+			'*******' as PASSWORD ,
+			DIV_CD ,
+			FN_GET_DIV_NM(DIV_CD) AS DIV_NM ,
+			JUMIN_NO ,
+			CASE WHEN JUMIN_NO IS NULL THEN ''
+					 ELSE JUMIN_NO
+				END AS BIRTH_NO,
+			EMAIL ,
+			TEL_NO1 ,
+			NVL(TEL_NO2,' ') AS TEL_NO2,
+			ZIP1 ,
+			ZIP2 ,
+			ADDR AS ADDR1,
+			' '    AS ADDR2 ,
+			HT_CD ,
+			DECODE(HT_CD,'C','현재원','H','휴직','퇴사') as HT_NM ,
+			JOIN_DT,
+			RETIRE_DT ,
+			GATE_ID ,
+			GATE_KND ,
+			ADMIN_KND ,
+			JOBLOCAT ,
+			WGRP_CD ,
+			VST_MNG_YN ,
+			USER_TYPE_CD ,
+			USE_YN ,
+			TRGFLAG,
+			DEFAULT_GATE_ID,
+			RESIDE_YN,
+			LOGIN_FAIL_CNT
+		FROM CO_EMP
+		WHERE EMP_ID = #{empId}
+	</select>
+
+	<select id="selectUserManageCheckId" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUsermanageCheckId */
+		SELECT ID
+		FROM CO_EMP
+		WHERE UPPER(ID) = UPPER(#{id})
+	</select>
+	<select id="selectUserManageCheckEmpId" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUserManageCheckEmpId */
+		SELECT EMP_ID
+		FROM CO_EMP
+		WHERE UPPER(EMP_ID) = UPPER(#{empId})
+	</select>
+	<select id="selectUserManageJcList" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUserManageJcList */
+		SELECT *
+		FROM CO_JC
+		ORDER BY JC_NM ASC, GRADE ASC
+	</select>
+	<select id="selectUserManageJwList" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectUserManageJcList */
+		SELECT *
+		FROM CO_JW
+		ORDER BY JW_NM ASC, GRADE ASC
+	</select>
+
+	<insert id="insertUserManage" parameterType="Map" >
+	/* sysmanage: groupManageRepository.insertUserManage */
+		INSERT
+		INTO  CO_EMP
+		(
+		EMP_ID
+		, EMP_NM
+		, COMP_ID
+		, DEPT_ID
+		, JC_CD
+		, JW_ID
+		, ID
+		, PASSWORD
+		, DIV_CD
+		, JUMIN_NO
+		, EMAIL
+		, TEL_NO1
+		, TEL_NO2
+		, ZIP1
+		, ZIP2
+		, ADDR
+		, HT_CD
+		, JOIN_DT
+		, RETIRE_DT
+		, GATE_ID
+		, GATE_KND
+		, ADMIN_KND
+		, JOBLOCAT
+		, WGRP_CD
+		, VST_MNG_YN
+		, USER_TYPE_CD
+		, USE_YN
+		, TRGFLAG
+		, AC_IP
+		, CRT_BY
+		, CRT_DTM
+		, MOD_BY
+		, MOD_DTM
+		)
+		VALUES
+		(
+		UPPER(#{empId})
+		, #{empNm}
+		, #{compId}
+		, #{deptId}
+		, #{jcId}
+		, #{jwId}
+		, UPPER(#{securityId})
+		, #{password}
+		, #{divCd}
+		, #{birthNo}
+		, #{cMail}
+		, #{hpNo}
+		, #{telNo}
+		, #{zip1}
+		, #{zip2}
+		, #{addr} || ' ' || #{addr2}
+		, 'C'
+		, #{joinDt}
+		, ''
+		, #{gateId}
+		, 0
+		, 0
+		, #{divNm}
+		, 'DAY_NORM'
+		, 'N'
+		, 'H'
+		, #{useYn}
+		, ''
+		, #{acIp}
+		, #{crtBy}
+		, SYSDATE
+		, #{modBy}
+		, SYSDATE
+		)
+</insert>
+
+	<select id="selectHynixUserList" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectHynixUserList */
+		WITH RECORDS AS (
+		SELECT ROW_NUMBER() OVER (ORDER BY A.EMP_NM, A.EMP_ID) AS IDX,
+		A.COMP_ID,
+		A.EMP_ID,
+		A.EMP_NM,
+		A.DEPT_NM,
+		A.JC_NM,
+		A.JW_NM,
+		A.DIV_NM,
+		(CASE WHEN A.DIV_NM = '이천' THEN 'YP'
+		WHEN A.DIV_NM = '청주' THEN 'CP'
+		WHEN A.DIV_NM = '영동' THEN 'AP'
+		WHEN INSTR(A.DIV_NM, '정자') &gt; 0 THEN 'S2'
+		WHEN INSTR(A.DIV_NM, '서현') &gt; 0 THEN 'S20'
+		ELSE 'YP' END) AS DIV_CD,
+		DECODE(A.HT_CD, 'C', '현재원', 'H', '휴직', 'T', '퇴사', '') AS HT_NM,
+		CASE WHEN B.EMP_ID IS NULL THEN '미등록' ELSE '등록' END AS IS_REGIST,
+		TO_CHAR(B.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM CO_EMP_HYNIX A
+		LEFT OUTER JOIN CO_EMP B ON (A.EMP_ID = B.EMP_ID)
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND A.EMP_ID LIKE '%' || #{empId} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+			<if test="searchHtCd != null and !&quot;ALL&quot;.equals(searchHtCd)">
+				AND A.HT_CD = #{searchHtCd}
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND B.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND B.EMP_ID IS NOT NULL
+			</if>
+		</if>
+		)
+		SELECT *
+		FROM RECORDS
+		WHERE IDX BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectHynixUserListCnt" parameterType="map" resultType="Integer">
+		/* sysmanage: groupManageRepository.selectHynixUserListCnt */
+		SELECT COUNT(*) AS TOTAL
+		FROM CO_EMP_HYNIX A
+		LEFT OUTER JOIN CO_EMP B ON (A.EMP_ID = B.EMP_ID)
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND A.EMP_ID LIKE '%' || #{empId} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+
+			AND A.HT_CD = #{searchHtCd}
+
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND B.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND B.EMP_ID IS NOT NULL
+			</if>
+		</if>
+	</select>
+
+	<insert id="insertHynixUser" parameterType="map">
+		/* sysmanage: groupManageRepository.insertHynixUser */
+		INSERT INTO CO_EMP(
+		EMP_ID,
+		EMP_NM,
+		COMP_ID,
+		DEPT_ID,
+		JC_CD,
+		JW_ID,
+		ID,
+		PASSWORD,
+		DIV_CD,
+		JUMIN_NO,
+		EMAIL,
+		TEL_NO1,
+		TEL_NO2,
+		ZIP1,
+		ZIP2,
+		ADDR,
+		HT_CD,
+		JOIN_DT,
+		RETIRE_DT,
+		GATE_ID,
+		GATE_KND,
+		ADMIN_KND,
+		JOBLOCAT,
+		WGRP_CD,
+		VST_MNG_YN,
+		USER_TYPE_CD,
+		USE_YN,
+		TRGFLAG,
+		AC_IP,
+		CRT_BY,
+		CRT_DTM,
+		MOD_BY,
+		MOD_DTM
+		)
+		SELECT EMP_ID,
+		EMP_NM,
+		COMP_ID,
+		#{deptId},
+		(SELECT X.JC_ID FROM CO_JC X WHERE X.JC_NM = A.JC_NM),
+		(SELECT Y.JW_ID FROM CO_JW Y WHERE Y.JW_NM = A.JW_NM),
+		EMP_ID,
+		BIRTHDAY AS PASSWORD,
+		(CASE WHEN DIV_NM = '이천' THEN 'YP'
+		WHEN DIV_NM = '청주' THEN 'CP'
+		WHEN DIV_NM = '영동' THEN 'AP'
+		WHEN INSTR(DIV_NM, '정자') &gt; 0 THEN 'S2'
+		WHEN INSTR(DIV_NM, '서현') &gt; 0 THEN 'S20'
+		ELSE 'YP' END),
+		BIRTHDAY,
+		EMAIL,
+		MOBILE,
+		TEL_NO,
+		'467' AS ZIP1,
+		'743' AS ZIP2,
+		'경기도 이천시 부발읍 경충대로 2091' AS ADDR,
+		HT_CD,
+		JOIN_DT,
+		RETIRE_DT,
+		'',
+		0,
+		0,
+		(CASE WHEN INSTR(DIV_NM, '정자') &gt; 0 THEN '분당(정자)'
+		WHEN INSTR(DIV_NM, '서현') &gt; 0 THEN '분당(서현)'
+		ELSE DIV_NM END),
+		'DAY_NORM',
+		'N',
+		'H',
+		'Y',
+		'',
+		#{acIp},
+		#{crtBy},
+		SYSDATE,
+		#{crtBy},
+		SYSDATE
+		FROM CO_EMP_HYNIX A
+		WHERE EMP_ID = #{empId}
+	</insert>
+
+	<select id="selectCardKeyUserList" parameterType="map" resultType="CamelHashMap">
+		/* sysmanage: groupManageRepository.selectCardKeyUserList */
+		WITH RECORDS AS (
+		SELECT
+		ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC, EMP_NM, EMP_ID) AS IDX,
+		tot.*
+		FROM (
+		SELECT
+		A.DIV_NM,
+		A.EMP_ID,
+		A.EMP_NM,
+		A.JW_NM as JC_NM,
+		A.JC_NM as JW_NM,
+		A.HT_CD,
+		A.DEPT_NM,
+		DECODE(A.HT_CD, 'C', '현재원', 'H', '휴직', 'T', '퇴사', '') AS HT_NM,
+		CASE WHEN B.EMP_ID IS NULL THEN '미등록' ELSE '등록' END AS IS_REGIST,
+		TO_CHAR(B.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM
+		CO_EMP_HYNIX A
+		LEFT OUTER JOIN CO_EMP B ON (A.EMP_ID = B.EMP_ID)
+		WHERE 1=1
+		AND A.EMP_ID IN (SELECT UPPER(APPR_EMP_ID) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_1) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_2) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y')
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{empId}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+			<if test="searchHtCd != null and !&quot;ALL&quot;.equals(searchHtCd)">
+				AND A.HT_CD = #{searchHtCd}
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NOT NULL
+			</if>
+		</if>
+		UNION ALL
+		SELECT
+		A.JOBLOCAT AS DIV_NM,
+		A.EMP_ID,
+		A.EMP_NM,
+		FN_GET_JC_NM(A.JC_CD) AS JC_NM,
+		FN_GET_JW_NM(A.JW_ID) AS JW_NM,
+		A.HT_CD,
+		FN_GET_DEPT_NM(A.DEPT_ID) AS  DEPT_NM,
+		DECODE(A.HT_CD, 'C', '현재원', 'H', '휴직', 'T', '퇴사', '') AS HT_NM,
+		CASE WHEN A.EMP_ID IS NULL THEN '미등록' ELSE '등록' END AS IS_REGIST,
+		TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM
+		CO_EMP A
+		WHERE 1=1
+		AND NOT EXISTS (SELECT 1 FROM CO_EMP_HYNIX B WHERE A.EMP_ID = B.EMP_ID)
+		AND A.EMP_ID IN (SELECT UPPER(APPR_EMP_ID) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_1) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_2) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y')
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{empId}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+			<if test="searchHtCd != null and !&quot;ALL&quot;.equals(searchHtCd)">
+				AND A.HT_CD = #{searchHtCd}
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NOT NULL
+			</if>
+		</if>
+		) tot
+		WHERE 1 = 1
+		)
+		SELECT *
+		FROM RECORDS
+		WHERE IDX BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="selectCardKeyUserListCnt" parameterType="map" resultType="Integer">
+		/* sysmanage: groupManageRepository.selectCardKeyUserListCnt */
+		SELECT
+		count(1) as TOTAL
+		FROM (
+		SELECT
+		A.DIV_NM,
+		A.EMP_ID,
+		A.EMP_NM,
+		A.JC_NM,
+		A.JW_NM,
+		A.HT_CD,
+		A.DEPT_NM,
+		DECODE(A.HT_CD, 'C', '현재원', 'H', '휴직', 'T', '퇴사', '') AS HT_NM,
+		CASE WHEN B.EMP_ID IS NULL THEN '미등록' ELSE '등록' END AS IS_REGIST,
+		TO_CHAR(B.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		TO_CHAR(B.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM
+		CO_EMP_HYNIX A
+		LEFT OUTER JOIN CO_EMP B ON (A.EMP_ID = B.EMP_ID)
+		WHERE 1=1
+		AND A.EMP_ID IN (SELECT UPPER(APPR_EMP_ID) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_1) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_2) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y')
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{empId}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+			<if test="searchHtCd != null and !&quot;ALL&quot;.equals(searchHtCd)">
+				AND A.HT_CD = #{searchHtCd}
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NOT NULL
+			</if>
+		</if>
+		UNION ALL
+		SELECT
+		A.JOBLOCAT AS DIV_NM,
+		A.EMP_ID,
+		A.EMP_NM,
+		FN_GET_JC_NM(A.JC_CD) AS JC_NM,
+		FN_GET_JW_NM(A.JW_ID) AS JW_NM,
+		A.HT_CD,
+		FN_GET_DEPT_NM(A.DEPT_ID) AS  DEPT_NM,
+		DECODE(A.HT_CD, 'C', '현재원', 'H', '휴직', 'T', '퇴사', '') AS HT_NM,
+		CASE WHEN A.EMP_ID IS NULL THEN '미등록' ELSE '등록' END AS IS_REGIST,
+		TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+		TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+		FROM
+		CO_EMP A
+		WHERE 1=1
+		AND NOT EXISTS (SELECT 1 FROM CO_EMP_HYNIX B WHERE A.EMP_ID = B.EMP_ID)
+		AND A.EMP_ID IN (SELECT UPPER(APPR_EMP_ID) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_1) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y'
+		UNION
+		SELECT UPPER(APPR_EMP_ID_2) AS APPR_EMP FROM IF_CARDKEY_GATE WHERE USE_YN = 'Y')
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+			AND UPPER(A.EMP_ID) LIKE '%' || UPPER(#{empId}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(A.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+			<if test="searchHtCd != null and !&quot;ALL&quot;.equals(searchHtCd)">
+				AND A.HT_CD = #{searchHtCd}
+			</if>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchRegYn)">
+			<if test="searchRegYn != null and &quot;N&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NULL
+			</if>
+			<if test="searchRegYn != null and &quot;Y&quot;.equals(searchRegYn)">
+				AND A.EMP_ID IS NOT NULL
+			</if>
+		</if>
+		) tot
+		WHERE 1 = 1
+	</select>
+
+</mapper>

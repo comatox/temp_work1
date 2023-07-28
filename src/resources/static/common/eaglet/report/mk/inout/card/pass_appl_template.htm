@@ -1,0 +1,104 @@
+<!-- REPORTHEADER-BEGIN -->
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>&lt;개인별근태자료조회&gt;</title>
+<link rel="stylesheet" href="{{ER_EagletReportUrl}}/lib/report.css">
+</head>
+<body>
+<!-- REPORTHEADER-END -->
+<!-- REPORTTITLE-BEGIN -->
+<!-- REPORTTITLE-END -->
+<!-- PAGEHEADER-BEGIN -->
+<!-- 타이틀에 표현할 logo와 조건의 이름이 위치하는 영역(모든페이지의 앞에 표기된다.) -->
+<br>
+<table width="650"  border="0" bordercolor="#142B6D" style="border-collapse:collapse;" align="center">
+	  <tr>
+		<td width="167" height="17" align="left" style="padding-bottom:3px;" class="font4"><img src="{{ER_EagletReportUrl}}/images/logo.gif"/></td>
+		<td width="316" align="center" class="font5">상시출입증 신청 상세내역</td>
+		<td width="167" align="center">&nbsp;</td>
+  </tr>
+</table>
+<table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td>
+<!-- PAGEHEADER-END -->
+<!-- TABLEHEADER1-BEGIN -->
+<!-- 데이터가 표현될 이름이 위치하는 영역 -->
+	  <table width="650" align="center">
+		<tr>
+		<td width="100%" valign="bottom" align="left" class="font4" style="padding:0,10,3,0;" colspan="2">
+		결근:A&nbsp;사가:B&nbsp;출장:C&nbsp;병가:D&nbsp;귀성휴가:F&nbsp;공상:G&nbsp;출산휴가:H&nbsp;희가:K&nbsp;외출:N&nbsp;무급:M&nbsp;무급(0.5):O<BR>유급:Y&nbsp;공상(0.5):Q&nbsp;병가(0.5):R&nbsp;퇴사:*&nbsp;지각:L&nbsp;조퇴:B5&nbsp;법정공휴:P
+		</td>
+		</tr>
+		<tr>
+		<td width="80%" valign="bottom" align="left" class="font4" style="padding:0,10,3,0;">사번 : [[APPL_NM]]&nbsp;성명 : [[APPL_JW]]&nbsp;성별 : [[APPL_RESI_NO]]&nbsp;부서 : [[dept_nm]]</td>
+		<td width="20%" valign="bottom" align="right" class="font4" style="padding:0,10,3,0;">{{ER_ReportMakeTime}}</td>
+		</tr>
+	  </table>
+      <table width="650" border="1" bordercolor="#142B6D" style="border-collapse:collapse;" align="center">
+        <tr>    
+			<td width="14%" class="top_bg1 center pd1">일자</td>
+			<td width="13%" class="top_bg1 center pd1">출근</td>
+			<td width="13%" class="top_bg1 center pd1">퇴근</td>
+			<!-- <td width="9%" class="top_bg1 center pd1">외출</td>
+			<td width="10%" class="top_bg1 center pd1">외출하여 돌아온시간</td> -->
+			<td width="12%" class="top_bg1 center pd1">지각</td>
+			<td width="12%" class="top_bg1 center pd1">잔업</td>
+			<td width="12%" class="top_bg1 center pd1">휴일</td>
+			<td width="12%" class="top_bg1 center pd1">법정공휴일</td>
+			<td width="12%" class="top_bg1 center pd1">근태구분</td>
+			<!-- <td width="8%" class="top_bg1 center pd1">구분</td> -->
+        </tr>     
+        <!-- TABLEHEADER1-END -->
+        <!-- TABLEDETAIL1-BEGIN -->
+        <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+        <tr>
+		  <td class="font3 center pd1">{{COLUMN|WORK_DT|S|0}}</td>
+          <td class="font3 cener pd1">{{COLUMN|WORK_TM|S|0}}</td>
+		  <td class="font3 cener pd1">{{COLUMN|FINISH_TM|S|0}}</td>
+		  <td class="font3 right pd1">{{COLUMN|LATE_YN|S|0}}</td>
+		  <td class="font3 right pd1">{{COLUMN|ADDWORK_CNT1001|S|0}}</td>
+		  <td class="font3 right pd1">{{COLUMN|ADDWORK_CNT1002|S|0}}</td>
+		  <td class="font3 right pd1">{{COLUMN|ADDWORK_CNT1003|S|0}}</td>
+		  <td class="font3 right pd1">{{COLUMN|H001_NM|S|0}}</td>
+        </tr>
+        <!-- TABLEDETAIL1-END -->
+        <!-- TABLEFOOTER1-BEGIN -->
+        <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+		<tr>
+          <td colspan="100%" class="bg1" height="2"></td>
+        </tr>
+	</table>
+      <!-- TABLEFOOTER1-END -->
+	  <!-- TABLEHEADER2-BEGIN -->
+<!-- 데이터가 표현될 이름이 위치하는 영역 -->
+        <!-- TABLEHEADER2-END -->
+        <!-- TABLEDETAIL2-BEGIN -->
+        <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+        <tr>
+		  <td class="bg_c1 font2 center pd1" colspan="3">합계</td>
+		  <td class="font3 right pd1"></td>
+		  <td class="font3 right pd1">{{SUM|ADDWORK_CNT1001|C|1}}</td>
+		  <td class="font3 right pd1">{{SUM|ADDWORK_CNT1002|C|1}}</td>
+		  <td class="font3 right pd1">{{SUM|ADDWORK_CNT1003|C|1}}</td>
+		  <td class="font3 right pd1"></td>
+        </tr>
+        <!-- TABLEDETAIL2-END -->
+        <!-- TABLEFOOTER2-BEGIN -->
+        <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+      <!-- TABLEFOOTER2-END -->
+  <!-- PAGEFOOTER-BEGIN -->  
+		<table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+		  <tr>
+			<td width="100%" height="17" align="right" style="padding-bottom:3px;" class="font4"> Page : {{ER_Page}} of {{ER_TotalPage}}</td>
+		  </tr>
+		</table>
+	</td>
+  </tr>
+</table>
+<!-- PAGEFOOTER-END -->
+<!-- REPORTFOOTER-BEGIN -->
+</body>
+</html>
+<!-- REPORTFOOTER-END -->

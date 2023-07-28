@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.ConstProjectRegRepository">
+	
+	<select id="selectConstProjectRegList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT TB.*
+		  FROM (
+				SELECT
+						CONST_PRJ_NO
+					   ,CONST_ORDER_NO
+					   ,COMP_ID
+					   ,DEPT_ID
+					   ,JW_ID
+					   ,EMP_ID
+					   ,EMP_NM
+					   ,INNO
+					   ,EMAIL
+					   ,USE_EMP_ID
+					   ,USE_EMP_NM
+					   ,USE_DEPT_ID
+					   ,USE_DEPT_NM
+					   ,DOC_ID
+					   ,APPL_STAT
+					   ,APPL_STAT_NM
+					   ,CONST_PRJ_NM
+					   ,CONST_ORDER_DT
+					   ,CONST_STRT_DT
+					   ,CONST_END_DT
+					   ,CONST_STRT_DT || ' ~ ' || CONST_END_DT AS CONST_PERIOD
+					   ,CONST_COMP_ID
+					   ,CONST_COMP_NM
+					   ,CRT_DTM
+					   ,ROW_NUMBER() OVER(ORDER BY CONST_PRJ_NO DESC) AS ROW_NUM
+				  FROM (
+						SELECT  CONST_PRJ_NO
+							   ,CONST_ORDER_NO
+							   ,COMP_ID
+							   ,DEPT_ID
+							   ,JW_ID
+							   ,EMP_ID
+							   ,FN_GET_EMP_NM(EMP_ID) AS EMP_NM
+							   ,INNO
+							   ,EMAIL
+							   ,USE_EMP_ID
+							   ,FN_GET_EMP_NM(USE_EMP_ID) AS USE_EMP_NM
+							   ,USE_DETP_ID AS USE_DEPT_ID
+							   ,FN_GET_DEPT_NM(USE_DETP_ID) AS USE_DEPT_NM
+							   ,DOC_ID
+							   ,APPL_STAT
+							   ,CASE
+									WHEN APPL_STAT IS NULL THEN '임시보관'
+									WHEN APPL_STAT = 'Z0331002' THEN '검토중'
+									ELSE FN_GET_CODE('Z033', APPL_STAT, '')
+								END AS APPL_STAT_NM
+							   ,CONST_PRJ_NM
+							   ,CONST_ORDER_DT
+							   ,TO_CHAR(TO_DATE(CONST_START_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_STRT_DT
+							   ,TO_CHAR(TO_DATE(CONST_END_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_END_DT
+							   ,CONST_COMP_ID
+							   ,FN_GET_CODE_NM('A064',CONST_COMP_ID) AS CONST_COMP_NM
+							   ,TO_CHAR(CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+						FROM IO_CONST_PRJ_INFO
+						WHERE 1 = 1
+						<if	test='not @org.springframework.util.StringUtils@isEmpty(authYn) and "N".equals(authYn)'>
+							AND EMP_ID = #{searchEmpId}
+						</if>
+						<if	test='not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)'>
+							AND UPPER(FN_GET_IO_EMP_NM2(USE_EMP_ID)) LIKE '%'||UPPER(#{searchEmpNm})||'%'
+						</if>
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstOrderNo)">
+		 					AND UPPER(CONST_ORDER_NO) LIKE '%'||UPPER(#{searchConstOrderNo})||'%'
+						</if>
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstPrjNm)">
+		 					AND UPPER(CONST_PRJ_NM) LIKE '%'||UPPER(#{searchConstPrjNm})||'%'
+						</if>
+						<if	test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+									  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		 					AND CRT_DTM <![CDATA[>=]]> TO_DATE(REPLACE(#{searchStrtDt},'-','')||'000000', 'YYYYMMDDHH24MISS')
+		 					AND CRT_DTM <![CDATA[<=]]> TO_DATE(REPLACE(#{searchEndDt},'-','')||'235959', 'YYYYMMDDHH24MISS')
+						</if>
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstStrtDt)">
+		 					AND CONST_START_DT <![CDATA[>=]]> REPLACE(#{searchConstStrtDt},'-','')
+						</if>
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstEndDt)">
+		 					AND CONST_END_DT <![CDATA[<=]]> REPLACE(#{searchConstEndDt},'-','')
+						</if>					
+						<if test="not @org.springframework.util.StringUtils@isEmpty(searchConstCompId)">
+		 					AND CONST_COMP_ID = #{searchConstCompId}
+						</if>					
+						<if test='not @org.springframework.util.StringUtils@isEmpty(searchApplStat) and !"ALL".equals(searchApplStat)'>
+		 					AND CASE WHEN APPL_STAT = 'Z0331001' THEN '1'				 
+									 WHEN APPL_STAT = 'Z0331002' THEN '2'
+									 WHEN APPL_STAT = 'Z0331003' THEN '3'
+									 WHEN APPL_STAT = 'Z0331004' THEN '3'
+									 ELSE '4' END = #{searchApplStat}
+						</if>
+				   )TB
+			 WHERE 1 = 1
+			 	<if test="not @org.springframework.util.StringUtils@isEmpty(searchUseEmpNm)">
+		 			AND UPPER(USE_EMP_NM) LIKE '%'||UPPER(#{searchUseEmpNm})||'%'
+				</if>
+			    ) TB
+		 ORDER BY CONST_PRJ_NO DESC
+	</select>
+	
+	<select id="selectConstProjectRegView" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT  CONST_PRJ_NO
+	           ,CONST_ORDER_NO
+	           ,COMP_ID
+	           ,COMP_NM
+	           ,DEPT_ID
+	           ,DEPT_NM
+	           ,JW_ID
+	           ,JW_NM
+	           ,EMP_ID
+	           ,EMP_NM
+	           ,INNO
+	           ,EMAIL
+	           ,USE_EMP_ID
+	           ,USE_EMP_NM
+	           ,USE_DETP_ID	AS USE_DEPT_ID
+	           ,USE_DETP_NM AS USE_DEPT_NM
+	           ,DOC_ID
+	           ,APPL_STAT
+	           ,APPL_STAT_NM
+	           ,CONST_PRJ_NM
+	           ,CONST_ORDER_DT
+	           ,CONST_START_DT
+	           ,CONST_END_DT
+	           ,CONST_COMP_ID
+	           ,CONST_COMP_NM
+	           ,CONST_IO_COUNT
+	           ,SUPPLIER_NM1
+	           ,SUPPLIER_NM2
+	           ,SUPPLIER_NM3
+	           ,SUPPLIER1_CNT + SUPPLIER2_CNT + SUPPLIER3_CNT AS SUPPLIER_CNT
+	           ,CRT_DTM
+	           ,FILE_ID1
+			   ,FILE_ID2
+			   ,FILE_PATH1
+			   ,FILE_PATH2
+			   ,FILE_NAME1
+			   ,FILE_NAME2
+			   ,FILE_INVEST_NAME
+		       ,FILE_INVEST_URL
+               ,FILE_ORDER_NAME
+		       ,FILE_ORDER_URL
+	  FROM (
+				SELECT   CONST_PRJ_NO
+						    ,CONST_ORDER_NO
+						    ,COMP_ID
+						    ,FN_GET_COMP_NM(COMP_ID) AS COMP_NM
+						    ,DEPT_ID
+						    ,FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM
+						    ,JW_ID
+						    ,FN_GET_JW_NM(JW_ID) AS JW_NM
+						    ,EMP_ID
+						    ,FN_GET_EMP_NM(EMP_ID) AS EMP_NM
+						    ,INNO
+						    ,EMAIL
+						    ,USE_EMP_ID
+						    ,FN_GET_EMP_NM(USE_EMP_ID) AS USE_EMP_NM
+						    ,USE_DETP_ID
+						    ,FN_GET_DEPT_NM(USE_DETP_ID) AS USE_DETP_NM
+						    ,DOC_ID
+						    ,APPL_STAT
+						    ,CASE
+								WHEN APPL_STAT IS NULL THEN '임시보관'
+								WHEN APPL_STAT = 'Z0331002' THEN '검토중'
+								ELSE FN_GET_CODE('Z033', APPL_STAT, '')
+							 END AS APPL_STAT_NM
+						    ,CONST_PRJ_NM
+						    ,TO_CHAR(TO_DATE(CONST_ORDER_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_ORDER_DT
+						    ,TO_CHAR(TO_DATE(CONST_START_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_START_DT
+						    ,TO_CHAR(TO_DATE(CONST_END_DT,'YYYYMMDD'),'YYYY-MM-DD') AS CONST_END_DT
+						    ,CONST_COMP_ID
+						    ,FN_GET_CODE_NM('A064', CONST_COMP_ID) as CONST_COMP_NM
+						    ,CONST_IO_COUNT
+						    ,SUPPLIER_NM1
+						    ,SUPPLIER_NM2
+						    ,SUPPLIER_NM3
+						    ,DECODE(SUPPLIER_NM1,NULL,0,1) AS SUPPLIER1_CNT
+						    ,DECODE(SUPPLIER_NM2,NULL,0,1) AS SUPPLIER2_CNT
+						    ,DECODE(SUPPLIER_NM3,NULL,0,1) AS SUPPLIER3_CNT
+						    ,TO_CHAR(CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+						    /* ASIS 첨부파일 */
+				            ,FILE_PATH1 AS FULL_FILE_PATH1
+					        ,SUBSTR(FILE_PATH1, 1, INSTR(FILE_PATH1,'\',-1)) AS FILE_PATH1
+			                ,REPLACE(REPLACE(SUBSTR(FILE_PATH1, INSTR(FILE_PATH1,'\',-1)+1), SUBSTR(FILE_PATH1, INSTR(FILE_PATH1, ';')+1),''),';','') AS FILE_ID1 
+				            ,CASE WHEN FILE_INVEST_URL IS NOT NULL THEN SUBSTR(FILE_INVEST_URL, INSTR(FILE_INVEST_URL, ';')+1) ELSE SUBSTR(FILE_PATH1, INSTR(FILE_PATH1, ';')+1) END AS FILE_NAME1		       
+					        ,FILE_PATH2 AS FULL_FILE_PATH2
+					        ,SUBSTR(FILE_PATH2, 1, INSTR(FILE_PATH2,'\',-1)) AS FILE_PATH2
+			                ,REPLACE(REPLACE(SUBSTR(FILE_PATH2, INSTR(FILE_PATH2,'\',-1)+1), SUBSTR(FILE_PATH2, INSTR(FILE_PATH2, ';')+1),''),';','') AS FILE_ID2
+			                ,CASE WHEN FILE_ORDER_URL IS NOT NULL THEN SUBSTR(FILE_ORDER_URL, INSTR(FILE_ORDER_URL, ';')+1) ELSE SUBSTR(FILE_PATH2, INSTR(FILE_PATH2, ';')+1) END AS FILE_NAME2
+				            /* TOBE 첨부파일 */
+				            ,FILE_INVEST_NAME
+						    ,FILE_INVEST_URL
+				            ,FILE_ORDER_NAME
+						    ,FILE_ORDER_URL
+				  FROM IO_CONST_PRJ_INFO
+				 WHERE CONST_PRJ_NO = #{constPrjNo}
+		 )
+	</select>
+
+	<update id="updateConstProjectRegDocId" parameterType="hashMap">
+		UPDATE IO_CONST_PRJ_INFO 
+		   SET DOC_ID  = #{docId}
+			  ,MOD_BY  = #{modBy}
+			  ,MOD_DTM = SYSDATE
+		 WHERE CONST_PRJ_NO = #{constPrjNo}
+	</update>
+	
+	<update id="updateConstProjectRegApplWork" parameterType="hashMap">
+		UPDATE IO_CONST_PRJ_INFO
+        SET  
+             APPL_STAT = #{applStat},
+             MOD_BY = #{empId},
+             MOD_DTM = SYSDATE
+        WHERE CONST_PRJ_NO = #{constPrjNo}
+	</update>
+	
+	<select id="selectConstProjectRegNewSeq" parameterType="hashMap" resultType="Integer">
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and "CONST_PRJ_APPL".equals(schemaNm)'>
+			SELECT SEQ_IO_CONST_PRJ_INFO.NEXTVAL AS CONST_PRJ_NO FROM DUAL
+		</if>
+	</select>
+	
+	<insert id="insertConstProjectReg" parameterType="hashMap">
+	    INSERT INTO IO_CONST_PRJ_INFO
+		(
+				 CONST_PRJ_NO
+				,CONST_ORDER_NO
+				,COMP_ID
+				,DEPT_ID
+				,JW_ID
+				,EMP_ID
+				,INNO
+				,EMAIL
+				,USE_EMP_ID
+				,USE_DETP_ID
+				,DOC_ID
+				,APPL_STAT
+				,CONST_PRJ_NM
+				,CONST_ORDER_DT
+				,CONST_START_DT
+				,CONST_END_DT
+				,CONST_COMP_ID
+				,CONST_IO_COUNT
+				,FILE_INVEST_URL 	
+		        ,FILE_INVEST_NAME 	
+		        ,FILE_ORDER_URL
+		        ,FILE_ORDER_NAME
+				,SUPPLIER_ID1
+				,SUPPLIER_NM1
+				,SUPPLIER_ID2
+				,SUPPLIER_NM2
+				,SUPPLIER_ID3
+				,SUPPLIER_NM3
+				,DEL_YN
+				,AC_IP
+				,CRT_BY
+				,CRT_DTM
+				,MOD_BY
+				,MOD_DTM
+		)
+		VALUES ( #{constPrjNo}
+				,#{constOrderNo}
+				,#{compId}
+				,#{deptId}
+				,#{jwId}
+				,#{empId}
+				,#{inno}
+				,#{email}
+				,#{useEmpId}
+				,#{useDeptId}
+				,#{docId}
+				,#{applStat}
+				,#{constPrjNm}
+				,REPLACE(#{constOrderDt},'-','')
+				,REPLACE(#{constStartDt},'-','')
+				,REPLACE(#{constEndDt},'-','')
+				,#{constCompId}
+				,#{constIoCount}
+				,#{fileInvestUrl} 	
+		        ,#{fileInvestName} 	
+		        ,#{fileOrderUrl}
+		        ,#{fileOrderName}
+				,#{supplierId1}
+				,#{supplierNm1}
+				,#{supplierId2}
+				,#{supplierNm2}
+				,#{supplierId3}
+				,#{supplierNm3}
+				,'N'
+				,#{acIp}
+				,#{crtBy}
+				,SYSDATE
+				,#{modBy}
+				,SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertConstProjectRegGate" parameterType="hashMap">
+	    INSERT INTO IO_CONST_PRJ_GATE
+		(
+			 CONST_PRJ_NO
+			,SEQ
+			,BLDG_ID
+			,FLR_ID
+			,GATE_ID
+			,SPE_ZONE
+			,CONST_ORDER_NO
+			,DEL_YN
+			,AC_IP
+			,CRT_BY
+			,CRT_DTM
+			,MOD_BY
+			,MOD_DTM
+		) 
+		VALUES ( 
+			 #{constPrjNo}
+			,(SELECT NVL(MAX(SEQ),0) + 1 FROM IO_CONST_PRJ_GATE WHERE CONST_PRJ_NO = #{constPrjNo})
+			,#{bldgId}
+			,#{floorId}
+			,#{gateId}
+			,#{speZone}
+			,#{constOrderNo}
+			,'N'
+			,#{acIp}
+			,#{crtBy}
+			,SYSDATE
+			,#{crtBy}
+			,SYSDATE
+		)
+	</insert>
+	
+	<select id="selectConstProjectRegGateList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT
+			 GATE_ID
+			,GATE_NM
+		  FROM (
+				SELECT  FN_CARDKEY_GATE_ID(B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE) AS GATE_ID
+					   ,FN_CARDKEY_GATE_NM(B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE) AS GATE_NM
+				  FROM IO_CONST_PRJ_INFO A, IO_CONST_PRJ_GATE B
+				 WHERE A.CONST_PRJ_NO = B.CONST_PRJ_NO
+				   AND A.CONST_PRJ_NO = #{constPrjNo}
+				UNION ALL
+				SELECT  A.GATE_ID AS GATE_ID
+					   ,B.GATE_NM AS GATE_NM 
+				  FROM IO_CONST_PRJ_GATE A, IF_CARDKEY_GATE B 
+				 WHERE A.GATE_ID = TO_CHAR(B.GATE_ID) 
+				   AND A.CONST_PRJ_NO = #{constPrjNo}
+				   AND B.COMP_ID = 'B'
+				UNION ALL
+				SELECT  A.BLDG_ID AS GATE_ID
+					   ,B.GATE_NM AS GATE_NM 
+				  FROM IO_CONST_PRJ_GATE A, IF_CARDKEY_GATE B 
+				 WHERE A.BLDG_ID = TO_CHAR(B.GATE_ID) 
+				   AND A.CONST_PRJ_NO = #{constPrjNo}
+				   AND B.COMP_ID = 'B'
+		       )
+		 ORDER BY GATE_NM ASC
+	</select>
+	
+</mapper>

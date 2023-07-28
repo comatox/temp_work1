@@ -1,0 +1,730 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.AdminVisitEntranceRepository">
+
+	<select id="selectCompInfoChgReqList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 목록조회*/
+	/*  AdminVisitEntranceRepository.selectCompInfoChgReqList (pmCoorpVendroCompChgList) */
+	WITH T AS (
+		SELECT
+		      ROW_NUMBER() OVER ( ORDER BY A.IO_COMP_APPL_NO DESC ) AS ROW_NUM
+			  , A.IO_COMP_APPL_NO
+			  , A.IO_COMP_ID
+			  , FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM
+			  , SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+			  , A.EMP_ID
+			  , C.EMP_NM
+			  , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+			  , A.APPL_STAT
+			  , A.FILE_LEGAL
+	      	  , FN_GET_IO_EMP_NM2(A.CRT_BY) AS CRT_BY
+			  , TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+			 FROM IO_COMP_CHG A, IO_COMP B, CO_EMP C
+			WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			  AND A.EMP_ID = C.EMP_ID
+	]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') >= #{crtStrtDt}
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			 AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') <= #{crtEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		<![CDATA[
+			AND A.APPL_STAT = #{applStat}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+		<![CDATA[
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || #{ioCompNm} || '%'
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		<![CDATA[
+			AND FN_GET_IO_EMP_NM(A.CRT_BY) LIKE '%' || #{ioEmpNm} || '%'
+		]]>
+		</if>
+
+		<![CDATA[
+		)
+		SELECT
+				ROW_NUM
+		      , T.IO_COMP_APPL_NO
+			  , T.IO_COMP_ID
+			  , T.IO_COMP_NM
+			  , T.APPLY_DT
+			  , T.EMP_ID
+			  , T.EMP_NM
+			  , T.JW_NM
+			  , T.APPL_STAT
+			  , FN_GET_CODE_ETC3('Z033', T.APPL_STAT) AS APPL_STAT_NM
+			  , T.FILE_LEGAL
+			  , T.CRT_BY
+			  , T.CRT_DTM
+		FROM T
+		]]>
+	</select>
+
+	<select id="selectCompInfoChgReqListCnt" parameterType="Map" resultType="Integer">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 목록 총갯수 조회*/
+	/*  AdminVisitEntranceRepository.selectCompInfoChgReqListCnt (dmCoorpVendroCompChgCount) */
+		SELECT COUNT(1) AS TOTAL_COUNT
+			FROM IO_COMP_CHG A, IO_COMP B, CO_EMP C
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			AND A.EMP_ID = C.EMP_ID
+	]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') >= #{crtStrtDt}
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			 AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') <= #{crtEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		<![CDATA[
+			AND A.APPL_STAT = #{applStat}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+		<![CDATA[
+			AND FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) LIKE '%' || #{ioCompNm} || '%'
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		<![CDATA[
+			AND FN_GET_IO_EMP_NM2(A.CRT_BY) LIKE '%' || #{ioEmpNm} || '%'
+		]]>
+		</if>
+	</select>
+
+	<select id="selectCompInfoChgReqView"  parameterType="Integer" resultType="CamelHashMap">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 상세조회*/
+	/*  AdminVisitEntranceRepository.selectCompInfoChgReqView (dmCoorpVendroCompChgView) */
+	SELECT
+		ROW_NUMBER() OVER ( ORDER BY A.IO_COMP_APPL_NO DESC ) AS ROW_NUM
+		, A.IO_COMP_APPL_NO
+		, A.IO_COMP_ID
+		, FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM
+		, FN_GET_IO_COMP_EN_NM(A.IO_COMP_ID) AS IO_COMP_EN_NM
+		, A.COMP_KO_NM
+		, A.COMP_EN_NM
+		, A.BOSS_NM
+		, A.TEL_NO
+		, A.FAX_NO
+		, A.ZIP1 || '-' || A.ZIP2 AS ZIP_CODE
+		, A.HOMEPAGE
+		, A.ADDR || ' ' || A.ADDR2 AS ADDR
+		, SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+		, A.EMP_ID
+		, C.EMP_NM
+		, FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		, FN_GET_COMP_NM(A.COMP_ID) AS DIV_NM
+		   , FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+		   , C.EMAIL
+		, A.APPL_STAT
+		, A.FILE_LEGAL
+		, SUBSTR(A.FILE_LEGAL, 1,INSTR(A.FILE_LEGAL, ';')-1) as FILE_LEGAL_ADDR
+		, CASE
+		  WHEN INSTR(A.FILE_LEGAL, ';') != 0
+		  THEN SUBSTR(A.FILE_LEGAL, INSTR(A.FILE_LEGAL, ';')+1)
+		  ELSE ''
+		  END as FILE_LEGAL_NAME
+		, FN_GET_IO_EMP_NM2(A.CRT_BY) AS CRT_BY
+		, TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+		, A.CHG_RSN
+		, A.CANCEL_RSN
+	FROM IO_COMP_CHG A, IO_COMP B, CO_EMP C
+	WHERE A.IO_COMP_ID = B.IO_COMP_ID
+	AND A.EMP_ID = C.EMP_ID
+	AND A.IO_COMP_APPL_NO = #{ioCompApplNo}
+    ]]>
+	</select>
+
+	<update id="executeCompInfoChgReqUpdate" parameterType="Map">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.executeCompInfoChgReqUpdate (dmCoorpVendroCompChgUpt) */
+	UPDATE IO_COMP_CHG
+       SET APPL_STAT = #{applStatVal},
+           CANCEL_RSN = #{cancelRsn},
+           MOD_BY = #{loginId},
+           MOD_DTM = SYSDATE
+     WHERE IO_COMP_APPL_NO = #{ioCompApplNo}
+     ]]>
+	</update>
+
+	<select id="coorpVendroView" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.coorpVendroView (dmCoorpVendro_View) */
+      SELECT
+      	COMP_KO_NM, COMP_EN_NM, BOSS_NM, TEL_NO, FAX_NO, ZIP1, ZIP2, ADDR, ADDR2, HOMEPAGE, FILE_LEGAL
+        FROM IO_COMP_CHG
+       WHERE IO_COMP_APPL_NO = #{ioCompApplNo}
+	  ]]>
+	</select>
+
+	<update id="coorpVendroCompUpdate" parameterType="Map" >
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.coorpVendroCompUpdate (dmCoorpVendroCompUpt) */
+	UPDATE IO_COMP
+	   SET COMP_KO_NM = #{compKoNm},
+	       COMP_EN_NM = #{compEnNm},
+	       BOSS_NM = #{bossNm},
+	       TEL_NO = #{telNo},
+	       FAX_NO = #{faxNo},
+	       ZIP1 = #{zip1},
+	       ZIP2 = #{zip2},
+	       ADDR = #{addr},
+	       ADDR2 = #{addr2},
+	       HOMEPAGE = #{homepage},
+	       FILE_LEGAL = #{fileLegal},
+	       MOD_BY = #{loginId},
+	       MOD_DTM = SYSDATE
+     WHERE IO_COMP_ID = #{ioCompId}
+	]]>
+	</update>
+
+	<select id="dmCoorpVendroComp_NEW_ES_SN" resultType="Integer">
+	<![CDATA[
+	/* 업체정보  정정 신청 현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.dmCoorpVendroComp_NEW_ES_SN (dmCoorpVendroComp_NEW_ES_SN) */
+	SELECT
+		SEQ_IO_COMP.NEXTVAL AS NEW_ES_SN
+	FROM DUAL
+	]]>
+	</select>
+
+	<select id="selectPassportChgReqList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/* 여권변경 신청현황 - 목록조회*/
+	/*  AdminVisitEntranceRepository.passportChgReqList (dmOffLimitsPassportChgList) */
+	WITH T AS (
+	    SELECT
+	        ROW_NUMBER() OVER ( ORDER BY A.PASSPORT_APPL_NO DESC ) AS ROW_NUM
+		  , A.PASSPORT_APPL_NO
+		  , A.IO_COMP_ID
+		  , NVL(D.COMP_KO_NM, '') AS IO_COMP_NM
+		  , A.IO_EMP_ID
+		  , B.EMP_NM AS IO_EMP_NM
+		  , SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+		  , A.EMP_ID
+		  , C.EMP_NM
+		  , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		  , A.APPL_STAT
+		  , A.OLD_PASSPORT_NO
+		  , A.NEW_PASSPORT_NO
+		  , A.FILE_PATH
+		  , A.DOC_ID
+		  , TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+		 FROM IO_EMP_CHG_PASSPORT A, IO_EMP B, CO_EMP C, IO_COMP D
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		  AND A.EMP_ID = C.EMP_ID
+		  AND B.IO_COMP_ID = D.IO_COMP_ID
+		  ]]>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') >= #{crtStrtDt}
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			 AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') <= #{crtEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		<![CDATA[
+			AND A.APPL_STAT = #{applStat}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+		<![CDATA[
+            AND D.COMP_KO_NM LIKE '%' || #{compNm} || '%'
+        ]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		 <![CDATA[
+            AND B.EMP_NM LIKE '%' || #{ioEmpNm} || '%'
+        ]]>
+		</if>
+
+	<![CDATA[
+	)
+	SELECT
+			ROW_NUM
+	      , T.PASSPORT_APPL_NO
+		  , T.IO_COMP_ID
+		  , T.IO_COMP_NM
+		  , T.IO_EMP_ID
+		  , T.IO_EMP_NM
+		  , T.APPLY_DT
+		  , T.EMP_ID
+		  , T.EMP_NM
+		  , T.JW_NM
+		  , T.APPL_STAT
+		  , FN_GET_CODE_ETC3('Z033', T.APPL_STAT) AS APPL_STAT_NM
+		  , T.OLD_PASSPORT_NO
+		  , T.NEW_PASSPORT_NO
+		  , T.FILE_PATH
+		  , T.DOC_ID
+		  , T.CRT_DTM
+	FROM T
+	]]>
+	</select>
+
+	<select id="selectPassportChgReqListCnt" parameterType="Map" resultType="Integer">
+	<![CDATA[
+	/* 여권변경 신청현황 - 목록 총갯수 조회*/
+	/*  AdminVisitEntranceRepository.passportChgReqListCnt (dmOffLimitsPassportChgCount) */
+	SELECT COUNT(1) AS TOTAL_COUNT
+		FROM IO_EMP_CHG_PASSPORT A, IO_EMP B, CO_EMP C, IO_COMP D
+	WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.EMP_ID = C.EMP_ID
+		AND B.IO_COMP_ID = D.IO_COMP_ID
+	]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') >= #{crtStrtDt}
+		]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			 AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') <= #{crtEndDt}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+		<![CDATA[
+			AND A.APPL_STAT = #{applStat}
+		]]>
+		</if>
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+		<![CDATA[
+            AND D.COMP_KO_NM LIKE '%' || #{compNm} || '%'
+        ]]>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		 <![CDATA[
+            AND B.EMP_NM LIKE '%' || #{ioEmpNm} || '%'
+        ]]>
+		</if>
+	</select>
+
+	<select id="selectPassportChgReqView" parameterType="Integer" resultType="CamelHashMap">
+	<![CDATA[
+	/* 여권변경 신청현황 - 상세조회*/
+	/*  AdminVisitEntranceRepository.passportChgReqView (dmOffLimitsPassportChgView) */
+	SELECT A.PASSPORT_APPL_NO
+	  , A.IO_COMP_ID
+	  , FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM_KO
+	  , FN_GET_IO_COMP_EN_NM(A.IO_COMP_ID) AS IO_COMP_NM_EN
+	  , A.IO_EMP_ID
+	  , B.EMAIL_ADDR
+	  , B.EMP_NM AS IO_EMP_NM
+      , B.JW_NM AS IO_JW_NM
+      , B.HP_NO AS IO_HP_NO
+      ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'Z001' AND DETL_CD = B.NATION) as IO_NATION_NM
+	  , SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+	  , A.EMP_ID
+	  , C.EMP_NM
+	  , A.JW_ID
+      , A.COMP_ID
+      , A.DEPT_ID
+      , C.EMAIL
+	  , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+      , FN_GET_COMP_NM(A.COMP_ID) AS DIV_NM
+      , FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+	  , A.APPL_STAT
+	  , A.DOC_ID
+	  , TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+	  , A.CANCEL_RSN
+	  , A.OLD_PASSPORT_NO
+	  , A.NEW_PASSPORT_NO
+	  , A.FILE_PATH AS FILE_PASSPORT
+	  , SUBSTR(A.FILE_PATH, 1,INSTR(A.FILE_PATH, ';')-1) as FILE_PASSPORT_ADDR
+      , CASE
+        WHEN INSTR(A.FILE_PATH, ';') != 0
+        THEN SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, ';')+1)
+        ELSE ''
+     END as FILE_PASSPORT_NAME
+     FROM IO_EMP_CHG_PASSPORT A, IO_EMP B, CO_EMP C
+	WHERE A.IO_EMP_ID = B.IO_EMP_ID
+	  AND A.EMP_ID = C.EMP_ID
+      AND A.PASSPORT_APPL_NO = #{passportApplNo}
+      ]]>
+	</select>
+
+	<update id="executePassportChgReqUpdate" parameterType="Map">
+	<![CDATA[
+	/* 여권변경 신청현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.passportChgReqUpdate (dmOffLimitsPassportChgUpt) */
+	UPDATE IO_EMP_CHG_PASSPORT
+       SET APPL_STAT = #{applStatVal},
+           CANCEL_RSN = #{cancelRsn},
+           MOD_BY = #{loginId},
+           MOD_DTM = sysdate
+     WHERE PASSPORT_APPL_NO = #{passportApplNo}
+     ]]>
+	</update>
+
+	<update id="dmIoEmpPassportNoUpdate" parameterType="Map">
+	<![CDATA[
+	/*  AdminVisitEntranceRepository.dmIoEmpPassportNoUpdate (dmIoEmpPassportNoUpdate) */
+	UPDATE IO_EMP
+       SET PASSPORT_NO = #{newPassportNo}
+     WHERE IO_EMP_ID = #{ioEmpId}
+       /* AND IO_COMP_ID = .IO_COMP_ID. 여권번호 변경 신청후 승인하기 전에 소속변경 하는 경우가 발생함 */
+       ]]>
+	</update>
+
+	<insert id="dmOffLimitsIoEmpChgHistInsert" parameterType="Map">
+	<![CDATA[
+	/*  AdminVisitEntranceRepository.dmOffLimitsIoEmpChgHistInsert (dmOffLimitsIoEmpChgHistInsert) */
+	INSERT INTO IO_EMP_CHG_HIST
+		(IO_EMP_ID,CHG_DTM,IO_COMP_ID,EMP_NM,JW_NM,PASSPORT_NO,HP_NO,NATION,ADDR,CAR_KND,CAR_NO,EMAIL_ADDR,AC_IP,CRT_BY,CRT_DTM,MOD_BY,MOD_DTM)
+		SELECT IO_EMP_ID,SYSDATE,IO_COMP_ID,EMP_NM,JW_NM,PASSPORT_NO,HP_NO,NATION,ADDR,CAR_KND,CAR_NO,EMAIL_ADDR,AC_IP,CRT_BY,CRT_DTM,MOD_BY,MOD_DTM
+		  FROM IO_EMP
+		 WHERE IO_EMP_ID = #{ioEmpId}
+	]]>
+	</insert>
+
+	<select id="selectCompChgReqList" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/* 소속업체 이직 신청현황 - 목록조회*/
+	/*  AdminVisitEntranceRepository.selectCompChgReqList (dmOffLimitsCompChgList) */
+	WITH T AS (
+	    SELECT
+	        ROW_NUMBER() OVER ( ORDER BY A.COMP_APPL_NO DESC ) AS ROW_NUM
+		  , A.COMP_APPL_NO
+		  , A.IO_COMP_ID
+		  , FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM
+		  , A.IO_EMP_ID
+		  , B.EMP_NM AS IO_EMP_NM
+		  , SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+		  , A.EMP_ID
+		  , C.EMP_NM
+		  , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+		  , A.APPL_STAT
+		  , A.OLD_IO_COMP_ID
+		  , A.NEW_IO_COMP_ID
+		  , FN_GET_IO_COMP_KO_NM(A.OLD_IO_COMP_ID) AS OLD_IO_COMP_NM
+	     	  , FN_GET_IO_COMP_KO_NM(A.NEW_IO_COMP_ID) AS NEW_IO_COMP_NM
+		  , A.FILE_PATH
+		  , A.DOC_ID
+		  , TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+		 FROM IO_EMP_CHG_COMP A, IO_EMP B, CO_EMP C
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		  AND A.EMP_ID = C.EMP_ID
+	]]>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') BETWEEN #{crtStrtDt} AND #{crtEndDt}
+		]]>
+		</if>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+	<![CDATA[
+		AND A.APPL_STAT = #{applStat}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+	<![CDATA[
+           AND C.EMP_NM LIKE '%' || #{empNm} || '%'
+       ]]>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+	 <![CDATA[
+           AND B.EMP_NM LIKE '%' || #{ioEmpNm} || '%'
+       ]]>
+	</if>
+	<![CDATA[
+	)
+	SELECT
+			ROW_NUM
+	      , T.COMP_APPL_NO
+		  , T.IO_COMP_ID
+		  , T.IO_COMP_NM
+		  , T.IO_EMP_ID
+		  , T.IO_EMP_NM
+		  , T.APPLY_DT
+		  , T.EMP_ID
+		  , T.EMP_NM
+		  , T.JW_NM
+		  , T.APPL_STAT
+		  , FN_GET_CODE_ETC3('Z033', T.APPL_STAT) AS APPL_STAT_NM
+		  , T.OLD_IO_COMP_ID
+		  , T.NEW_IO_COMP_ID
+		  , T.OLD_IO_COMP_NM
+		  , T.NEW_IO_COMP_NM
+		  , T.FILE_PATH
+		  , T.DOC_ID
+		  , T.CRT_DTM
+	FROM T
+	WHERE 1 = 1
+	]]>
+	<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+		  AND T.ROW_NUM > (#{currentPage} - 1) * #{rowPerPage} AND T.ROW_NUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectCompChgReqListCnt"  parameterType="Map" resultType="Integer">
+	<![CDATA[
+	/* 소속업체 이직 신청현황 - 목록 총갯수 조회*/
+	/*  AdminVisitEntranceRepository.selectCompChgReqListCnt (dmOffLimitsCompChgCount) */
+	SELECT COUNT(1) AS TOTAL_COUNT
+	 FROM IO_EMP_CHG_COMP A, IO_EMP B, CO_EMP C
+	WHERE A.IO_EMP_ID = B.IO_EMP_ID
+	  AND A.EMP_ID = C.EMP_ID
+	]]>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(crtStrtDt)">
+		<if test="not @org.springframework.util.StringUtils@isEmpty(crtEndDt)">
+		<![CDATA[
+			AND TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') BETWEEN #{crtStrtDt} AND #{crtEndDt}
+		]]>
+		</if>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+	<![CDATA[
+		AND A.APPL_STAT = #{applStat}
+	]]>
+	</if>
+
+	<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+	<![CDATA[
+           AND C.EMP_NM LIKE '%' || #{empNm} || '%'
+       ]]>
+	</if>
+	<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+	 <![CDATA[
+           AND B.EMP_NM LIKE '%' || #{ioEmpNm} || '%'
+       ]]>
+	</if>
+	</select>
+
+	<select id="selectCompChgReqView" parameterType="Integer" resultType="CamelHashMap">
+	<![CDATA[
+	/* 소속업체 이직 신청현황 - 상세조회*/
+	/*  AdminVisitEntranceRepository.selectCompChgReqView (dmOffLimitsCompChgView) */
+	SELECT A.COMP_APPL_NO
+	  , A.IO_COMP_ID
+	  , FN_GET_IO_COMP_KO_NM(A.IO_COMP_ID) AS IO_COMP_NM_KO
+	  , FN_GET_IO_COMP_EN_NM(A.IO_COMP_ID) AS IO_COMP_NM_EN
+	  , A.IO_EMP_ID
+	  , B.EMAIL_ADDR
+	  , B.EMP_NM AS IO_EMP_NM
+      , B.JW_NM AS IO_JW_NM
+      , B.HP_NO AS IO_HP_NO
+      , B.JUMIN_NO AS IO_JUMIN_NO
+      ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'Z001' AND DETL_CD = B.NATION) as IO_NATION_NM
+	  , SUBSTR(A.APPLY_DT, 1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-' ||SUBSTR(A.APPLY_DT, 7, 2) AS APPLY_DT
+	  , A.EMP_ID
+	  , C.EMP_NM
+	  , A.JW_ID
+      , A.COMP_ID
+      , A.DEPT_ID
+      , C.EMAIL
+	  , FN_GET_JW_NM(A.JW_ID) AS JW_NM
+      , FN_GET_COMP_NM(A.COMP_ID) AS DIV_NM
+      , FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM
+	  , A.APPL_STAT
+	  , A.DOC_ID
+	  , TO_CHAR(A.CRT_DTM,'YYYY-MM-DD') AS CRT_DTM
+	  , A.CANCEL_RSN
+	  , A.CHG_RSN
+	  , A.OLD_IO_COMP_ID
+	  , A.NEW_IO_COMP_ID
+	  , FN_GET_IO_COMP_KO_NM(A.OLD_IO_COMP_ID) AS OLD_IO_COMP_NM
+      , FN_GET_IO_COMP_KO_NM(A.NEW_IO_COMP_ID) AS NEW_IO_COMP_NM
+      , (SELECT BOSS_NM FROM IO_COMP WHERE IO_COMP_ID = A.NEW_IO_COMP_ID) AS NEW_BOSS_NM
+	  , A.FILE_PATH AS FILE_COMP
+	  , SUBSTR(A.FILE_PATH, 1,INSTR(A.FILE_PATH, ';')-1) as FILE_COMP_ADDR
+      , CASE
+        WHEN INSTR(A.FILE_PATH, ';') != 0
+        THEN SUBSTR(A.FILE_PATH, INSTR(A.FILE_PATH, ';')+1)
+        ELSE ''
+        END as FILE_COMP_NAME
+      , CASE WHEN ( SELECT COUNT(IO_EMP_ID) AS CNT
+				     FROM VW_IO_PASS_MST2
+				    WHERE IO_EMP_ID = A.IO_EMP_ID
+					  AND STOP_YN = 'N' ) > 0 THEN 'Y' ELSE 'N' END AS PASS_MST2_YN
+	 FROM IO_EMP_CHG_COMP A, IO_EMP B, CO_EMP C
+	WHERE A.IO_EMP_ID = B.IO_EMP_ID
+	  AND A.EMP_ID = C.EMP_ID
+      AND A.COMP_APPL_NO = #{compApplNo}
+      ]]>
+	</select>
+
+	<update id="executeCompChgReqUpdate" parameterType="Map" >
+	<![CDATA[
+	/* 소속업체 이직 신청현황 - 승인/반려*/
+	/*  AdminVisitEntranceRepository.executeCompChgReqUpdate (dmOffLimitsCompChgUpt) */
+	UPDATE IO_EMP_CHG_COMP
+       SET APPL_STAT = #{applStatVal},
+           CANCEL_RSN = #{cancelRsn},
+           MOD_BY = #{loginId},
+           MOD_DTM = SYSDATE
+     WHERE COMP_APPL_NO = #{compApplNo}
+     ]]>
+	</update>
+
+	<insert id="insertOffLimitsIoEmpChgHist" parameterType="Map">
+		/*  AdminVisitEntranceRepository.insertOffLimitsIoEmpChgHist (dmOffLimitsIoEmpChgHistInsert) */
+		INSERT INTO IO_EMP_CHG_HIST (
+			IO_EMP_ID,
+			CHG_DTM,
+			IO_COMP_ID,
+			EMP_NM,
+			JW_NM,
+			PASSPORT_NO,
+			HP_NO,
+			NATION,
+			ADDR,
+			CAR_KND,
+			CAR_NO,
+			EMAIL_ADDR,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		)
+		SELECT
+			IO_EMP_ID,
+			SYSDATE,
+			IO_COMP_ID,
+			EMP_NM,
+			JW_NM,
+			PASSPORT_NO,
+			HP_NO,
+			NATION,
+			ADDR,
+			CAR_KND,
+			CAR_NO,
+			EMAIL_ADDR,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		FROM IO_EMP
+		WHERE IO_EMP_ID = #{ioEmpId}
+	</insert>
+
+	<update id="updateVisitIoEmpCompId" parameterType="Map">
+		/*  AdminVisitEntranceRepository.updateVisitIoEmpCompId (dmIoEmpCompIdUpdate) */
+		UPDATE IO_EMP SET
+			IO_COMP_ID = #{newIoCompId}
+		WHERE IO_EMP_ID = #{ioEmpId}
+		AND IO_COMP_ID = #{ioCompId}
+	</update>
+
+	<update id="updateVisitIoInoutCompId" parameterType="Map">
+		/*  AdminVisitEntranceRepository.updateVisitIoInoutCompId (dmIoInoutCompIdUpdate) */
+		UPDATE IO_INOUTWRITE IO SET
+			IO_COMP_ID = #{newIoCompId},
+			IO_COMP_NM = FN_GET_IO_COMP_KO_NM(#{newIoCompId}),
+			IO_EMP_CHG_RSN = '소속업체변경신청승인',
+			MOD_BY = #{crtBy},
+			MOD_DTM = SYSDATE
+		WHERE IO.IO_EMP_ID = #{ioEmpId}
+		AND IO.IO_COMP_ID = #{ioCompId}
+		AND IO.FINISHKND <![CDATA[ <> ]]> 1
+	</update>
+
+	<insert id="insertOffLimitsCompChgExprHist" parameterType="Map">
+		/* AdminVisitEntranceRepository.insertOffLimitsCompChgExprHist (dmOffLimitsCompChgExprHistInsert) */
+		INSERT INTO IO_PASS_EXPR_HIST (
+			EXPR_APPL_NO,
+			EXPR_GBN,
+			IO_COMP_ID,
+			IO_EMP_ID,
+			IDCARD_ID,
+			CARD_NO,
+			COMP_ID,
+			DEPT_ID,
+			JW_ID,
+			EMP_ID,
+			EXPR_IO_COMP_ID,
+			EXPR_IO_EMP_ID,
+			EXPR_RSN,
+			EXPR_STRT_DT,
+			EXPR_END_DT,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			S_C_GBN
+		)
+		SELECT
+			SEQ_IO_PASS_EXPR_HIST.NEXTVAL,
+			'A0460010',
+			A.IO_COMP_ID,
+			A.IO_EMP_ID,
+			C.SMART_IDCARD AS IDCARD_ID,
+			C.CARD_NO,
+			B.COMP_ID,
+			B.DEPT_ID,
+			B.JW_ID,
+			B.EMP_ID,
+			'',
+			'',
+			'소속변경',
+			TO_CHAR(SYSDATE, 'yyyyMMdd'),
+			'29991231',
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE,
+			'S'
+		FROM IO_EMP A
+		LEFT JOIN CO_EMP B
+		ON B.EMP_ID = #{crtBy}
+		LEFT JOIN VW_IO_PASS_MST2 C
+		ON C.IO_EMP_ID = #{ioEmpId}
+		WHERE A.IO_EMP_ID = #{ioEmpId}
+	</insert>
+
+	<select id="selectOffLimitsExprHistSeq" parameterType="Map" resultType="CamelHashMap">
+		/* AdminVisitEntranceRepository.selectOffLimitsExprHistSeq (dmOffLimitsExprHistSeqSelect) */
+		SELECT
+			MAX(A.EXPR_APPL_NO) AS EXPR_APPL_NO,
+			B.IDCARD_ID AS IDCARD_ID
+		FROM IO_PASS_EXPR_HIST A,
+		(
+			SELECT
+				IDCARD_ID,
+				IO_EMP_ID FROM IO_PASS
+			WHERE PASS_APPL_NO = (SELECT MAX(PASS_APPL_NO) AS PASS_APPL_NO FROM IO_PASS WHERE IDCARD_ID IS NOT NULL AND IO_EMP_ID = #{ioEmpId})
+		) B
+		WHERE A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.IO_EMP_ID = #{ioEmpId}
+		GROUP BY B.IDCARD_ID
+	</select>
+
+</mapper>

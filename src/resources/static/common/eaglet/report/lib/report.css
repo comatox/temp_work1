@@ -1,0 +1,88 @@
+/***********************************************************************/
+/* 작 성  일 자: 2007.07.11                                                             */
+/* 작   성   자: 김태훈                                                                     */
+/**********************************************************************/
+/* 수정 이력:                                                                                */
+/**********************************************************************/
+
+/*정렬*/
+.center { text-align:center;}
+.left { text-align:left;}
+.right { text-align:right;}
+.bottom { text-align:bottom;}
+
+/*padding값*/
+.pd0 {padding:0px;}
+.pd1 {padding:3px;}
+.pd2 {padding:4px;}
+.pd3 {padding:5px;}
+
+/*컬러지정*/
+.bg1 {background-color:#404040;}
+
+/*볼드*/
+.b {font-weight: bold;}
+
+/*라인선*/
+.top_line1 {background:#404040; height:1px;}
+.top_line2 {background:#ffffff; height:2px;}
+.bottom_line_line1 {background:#404040; height:2px;}
+
+/*백그라운드칼라*/
+.bg_c1 {background:#F5F8FF;}
+
+/*경고문구 빤간색 글자*/
+.red_font {font-family:돋움; font-size:8pt; color:#ED1B24;}
+
+/*폰트 정의*/
+.font1 {font-size:10px; color:#FFFFFF; font-weight: bold; font-family: "tahoma"; height:25px;}/*타이틀 폰트*/
+.font2 {font-size:12px; color:#404040; font-family: "tahoma"; height:25px;}/*넘버 폰트*/
+.font3 {font-size:9px; color:#000000; font-family: "tahoma"; height:25px;}/*셀 폰트*/
+.font4 {font-size:12px; color:#404040; font-weight: bold; font-family: "tahoma"; height:25px;}/*상단 검색 폰트*/
+.font5 { font-size:24px; color:#000000; font-weight: bold; font-family: "tahoma";}/*최상단 타이틀 폰트*/
+.font6 {font-size:9px; color:#000000; font-family: "tahoma"; height:12px;}/*결재란 위 아래*/
+.font7 {font-size:9px; color:#000000; font-family: "tahoma"; height:40px;}/*결재란*/
+.font8 {font-size:12px; color:#000000; font-family: "tahoma"; height:25px;}/*넘버 폰트*/
+.font9 {font-size:8px; color:#000000; font-family: "tahoma"; height:25px;}/*셀 폰트*/
+.font10 {font-size:9px; color:#FFFFFF; font-family: "tahoma"; height:10px;}/*셀 폰트*/
+/*상단 타이틀*/
+.top_bg1 {background:#404040;
+			  border: 1px solid #ffffff;
+			  border-top-width: 1px;
+			  border-right-width: 1px;
+			  border-bottom-width: 0px;
+			  border-left-width: 0px;
+			  font-size:11px;
+			  color:#FFFFFF;
+			  font-weight: bold;
+			  font-family: "tahoma";
+			  height:25px;
+			  }
+.sub_bg1 {background:#757575;
+			  border: 1px solid #ffffff;
+			  border-top-width: 1px;
+			  border-right-width: 1px;
+			  border-bottom-width: 0px;
+			  border-left-width: 0px;
+			  font-size:12px;
+			  color:#FFFFFF;
+			  font-weight: bold;
+			  font-family: "tahoma";
+			  height:25px;
+			  }
+
+
+
+/*명세표******************************************************************************************************************************/
+
+.m_font {font-size: 20px;font-weight: bold;}
+.m_font2 {font-size:12px;}
+.m_font3 {font-size: 14px;font-weight: bold;}
+.m_bg { background:#F3EECB; height:30px; text-align:center;}
+.m_bg2 { background:#ffffff; height:20px;}
+.m_bg3 { background:#ffffff; height:70px;}
+.m_bg4 {background:#F5EDD8;}
+.m_bg5 {background:#EEE1BD;}
+
+
+

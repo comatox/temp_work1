@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.SecEduNotiEmailMngRepository">
+
+	
+
+	<select id="selectSecEduNotiEmailMngView" parameterType="SecEduNotiEmailMngSearchDTO" resultType="SecEduNotiEmailMngDTO"><![CDATA[
+		/* secEduNotiEmailMngRepository.selectSecEduNotiEmailMngView (dmSecEduNotiEmailMng_View) */
+	  SELECT TITLE,
+			 CONTENT, 
+			 COMP_ID, 
+			 EMAIL_GBN
+		FROM SYS_COMP_EMAIL
+		WHERE COMP_ID = #{compId}
+		  AND EMAIL_GBN= #{emailGbn}
+	 ]]>
+	 </select>		
+	
+	
+	<update id="updateSecEduNotiEmailMng" parameterType="SecEduNotiEmailMngDTO"><![CDATA[
+		/* secEduNotiEmailMngRepository.updateSecEduNotiEmailMng (dmSecEduNotiEmailMng_Reg) */
+		UPDATE SYS_COMP_EMAIL SET	
+			  TITLE  = #{title}
+			,CONTENT = #{content}
+			,MOD_BY  = #{crtBy}
+			,MOD_DTM = SYSDATE
+		WHERE COMP_ID = #{compId}
+		  AND EMAIL_GBN = #{emailGbn}
+	]]></update>		
+	
+				
+	
+</mapper>
+
+

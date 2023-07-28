@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.PartnerRepository">
+
+	<select id="selectPartnerList" parameterType="PartnerSearchDTO" resultType="PartnerDTO">
+		/* inoutcommon: partnerRepository.selectPartnerList */
+		SELECT T1.*
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.PARTNERNAME ASC) AS RNUM,
+			    A.SYSTEMPARTNERID,
+				A.COMPANYKND,
+				A.COMPANYAREAKND,
+				A.COMPANYNO,
+				A.SYSTEMID,
+				A.PARTNERCODE,
+				A.PARTNERNAME,
+				A.LEGALNO,
+				A.BOSS,
+				A.PHONE,
+				A.EMAIL,
+				A.ZIP1,
+				A.ZIP2,
+				A.ADDRESS,
+				A.INEMP_NO,
+				A.INDEPT_CD,
+				A.FIRSTINPUTDATE,
+				A.FIRSTINPUTTIME,
+				A.LASTUPDATEDATE,
+				A.LASTUPDATETIME,
+				A.FAX_NO
+			FROM PARTNER A
+			WHERE 1 = 1
+			<if test="not @org.springframework.util.StringUtils@isEmpty(systempartnerids)">
+				AND A.SYSTEMPARTNERID IN
+	           	<foreach item="item" index="index" collection="systempartnerids" open="(" separator="," close=")">
+	           		#{item}
+	           	</foreach>
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(companyareaknd)">
+			  AND A.COMPANYAREAKND = #{companyareaknd}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(companyknd)">
+			  AND A.COMPANYKND = #{companyknd}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(companyno)">
+			  AND A.COMPANYNO = #{companyno}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(partnercode)">
+			  AND UPPER(A.PARTNERCODE) LIKE '%'||UPPER(#{partnercode})||'%'
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(partnername)">
+			  AND UPPER(A.PARTNERNAME) LIKE '%'||UPPER(#{partnername})||'%'
+			</if>
+		) T1
+		<![CDATA[
+			WHERE RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	</select>
+
+	<select id="selectPartnerListCnt" parameterType="PartnerSearchDTO" resultType="Integer">
+		/* inoutcommon: partnerRepository.selectPartnerListCnt */
+		SELECT COUNT(*) CNT
+		FROM PARTNER A
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(systempartnerids)">
+			AND A.SYSTEMPARTNERID IN
+           	<foreach item="item" index="index" collection="systempartnerids" open="(" separator="," close=")">
+           		#{item}
+           	</foreach>
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(companyareaknd)">
+		  AND A.COMPANYAREAKND = #{companyareaknd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(companyknd)">
+		  AND A.COMPANYKND = #{companyknd}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(companyno)">
+		  AND A.COMPANYNO = #{companyno}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(partnercode)">
+		  AND UPPER(A.PARTNERCODE) LIKE '%'||UPPER(#{partnercode})||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(partnername)">
+		  AND UPPER(A.PARTNERNAME) LIKE '%'||UPPER(#{partnername})||'%'
+		</if>
+	</select>
+
+	<select id="selectPartner" parameterType="String" resultType="PartnerDTO">
+		/* inoutcommon: partnerRepository.selectPartner */
+		SELECT
+		    A.SYSTEMPARTNERID,
+			A.COMPANYKND,
+			A.COMPANYAREAKND,
+			A.COMPANYNO,
+			A.SYSTEMID,
+			A.PARTNERCODE,
+			A.PARTNERNAME,
+			A.LEGALNO,
+			A.BOSS,
+			A.PHONE,
+			A.EMAIL,
+			A.ZIP1,
+			A.ZIP2,
+			A.ADDRESS,
+			A.INEMP_NO,
+			A.INDEPT_CD,
+			A.FIRSTINPUTDATE,
+			A.FIRSTINPUTTIME,
+			A.LASTUPDATEDATE,
+			A.LASTUPDATETIME,
+			A.FAX_NO
+		FROM PARTNER A
+		WHERE A.SYSTEMPARTNERID = #{systempartnerid}
+	</select>
+
+
+
+	<insert id="insertPartner" parameterType="PartnerDTO">
+    	INSERT INTO PARTNER
+		(
+		   	 SYSTEMPARTNERID
+		   , COMPANYKND
+		   , COMPANYAREAKND
+		   , COMPANYNO
+		   , PARTNERCODE
+		   , PARTNERNAME
+		   , LEGALNO
+		   , BOSS
+		   , PHONE
+		   , EMAIL
+		   , ZIP1
+		   , ZIP2
+		   , ADDRESS
+		   , INEMP_NO
+		   , INDEPT_CD
+		   , FIRSTINPUTDATE
+		   , FIRSTINPUTTIME
+		   , LASTUPDATEDATE
+		   , LASTUPDATETIME
+		   , FAX_NO
+	    )
+		VALUES
+		(
+			 (SELECT TO_NUMBER(NVL(MAX(SYSTEMPARTNERID),1000000000) + 1) FROM PARTNER),
+			 #{companyknd},
+			 #{companyareaknd},
+			 #{companyno},
+			 TRIM(#{partnercode}),
+			 TRIM(#{partnername}),
+			 TRIM(#{legalno}),
+			 #{boss},
+			 #{phone},
+			 #{email},
+			 #{zip1},
+			 #{zip2},
+			 TRIM(#{address}),
+			 #{inempNo},
+			 #{indeptCd},
+			 TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+			 TO_CHAR(SYSDATE, 'HH24:MI:SS'),
+			 TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+			 TO_CHAR(SYSDATE, 'HH24:MI:SS'),
+			 #{faxNo}
+	 		)
+    </insert>
+
+
+    <update id="updatePartner" parameterType="PartnerDTO">
+			UPDATE PARTNER SET
+		       PARTNERNAME     = TRIM(#{partnername}),
+		       LEGALNO         = TRIM(#{legalno}),
+		       BOSS            = #{boss},
+		       PHONE           = #{phone},
+		       EMAIL           = #{email},
+		       ZIP1            = #{zip1},
+		       ADDRESS         = TRIM(#{address}),
+		       LASTUPDATEDATE  = TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+		       LASTUPDATETIME  = TO_CHAR(SYSDATE, 'HH24:MI:SS'),
+		       FAX_NO		   = #{faxNo}
+			WHERE  SYSTEMPARTNERID = #{systempartnerid}
+	</update>
+
+
+	<update id="deletePartner" parameterType="String">
+			UPDATE PARTNER SET
+		       DEL_YN = 'Y',
+		       LASTUPDATEDATE  = TO_CHAR(SYSDATE, 'YYYYMMDD'),
+		       LASTUPDATETIME  = TO_CHAR(SYSDATE, 'HH24:MI:SS')
+			WHERE  SYSTEMPARTNERID = #{systempartnerid}
+	</update>
+
+
+	<select id="partnerLegChk" parameterType="String" resultType="String">
+		SELECT CASE WHEN PART_CNT > 0 THEN 'Y' ELSE 'N' END PART_YN
+	    FROM (
+	        SELECT NVL(MAX(ROWNUM),0) AS PART_CNT
+	            FROM PARTNER
+	            WHERE 1=1
+	            	AND TRIM(LEGALNO) = TRIM(#{legalno})
+	            	<if test="not @org.springframework.util.StringUtils@isEmpty(systempartnerid)">
+					  AND (SYSTEMPARTNERID != #{systempartnerid} AND LEGALNO != TRIM(#{oldlegalno}))
+					</if>
+		)
+	</select>
+
+
+</mapper>
+
+

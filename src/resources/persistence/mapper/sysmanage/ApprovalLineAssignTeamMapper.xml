@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.ApprovalLineAssignTeamRepository">
+
+	<select id="selectApprLineAssignTeamList" parameterType="String" resultType="CamelHashMap">
+	/* approvalLineAssignTeamRepository.selectApprLineAssignTeamList (dmApprEmpListByAppoint) */
+    SELECT   
+          '2' AS GB
+        , A.DEPT_ID AS MGE_CD
+        , A.DEPT_ID
+        , E.DEPT_NM
+        , B.EMP_ID
+        , B.EMP_NM
+        , B.JC_CD
+        , B.JW_ID
+        , C.JC_NM
+        , D.JW_NM
+        , FN_GET_JC_GRADE(B.JC_CD) AS JC_GRADE
+        , FN_GET_JW_GRADE(B.JW_ID) AS JW_GRADE
+        , A.GBN_CD
+    FROM  (
+                SELECT A.DEPT_ID, A.EMP_ID, A.GBN_CD
+                FROM AP_APPOINT A
+                WHERE A.DEPT_ID = #{deptId}
+          ) A
+    INNER JOIN CO_EMP B
+    ON A.DEPT_ID = B.DEPT_ID
+    AND A.EMP_ID = B.EMP_ID
+    INNER JOIN CO_DEPT E
+    ON A.DEPT_ID = E.DEPT_ID
+    LEFT OUTER JOIN CO_JC C ON B.JC_CD = C.JC_ID
+    LEFT OUTER JOIN CO_JW D ON B.JW_ID = D.JW_ID
+    WHERE B.USE_YN = 'Y'
+    AND   B.JW_ID IS NOT NULL  
+    AND   B.HT_CD = 'C'
+    AND   B.DEPT_ID = #{deptId}
+    ORDER BY A.GBN_CD ASC,
+             DECODE(SUBSTR(B.JW_ID, 1, 1), 'A', 99, 0) ASC,
+             TO_NUMBER(FN_GET_JC_GRADE(B.JC_CD)) ASC,
+             B.JC_CD ASC,
+             TO_NUMBER(FN_GET_JW_GRADE(B.JW_ID)) ASC,
+             B.JW_ID ASC,
+             B.EMP_NM ASC 
+	</select>
+	
+	<select id="selectApprEmpListByDeptTeam" parameterType="String" resultType="CamelHashMap">
+	/* approvalLineAssignTeamRepository.selectApprEmpListByDeptTeam (dmApprEmpListByDeptTeam) */
+	SELECT ROW_NUMBER () OVER (ORDER BY A.ORDER_SEQ ASC, A.GBN_CD, TO_NUMBER(A.JC_GRADE) ASC, A.JC_CD ASC, TO_NUMBER(A.JW_GRADE) ASC, A.JW_ID ASC, A.EMP_NM ASC ) AS ROW_NUM,
+	      A.GB
+	    , A.MGE_CD
+	    , A.DEPT_ID
+	    , A.DEPT_NM
+	    , A.EMP_ID
+	    , A.EMP_NM
+	    , A.JC_CD
+	    , A.JC_NM
+	    , A.JW_ID
+	    , A.JW_NM
+	    , A.JC_GRADE
+	    , A.JW_GRADE
+		, A.MGR_EMP_ID
+        , A.GBN_CD	    
+	FROM 
+	(
+	    SELECT   '1' AS GB
+	        , B.DEPT_ID AS MGE_CD
+	        , B.DEPT_ID
+	        , E.DEPT_NM
+	        , B.EMP_ID
+	        , B.EMP_NM
+	        , B.JC_CD
+	        , B.JW_ID
+	        , C.JC_NM
+	        , D.JW_NM
+	        , FN_GET_JC_GRADE(B.JC_CD) AS JC_GRADE
+	        , FN_GET_JW_GRADE(B.JW_ID) AS JW_GRADE 
+	        , DECODE (SUBSTR (B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ  
+	        , E.MGR_EMP_ID   
+	        , CASE WHEN B.EMP_ID = E.MGR_EMP_ID THEN '1' ELSE '2' END AS GBN_CD	   
+	    FROM  CO_EMP B
+	    INNER JOIN CO_DEPT E
+        ON B.DEPT_ID = E.DEPT_ID AND   E.USE_YN = 'Y' AND   E.GB_CD = '1'
+	    LEFT OUTER JOIN CO_JC C ON B.JC_CD = C.JC_ID
+	    LEFT OUTER JOIN CO_JW D ON B.JW_ID = D.JW_ID
+	    WHERE      B.USE_YN = 'Y'
+	    AND B.JW_ID IS NOT NULL  
+	    AND B.HT_CD = 'C'
+        AND B.DEPT_ID = #{deptId}
+      ) A
+	</select>
+
+	<select id="selectApprDeptTeamList" parameterType="String" resultType="CamelHashMap">
+	/* approvalLineAssignTeamRepository.selectApprDeptTeamList (dmGetApprDeptTeamList) */
+	SELECT
+	       A.DEPT_ID
+	     , A.DEPT_NM
+	  FROM CO_DEPT A, TBL_PT_ORG B
+	 WHERE 1 = 1
+	   AND B.ORG_CD = A.DEPT_ID
+	   AND A.MGR_EMP_ID IS NOT NULL
+	   AND A.MGR_EMP_ID = #{empId}
+	UNION
+	SELECT 
+	       B.DEPT_ID
+	     , B.DEPT_NM
+	  FROM CO_EMP A, CO_DEPT B
+	 WHERE 1 = 1 
+	   AND A.DEPT_ID = B.DEPT_ID
+	   AND A.EMP_ID = #{empId}
+	</select>
+
+	<insert id="insertApprLineAssignTeam" parameterType="Map">
+	/* approvalLineAssignTeamRepository.insertApprLineAssignTeam (dmTeamApprAssign_I) */
+	INSERT INTO AP_APPOINT (
+		DEPT_ID,
+		GBN_CD,
+		EMP_ID,
+		CRT_DTM,
+		CRT_BY,
+		MOD_DTM,
+		MOD_BY
+	) VALUES (
+		#{deptId},
+		#{gbnCd},
+		#{empId},
+		SYSDATE,
+		#{crtBy},
+		SYSDATE,
+		#{crtBy}
+	)
+	</insert>
+
+	<delete id="deleteApprLineAssignTeam" parameterType="String">
+	/* approvalLineAssignTeamRepository.deleteApprLineAssignTeam (dmTeamApprAssign_D) */
+	DELETE FROM AP_APPOINT WHERE DEPT_ID = #{deptId}
+	</delete>
+	
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CodeRepository">
+
+	<resultMap id="codeMasterResult" type="CoCodeMasterDTO">
+		<id property="grpCd" column="GRP_CD"/>
+		<result property="grpNm" column="GRP_NM"/>
+		<result property="rmrk" column="RMRK"/>
+		<result property="useYn" column="USE_YN"/>
+		<result property="acIp" column="AC_IP"/>
+		<result property="crtBy" column="CRT_BY"/>
+		<result property="crtDtm" column="CRT_DTM"/>
+		<result property="modBy" column="MOD_BY"/>
+		<result property="modDtm" column="MOD_DTM"/>
+		<collection property="codelist" ofType="CoCodeDetailDTO">
+			<id property="grpCd" column="DETL_GRP_CD"/>
+			<id property="detlCd" column="DETL_CD"/>
+			<result property="detlNm" column="DETL_NM"/>
+			<result property="detlEnNm" column="DETL_EN_NM"/>
+			<result property="idcardIf" column="IDCARD_IF"/>
+			<result property="etc1" column="ETC1"/>
+			<result property="etc2" column="ETC2"/>
+			<result property="etc3" column="ETC3"/>
+			<result property="etc4" column="ETC4"/>
+			<result property="sortSeq" column="SORT_SEQ"/>
+			<result property="useYn" column="DETL_USE_YN"/>
+			<result property="acIp" column="DETL_AC_IP"/>
+			<result property="crtBy" column="DETL_CRT_BY"/>
+			<result property="crtDtm" column="DETL_CRT_DTM"/>
+			<result property="modBy" column="DETL_MOD_BY"/>
+			<result property="modDtm" column="DETL_MOD_DTM"/>
+			<result property="rmrk" column="DETL_RMRK"/>
+		</collection>
+	</resultMap>
+
+	<select id="selectCodeMasterList" resultMap="codeMasterResult">
+		/* code: CodeRepository.selectCodeMasterList */
+		SELECT
+			T1.GRP_CD,
+			T1.GRP_NM,
+			T1.RMRK,
+			T1.USE_YN,
+			T1.AC_IP,
+			T1.CRT_BY,
+			T1.CRT_DTM,
+			T1.MOD_BY,
+			T1.MOD_DTM,
+			T2.GRP_CD AS DETL_GRP_CD,
+			T2.DETL_CD,
+			T2.DETL_NM,
+			T2.DETL_EN_NM,
+			T2.IDCARD_IF,
+			T2.ETC1,
+			T2.ETC2,
+			T2.ETC3,
+			T2.ETC4,
+			T2.SORT_SEQ,
+			T2.USE_YN AS DETL_USE_YN,
+			T2.AC_IP AS DETL_AC_IP,
+			T2.CRT_BY AS DETL_CRT_BY,
+			T2.CRT_DTM AS DETL_CRT_DTM,
+			T2.MOD_BY AS DETL_MOD_BY,
+			T2.MOD_DTM AS DETL_MOD_DTM,
+			T2.RMRK AS DETL_RMRK
+		FROM CO_CODE_M T1
+		INNER JOIN CO_CODE_D T2
+		 ON T2.GRP_CD = T1.GRP_CD
+		AND T2.USE_YN = 'Y'
+		AND T1.USE_YN = 'Y'
+		ORDER BY T1.GRP_CD ASC, T2.SORT_SEQ ASC
+	</select>
+
+	<select id="selectCodeDetailList" resultType="CoCodeDetailDTO" parameterType="String">
+		/* code: CodeRepository.selectCodeDetailList */
+		SELECT 
+			GRP_CD,
+			DETL_CD,
+			DETL_NM,
+			DETL_EN_NM,
+			IDCARD_IF,
+			ETC1,
+			ETC2,
+			ETC3,
+			ETC4,
+			SORT_SEQ,
+			USE_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			RMRK
+		FROM CO_CODE_D
+		WHERE GRP_CD = #{GRP_CD}
+		AND USE_YN = 'Y'
+		ORDER BY SORT_SEQ ASC
+	</select>
+    
+</mapper>
+

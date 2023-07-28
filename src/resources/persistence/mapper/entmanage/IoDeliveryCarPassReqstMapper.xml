@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.IoDeliveryCarPassReqstRepository">
+	
+	<select id="selectIoDeliveryCarPassReqstList" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT 
+			 ROW_NUMBER() OVER (ORDER BY DLVCAR_APP_NO DESC) AS ROW_NUM
+			,T.*
+	      FROM (SELECT A.DLVCAR_APP_NO	
+	                 , A.COMP_ID
+	                 , (SELECT C.COMP_NM FROM CO_COMP C WHERE C.COMP_ID = A.COMP_ID) 	AS COMP_NM
+	                 , (SELECT D.TEL_NO2 FROM CO_EMP D WHERE D.EMP_ID = A.EMP_ID) 		AS TEL_NO
+	                 , TO_CHAR(A.CRT_DTM, 'YYYY.MM.DD') 								AS CRT_DTM
+	                 , FN_GET_DEPT_NM(A.DEPT_ID) 										AS DEPT_NM
+	                 , FN_GET_EMP_JW_NM(A.EMP_ID) 										AS REQUEST_INFO
+	                 , FN_GET_EMP_DEPT_JW_NM(A.EVENT_EMP) 								AS EVENT_EMP_INFO
+	                 , A.STRT_DT														AS IO_STRT_DT
+	                 , A.END_DT															AS IO_END_DT
+	                 , (SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || ' ~ ' || SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2) ) AS IO_DT
+	                 , A.EVENT_NM
+        		     , A.EVENT_CONTENT
+        		     , A.EVENT_ATTENDEE
+        		     , A.EVENT_PLACE
+        		     , A.VISITOR_COMP
+        		     , A.DRIVER_NM
+        		     , A.DRIVER_HP
+        		     , A.CAR_NO
+        		     , A.CAR_KIND														AS CAR_KND
+        		     , A.APPL_OBJ														AS VST_OBJ
+        		     , FN_GET_CODE_NM('A013',A.APPL_OBJ) 								AS VST_OBJ_NM
+        		     , A.DOC_ID
+        		     , NVL(B.APPR_STAT, 'N') 											AS APPR_STAT
+        		     , NVL(B.APPR_RESULT, 'N') 											AS APPR_RESULT
+        		     , CASE WHEN B.APPR_STAT = '0' THEN '대기'
+    	                    WHEN B.APPR_STAT = '10' THEN '진행'
+	                        WHEN B.APPR_STAT = '20' THEN '완료'
+	                        WHEN NVL(B.APPR_STAT, 'N') = 'N' THEN '임시보관'
+                        END 															AS APPR_STAT_NM
+                     , CASE WHEN B.APPR_RESULT = '0' THEN '검토중'
+        	                WHEN B.APPR_RESULT = '1' THEN '승인'
+    	                    WHEN B.APPR_RESULT = '2' THEN '반려'
+    	                    WHEN NVL(B.APPR_RESULT, 'N') = 'N' THEN '임시보관'
+	                    END 															AS APPR_RESULT_NM
+	                 , A.EMP_ID
+	                 , FN_GET_EMP_NM(A.EMP_ID)											AS EMP_NM
+	                 , FN_GET_JW_NM(A.JW_ID)											AS JW_NM
+	                 , A.EVENT_EMPNM													AS EVENT_EMP_NM
+	                 , A.EVENT_EMP
+			      FROM IO_DELIVERYCAR_M A
+			         , AP_DOC B
+			     WHERE 1=1
+			   	   AND A.DOC_ID = B.DOC_ID(+)
+			       AND NVL(A.DEL_YN, 'N') = 'N'
+				<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		 			AND A.COMP_ID = #{compId}	
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(dlvcarAppNo)">
+		 			AND A.DLVCAR_APP_NO = #{dlvcarAppNo}	
+				</if>
+				<if	test='not @org.springframework.util.StringUtils@isEmpty(searchType) and "1".equals(searchType)'>
+					AND A.EMP_ID = #{searchEmpId}
+				</if>
+				<if	test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+					  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+					AND A.END_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt}, '-', '')
+					AND A.STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDt}, '-', '')
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchEventNm)">
+		 			AND UPPER(A.EVENT_NM) LIKE '%'|| UPPER(#{searchEventNm}) ||'%'	
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+		 			AND UPPER(A.CAR_NO) LIKE '%'|| #{searchCarNo} ||'%'	
+				</if>
+				<if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+		 			<if test='"10".equals(searchApplStat)'>
+		 			/* 검토중 */
+					AND B.APPR_STAT = #{searchApplStat}
+		 			</if>
+		 			<if test='"20".equals(searchApplStat)'>
+		 			/* 처리완료 */
+					AND B.APPR_STAT = #{searchApplStat}
+		 			</if>
+		 			<if test='"1".equals(searchApplStat)'>
+		 			/* 승인 */
+					AND B.APPR_RESULT = #{searchApplStat}
+		 			</if>
+		 			<if test='"2".equals(searchApplStat)'>
+		 			/* 반려 */
+					AND B.APPR_RESULT = #{searchApplStat}
+		 			</if>
+				</if>
+			) T
+	</select>
+	
+	<select id="selectIoDeliveryCarPassInfoForICSpms" parameterType="hashMap" resultType="SendSpmsDTO">
+		SELECT 
+		    '1' AS DIVISION
+		    ,'1' AS MEMBERTYPE /* 방문객 */
+            ,DLVCAR_APP_NO
+            ,IDM.CAR_NO AS VehicleNumber    /* VehicleNumber: 차량번호 */             
+            ,SUBSTRB(IDM.CAR_KIND,1,25)  AS VehicleName    /* Vehicle_kind : 차량종류 */   
+            ,IDM.STRT_DT           AS EnterDateTime  /* EnterDateTime  : 예약시작일시 */ 
+            ,IDM.END_DT            AS NoEntryDatetime  /* NoEntryDatetime : 예약종료일시 */ 
+            ,SUBSTRB(FN_GET_CODE('A013', IDM.APPL_OBJ,''),1,20) AS VisitPurpose  /* VisitPurpose  : 방문목적 */                        
+            ,SUBSTRB(FN_GET_DEPT_NM(IDM.DEPT_ID),1,30) ||'('||SUBSTRB(FN_GET_EMP_NM(IDM.EMP_ID),1,12)||' ' || SUBSTRB(FN_GET_JW_NM(IDM.JW_ID),1,8) ||')'  AS ApproverName  /* ApproverName  : 부서명(신청자명) */
+            ,IDM.DRIVER_NM AS VisitorName  /* VisitorName   : 운전자 */
+            ,IDM.VISITOR_COMP AS AffiliatedCompany /* AffiliatedCompany  : 업체명 */
+            ,FN_GET_EMP_TEL_NO('TEL_NO1', IDM.EMP_ID)        AS ContactNumber  /*관련자 휴대전화*/
+            ,IDM.IO_PLACE        AS Destination  /* SUBSTRB(FN_GET_CODE('A028', IVM.VST_PLC, ''), 1,50)  AS Destination  */  /* Destination  : 청주만 방문장소 */      
+            ,'' AS DEPTNAME
+            ,'' AS LOCATION
+            ,'' AS BIRTHDAY  
+            ,' ' AS note
+            ,IDM.DRIVER_NM AS SECURITYID           
+            ,' ' AS UNIONNUMBER 
+      FROM IO_DELIVERYCAR_M IDM
+      WHERE IDM.DLVCAR_APP_NO = #{lid}
+	</select>
+
+	<update id="updateIoDeliveryCarPassReqstDocId" parameterType="hashMap">
+		UPDATE IO_DELIVERYCAR_M 
+		   SET DOC_ID  = #{docId}
+		 WHERE DLVCAR_APP_NO = #{dlvcarAppNo}
+	</update>
+	
+	<select id="selectIoDeliveryCarPassReqstNewSeq" parameterType="hashMap" resultType="Integer">
+		<if	test='not @org.springframework.util.StringUtils@isEmpty(schemaNm) and "DELIVERY_CAR_VSIT".equals(schemaNm)'>
+			SELECT SEQ_IO_DELIVERYCAR_NO.NEXTVAL AS DLVCAR_APP_NO FROM DUAL
+		</if>
+	</select>
+	
+	<insert id="insertIoDeliveryCarPassReqst" parameterType="hashMap">
+	    INSERT INTO IO_DELIVERYCAR_M (
+		    DLVCAR_APP_NO, 
+		    COMP_ID, 
+		    DEPT_ID, 
+		    JW_ID,
+		    EMP_ID,
+		    STRT_DT,
+		    END_DT,
+		    EVENT_NM, 
+		    EVENT_EMP,
+		    EVENT_EMPNM,
+		    EVENT_CONTENT,
+		    EVENT_ATTENDEE,
+		    EVENT_PLACE,
+		    VISITOR_COMP,
+		    DRIVER_NM,
+		    DRIVER_HP,
+		    CAR_NO,
+		    CAR_KIND,
+		    APPL_OBJ, 
+			DOC_ID,
+		    DEL_YN,
+		    AC_IP,
+		    CRT_BY,
+		    CRT_DTM
+		)
+		
+		VALUES (
+		    #{dlvcarAppNo},
+		    #{compId},
+		    #{deptId},
+		    #{jwId},
+		    #{empId},
+		    #{ioStrtDt},
+		    #{ioEndDt},
+		    #{eventNm},
+		    #{eventEmp},
+		    #{eventEmpNm},
+		    #{eventContent},
+		    #{eventAttendee},
+		    #{eventPlace},
+		    #{visitorComp},
+		    #{driverNm},
+		    NULL,
+		    #{carNo},
+		    #{carKnd},
+		    #{vstObj},
+		    NULL,
+		    'N',
+		    #{acIp},
+		    #{crtBy},
+		    SYSDATE
+		)
+	</insert>
+
+	<update id="updateIoDeliveryCarPassReqstApplWork" parameterType="hashMap">
+		UPDATE IO_DELIVERYCAR_M
+        SET    
+            MOD_BY = #{empId},
+            MOD_DTM = SYSDATE
+        WHERE DLVCAR_APP_NO = #{dlvcarAppNo}
+	</update>
+	
+	<select id="selectDeliveryCarPassReqstListForSMS" parameterType="hashMap" resultType="CamelHashMap">
+		SELECT FN_GET_EMP_NM(A.EMP_ID) AS RECEIVE_EMP_NM,
+		       REPLACE(B.TEL_NO1,'-','') AS SMS_NO,
+		       SUBSTR(A.STRT_DT,1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || 
+		        ' ~ ' 
+		      || SUBSTR(A.END_DT,1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)  as VISIT_DAY,
+		      REPLACE(FN_GET_EMP_TEL_NO('TEL_NO1', AP.EMP_ID), '-', '') as CALLBACK_NO,
+		      AP.EMP_ID AS SEND_EMP_ID,
+		      A.COMP_ID
+		  FROM CO_EMP B,
+		       IO_DELIVERYCAR_M A
+		       LEFT OUTER JOIN
+		       (SELECT MAX(AP_SEQ) as MAX_SEQ, DOC_ID FROM AP_APPR GROUP BY DOC_ID) AD ON ( A.DOC_ID = AD.DOC_ID)
+		       LEFT OUTER JOIN
+		       (SELECT AP_SEQ, DOC_ID, EMP_ID FROM AP_APPR) AP ON (AP.AP_SEQ = AD.MAX_SEQ AND AP.DOC_ID = A.DOC_ID)
+		 WHERE A.EMP_ID = B.EMP_ID
+		   AND B.USE_YN = 'Y'
+		   AND B.TEL_NO1 IS NOT NULL
+   	       AND A.DLVCAR_APP_NO = #{lid}
+	</select>
+	
+</mapper>

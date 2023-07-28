@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.KioskIfRepository">
+
+	<select id="selectUserInfo" parameterType="Map" resultType="CamelHashMap">
+		/* KioskIfRepository.selectUserInfo (dmKioskIF_GetUserInfo) */
+		WITH T1 AS (
+			SELECT
+				IE1.IO_EMP_ID,
+				IE1.EMP_NM,
+				IE1.HP_NO,
+				CASE
+					WHEN SYSDATE - TO_DATE(IE1.NAME_CHK_DT,'YYYY-MM-DD') > 180 THEN 'N'
+					WHEN IE1.NAME_CHK_DT IS NULL THEN 'N'
+					ELSE 'Y'
+				END AS EMPLOYEEMENT_YN,
+				CASE
+					WHEN SYSDATE - TO_DATE(IE1.REG_GBN,'YYYY-MM-DD') > 180 THEN 'N'
+					WHEN IE1.REG_GBN IS NULL THEN 'N'
+					ELSE 'Y'
+				END AS SECURITYEDU_YN,
+				CASE
+					WHEN NVL(IEC.COMPCARD_YN, 'N') = 'Y' THEN
+						CASE
+							WHEN (TRUNC(SYSDATE, 'MI') - TO_DATE(IEC.COMPCARD_DT,'YYYYMMDD HH24:MI:SS')) > 90 THEN 'N'
+							ELSE 'Y' END
+					ELSE 'N'
+				END AS COMPCARD_YN /* 명함 확인 여부 */
+			FROM IO_EMP IE1, IO_EMP_CERTI IEC
+			WHERE IE1.IO_EMP_ID = IEC.IO_EMP_ID(+)
+			AND IE1.IO_EMP_ID = UPPER(#{ioEmpId})
+			<if test='not @org.springframework.util.StringUtils@isEmpty(authflag) and authflag.equals("L")'>
+				/* AUTHFLAG : L - 신분증 검사, H - 지문검사 */
+				AND IE1.EMP_NM = UPPER(#{empNm})
+			</if>
+		),
+
+		T2 AS (
+			SELECT
+				DECODE(COUNT(IVGI.VST_APPL_NO),0,'N','Y') AS REGIST_YN, /*등록 여부*/
+				NVL(COUNT(IVGI.VST_APPL_NO),0) AS REGIST_CNT /* 등록신청 카운트 */
+			FROM IO_VST_MAN_GATE_IO IVGI, IO_VST_MAN IVM, IO_VST IV
+			WHERE 1=1
+			AND IVGI.VST_APPL_NO = IV.VST_APPL_NO(+)
+			AND IVGI.IO_EMP_ID = UPPER(#{ioEmpId})
+			AND IVM.IO_EMP_ID = UPPER(#{ioEmpId})
+			AND IVGI.VST_DT = TO_CHAR(SYSDATE,'YYYYMMDD')
+			AND IVM.VST_COMP_ID = #{compId}
+			AND IV.APPL_STAT = 'Z0331005'
+		),
+
+		T3 AS (
+			SELECT
+				MAX(CRT_DTM) AS CRT_DTM
+			FROM IO_EMP_KIOSK_FILE_PHOTO
+			WHERE IO_EMP_ID = UPPER(#{ioEmpId})
+		)
+
+		SELECT
+			T11.IO_EMP_ID AS VISITEMPID, /*방문자 ID*/
+			T22.REGIST_YN, /*등록 여부*/
+			T22.REGIST_CNT,  /* 등록신청 카운트 */
+			(
+				SELECT
+					COUNT(IVGI.VST_APPL_NO) AS VISIT
+				FROM IO_VST_MAN_GATE_IO IVGI, IO_VST IV
+				WHERE 1=1
+				AND IV.VST_APPL_NO = IVGI.VST_APPL_NO
+				AND IVGI.IO_EMP_ID = UPPER(#{ioEmpId})
+				AND IVGI.VST_DT = TO_CHAR(SYSDATE,'YYYYMMDD')
+				AND IVGI.IOKND = '2'
+			) AS VISITSEQ,
+			(
+				/* 방문증 미 반납자*/
+				SELECT
+					DECODE(COUNT(IVGI.VST_APPL_NO), 0, 'N', 'Y')
+				FROM IO_VST_MAN_GATE_IO IVGI
+				WHERE IVGI.IO_EMP_ID = UPPER(#{ioEmpId})
+				AND IVGI.VST_SEQ = 1
+				AND IVGI.IOKND = 1
+				AND IVGI.VST_DT BETWEEN TO_CHAR(SYSDATE - 7,'YYYYMMDD') AND TO_CHAR(SYSDATE,'YYYYMMDD')
+			) AS REMAIN_YN,
+			(
+				/* 방문제한 여부*/
+				SELECT
+					CASE
+						WHEN COUNT(*) > 0 THEN 'Y'
+						ELSE 'N'
+					END
+				FROM IO_EMP_DENY IED
+			WHERE NVL(IED.DEL_YN, 'N') = 'N'
+			AND IED.IO_EMP_ID = UPPER(#{ioEmpId})
+			AND TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[ >= ]]> REPLACE(IED.DENY_STRT_DT, '-', '')
+			AND TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[ <= ]]> REPLACE(IED.DENY_END_DT, '-', '')
+			) AS ENTERDENY_YN,
+			(
+				/* 사진 촬영 대상 여부*/
+				CASE
+					WHEN T33.CRT_DTM IS NULL THEN 'Y'
+					ELSE
+						CASE
+							WHEN TRUNC(SYSDATE-T33.CRT_DTM) >= 90 THEN 'Y'
+							ELSE 'N'
+						END
+				END
+			) AS PICTURE_YN,
+			T11.COMPCARD_YN AS COMPCARD_YN, /* 명함확인 여부*/
+			T11.EMPLOYEEMENT_YN AS EMPLOYEEMENT_YN, /*재직 여부*/
+			T11.SECURITYEDU_YN AS SECURITYEDU_YN, /* 보안 교육 이수 여부*/
+			(
+				SELECT
+					DECODE(COUNT(D.SC_IO_DOC_NO), 0, 'N', 'Y')
+				FROM SC_IO_OFEND D, SC_IO_CORR_PLAN E
+				WHERE D.SC_IO_DOC_NO = E.SC_IO_DOC_NO
+				AND E.APPR_GBN != 'Z0401003'
+				AND E.APPR_GBN != 'Z0401006'
+				AND D.DEL_YN = 'N'
+				AND UPPER(D.OFEND_EMP_ID) = UPPER(#{ioEmpId})
+			) AS SECURITYRULES_YN /* 보안 위규 여부 */
+		FROM T1 T11 , T2 T22 , T3 T33
+		RIGHT OUTER JOIN T1 ON T1.IO_EMP_ID = UPPER(#{ioEmpId})
+		WHERE 1 = 1
+	</select>
+
+	<select id="selectReserveInfoList" parameterType="Map" resultType="CamelHashMap">
+		/* KioskIfRepository.selectReserveInfo (dmKioskIF_GetReserveInfo) */
+		SELECT
+			IV.VST_APPL_NO AS VISITOR_APPL_NO, /* 방문 신청 번호 - 승인*/
+			ROWNUM AS VISITOR_APPL_NO_SEQ, /* 방문신청건 순서 */
+			IV.IO_EMP_ID AS VISITOR_ID, /* 방문자 행복한 만남 ID */
+			(SELECT A.EMP_NM FROM CO_EMP A WHERE A.EMP_ID = IV.EMP_ID) AS VISITOR_NAME, /* 접견자명 */
+			(SELECT B.COMP_NM FROM CO_COMP B WHERE B.COMP_ID = IVM.VST_COMP_ID ) AS VISITOR_COMPANY, /* 방문회사명 */
+			(SELECT C.DEPT_NM FROM CO_DEPT C WHERE C.DEPT_ID = IV.DEPT_ID ) AS VISITOR_DEPT_NAME, /* 방문자 부서명 */
+			(SELECT D.EMAIL  FROM CO_EMP D WHERE D.EMP_ID= IV.MEET_EMP_ID ) AS VISITOR_MAIL_ADDR, /* 방문자 메일 주소 */
+			IVM.VST_OBJ AS VST_OBJ, /* 방문 목적 */
+			TO_CHAR(TO_DATE(IVM.VST_STRT_DT, 'YYYYMMDD'), 'YYYY.MM.DD') AS VISIT_STRT_DT, /*방문 시작일*/
+			TO_CHAR(TO_DATE(IVM.VST_END_DT, 'YYYYMMDD'), 'YYYY.MM.DD') AS VISIT_END_DT, /*방문 종료일*/
+			IVGI.IOKND AS IO_KND, /*입문:1, 출문:2, 대기:0 */
+			TO_CHAR(SYSDATE,'YYYY.MM.DD') AS VISIT_DT,
+			(
+				SELECT
+					DBMS_LOB.SUBSTR(SUBSTR( XMLAGG( XMLELEMENT(COL ,',',
+						CASE WHEN INSTR(CB.GATE_ID, '-') = '0'
+							THEN FN_GET_CO_BLDG(CB.GATE_ID, 3)
+							ELSE FN_GET_CO_BLDG(SUBSTR(CB.GATE_ID, 0, INSTR(CB.GATE_ID, '-', 1, 1)-1), 1)
+						END
+					)).EXTRACT('//text()').GETCLOBVAL() , 2) ,2810,1)  /*최대 바이트수 5620 bytes HSK */
+				FROM IO_VST_MAN_GATE IVG, CO_BLDG CB
+				WHERE 1 = 1
+				AND CB.GATE_ID = IVG.GATE_ID
+				AND IVG.IO_EMP_ID = UPPER(#{ioEmpId})
+				AND IVG.VST_APPL_NO = IVM.VST_APPL_NO
+				GROUP BY IVG.VST_APPL_NO
+			) AS ACCESS_REGION_NAME, /* 출입건물 - 방문동 */
+			(
+				SELECT
+					REPLACE( SUBSTR( XMLAGG( XMLELEMENT(COL , ',', FN_GET_CO_BLDG(CB.GATE_ID, 3) )).EXTRACT('//text()').GETCLOBVAL() , 2 , 4000) , ' &gt; ', ' ')
+					/*
+						REPLACE(
+							DBMS_LOB.SUBSTR(SUBSTR(
+								XMLAGG(
+									XMLELEMENT(COL ,',', FN_GET_CO_BLDG(CB.GATE_ID, 3) )).EXTRACT('//text()').GETCLOBVAL() , 2
+								),2810,1) -- 최대 바이트수 5620 bytes HSK
+							,  ' &gt; ', ' ')
+					*/
+				FROM IO_VST_MAN_GATE IVG, CO_BLDG CB
+				WHERE 1 = 1
+				AND CB.GATE_ID = IVG.GATE_ID
+				AND IVG.IO_EMP_ID = UPPER(#{ioEmpId})
+				AND IVG.VST_APPL_NO = IVM.VST_APPL_NO
+				GROUP BY IVG.VST_APPL_NO
+			) AS ACCESS_REGION_NAME_LIST /* 방문건물 세부 리스트 */
+			FROM IO_VST IV, IO_VST_MAN IVM, IO_VST_MAN_GATE_IO IVGI
+			WHERE 1 = 1
+			AND IV.VST_APPL_NO = IVM.VST_APPL_NO
+			AND IV.VST_APPL_NO = IVGI.VST_APPL_NO
+			AND IVM.VST_APPL_NO = IVGI.VST_APPL_NO
+			AND IV.APPL_STAT = 'Z0331005'
+			AND TO_CHAR(SYSDATE,'YYYYMMDD') BETWEEN IVM.VST_STRT_DT AND IVM.VST_END_DT
+			AND IVGI.VST_DT = TO_CHAR(SYSDATE, 'YYYYMMDD')
+			AND IV.DEL_YN = 'N'
+			AND IVGI.IO_EMP_ID = UPPER(#{ioEmpId})
+			AND IVM.IO_EMP_ID = UPPER(#{ioEmpId})
+			AND IVM.VST_COMP_ID = #{compId}
+			AND IVGI.VST_SEQ = 1
+	</select>
+
+	<select id="selectCardStatusCheck" parameterType="Map" resultType="CamelHashMap">
+		/* KioskIfRepository.selectCardStatusCheck (dmKioskIF_CardStatusCheck) */
+		SELECT
+			X.VST_APPL_NO,
+			X.IO_EMP_ID,
+			X.IO_CARDNO,
+			X.IOKND,
+			X.IN_DT,
+			X.OUT_DT, /* 기본 정보 */
+			CASE
+				WHEN NVL(#{actType}, 'R') = 'I' THEN
+					/* 발급 가능 여부 조회*/
+					CASE
+						WHEN X.IOKND IN ('0', '2') THEN 'S'
+						ELSE 'F'
+					END
+				ELSE
+					 /* 회수 가능 여부 조회 */
+					CASE
+						WHEN X.IOKND = '1' THEN
+							CASE
+								WHEN X.ISSUE_GBN = '1' THEN 'S'
+								ELSE 'N'
+							END
+						ELSE 'F'
+					END
+			END AS CARD_ISSUE_STATUS
+		FROM (
+			SELECT
+				VST_APPL_NO,
+				IO_EMP_ID,
+				IO_CARDNO,
+				IOKND,
+				IN_DT,
+				OUT_DT,
+				ISSUE_GBN
+			FROM IO_VST_MAN_GATE_IO
+			WHERE IO_CARDNO = #{ioCardno}
+			AND DEL_YN = 'N'
+			AND VST_SEQ = 1
+			ORDER BY IN_DT DESC
+		) X
+		WHERE ROWNUM = 1
+	</select>
+
+	<select id="selectCheckUserInfoList" parameterType="Map" resultType="CamelHashMap">
+		/* KioskIfRepository.selectCheckUserInfoList (dmKioskIF_checkUserInfo) */
+		SELECT
+			A.IO_EMP_ID AS GUEST_EMP_ID,
+			A.EMP_NM AS GUEST_NAME,
+			B.COMP_KO_NM AS GUEST_COMPANY_NAME,
+			B.IO_COMP_ID AS GUEST_COMPANY_NUMBER,
+			CASE
+				WHEN C.MEMBER_YN IS NULL THEN 'N'
+				ELSE C.MEMBER_YN
+			END AS GUEST_EMPLOYEEMENT_YN,
+			CASE
+				WHEN MAX(C.MEMBER_CHK_DT) OVER(PARTITION BY A.IO_EMP_ID) IS NULL THEN 'N'
+				ELSE
+					CASE
+						WHEN ADD_MONTHS(MAX(TO_DATE(C.MEMBER_CHK_DT, 'YYYYMMDD')) OVER(PARTITION BY A.IO_EMP_ID),6) <![CDATA[ < ]]> SYSDATE THEN 'Y'
+						ELSE 'N'
+					END
+			END AS GUEST_RETIRE_FLAG
+		FROM IO_EMP A, IO_COMP B, IO_COMP_EMP_CERTI C
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+		AND A.EMP_NM = #{empNm}
+		AND REGEXP_REPLACE(A.HP_NO, ' |-', '') = REGEXP_REPLACE(#{hpNo}, ' |-', '')
+	</select>
+
+	<select id="selectIoEmpDenyYn" parameterType="String" resultType="CamelHashMap">
+		/* KioskIfRepository.selectIoEmpDenyYn (dmKioskIF_IoEmpDenyYn) */
+		SELECT
+			A.IO_EMP_ID,
+			X.DENY_YN,
+			X.DENY_STRT_DT || ' ~ ' || X.DENY_END_DT AS DENY_DT
+		FROM IO_EMP A,
+		(
+			SELECT
+				X.*,
+				CASE
+					WHEN X.DENY_STRT_DT IS NULL THEN 'N'
+					WHEN TO_CHAR(SYSDATE,'YYYY-MM-DD') <![CDATA[ >= ]]> X.DENY_STRT_DT AND TO_CHAR(SYSDATE,'YYYY-MM-DD') <![CDATA[ <= ]]> X.DENY_END_DT THEN 'Y'
+					ELSE 'N'
+				END AS DENY_YN
+			FROM (
+				SELECT
+					ROW_NUMBER() OVER(PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC) AS ROW_NUM,
+					X.*
+				FROM IO_EMP_DENY X
+				WHERE NVL(DEL_YN, 'N') = 'N'
+			) X
+			WHERE X.ROW_NUM = 1
+		) X
+		WHERE A.IO_EMP_ID = X.IO_EMP_ID(+)
+		AND A.IO_EMP_ID = #{ioEmpId}
+		AND TO_CHAR(SYSDATE, 'YYYY-MM-DD') BETWEEN X.DENY_STRT_DT AND X.DENY_END_DT
+		AND X.DENY_YN = 'Y'
+		AND NVL(A.DEL_YN,'N') = 'N'
+	</select>
+
+	<select id="selectIoEmpVioCnt" parameterType="String" resultType="Integer">
+		/* KioskIfRepository.selectIoEmpVioCnt (dmKioskIF_IoEmpVioCnt) */
+		SELECT
+			COUNT(*) AS VIO_CNT
+		FROM IO_EMP A, SC_IO_OFEND D, SC_IO_CORR_PLAN E
+		WHERE A.IO_EMP_ID = E.IO_EMP_ID
+		AND D.SC_IO_DOC_NO = E.SC_IO_DOC_NO
+		AND D.CORR_PLAN_SEND_YN = 'C0101002'
+		AND E.APPR_GBN != 'Z0401003'
+		AND D.DEL_YN='N'
+		AND A.IO_EMP_ID = #{ioEmpId}
+	</select>
+
+	<select id="selectVstDtForKioskOutprocess" parameterType="Map" resultType="CamelHashMap">
+		/* KioskIfRepository.selectVstDtForKioskOutprocess (dmGetVstDtForKiosk_Outprocess) */
+		SELECT
+			MAX(GA.VST_DT) AS IN_VST_DT,
+			MAX(GA.IN_DT) AS IN_DT
+	    FROM IO_VST_MAN_GATE_IO GA
+	    WHERE GA.VST_SEQ = '1'
+	    AND GA.GATE_ID <![CDATA[ <> ]]> '0' AND IOKND = '1'
+	    AND GA.VST_APPL_NO = #{vstApplNo}
+	    AND GA.IO_EMP_ID = #{ioEmpId}
+	    AND GA.IO_CARDNO = #{ioCardno}
+	</select>
+
+	<select id="selectValidateId" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.IO_EMP_ID AS IO_EMP_ID
+		FROM IO_EMP A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+			AND A.IO_EMP_ID = UPPER(#{ioEmpId})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+			AND REGEXP_REPLACE(A.HP_NO, ' |-', '') = REGEXP_REPLACE(#{hpNo}, ' |-', '')
+		</if>
+		GROUP BY A.IO_EMP_ID
+	</select>
+
+	<insert id="insertKioskImage" parameterType="Map">
+		INSERT INTO IO_EMP_KIOSK_FILE_PHOTO (
+			IO_EMP_ID, FILE_PHOTO, CRT_DTM
+		) VALUES (
+			#{ioEmpId}, #{filePhoto}, SYSDATE
+		)
+	</insert>
+
+</mapper>

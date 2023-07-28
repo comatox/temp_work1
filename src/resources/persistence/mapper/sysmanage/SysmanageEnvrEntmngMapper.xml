@@ -1,0 +1,1218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.SysmanageEnvrEntmngRepository">
+
+  <!-- 출입 차량 제한 관리 > 조회 - selectCarLimitsList (ASIS : dmCarLimitsList ) -->
+  <select id="selectCarLimitsList" parameterType="Map" resultType="CamelHashMap">
+    /* IO: insNet.envrSetup.carlimits.DU_CarLimits_dmCarLimitsList_2012-08-30T12:04:59(2012-08-30T13:32:45) */
+    WITH T AS
+    (
+    SELECT
+    ROW_NUMBER() OVER ( ORDER BY CAR_DENY_NO DESC ) AS ROW_NUM,
+    CAR_DENY_NO,
+    CAR_NO,
+    DENY_STRT_DT,
+    DENY_END_DT,
+    DENY_RSN,
+    DEL_YN,
+    AC_IP,
+    CRT_BY,
+    CRT_DTM,
+    MOD_BY,
+    MOD_DTM
+    FROM IO_CARDENY
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND CAR_NO LIKE '%' || #{searchCarNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDelYn)">
+      <if test="searchDelYn.equals('Y')">
+        AND TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') &lt;= SYSDATE
+        AND TO_DATE(DENY_END_DT, 'YYYY-MM-DD') &gt;= SYSDATE
+      </if>
+      <if test="searchDelYn.equals('N')">
+        AND (
+        TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') &gt; SYSDATE
+        OR TO_DATE(DENY_END_DT, 'YYYY-MM-DD') &lt; SYSDATE
+        )
+      </if>
+    </if>
+    )
+    SELECT
+    ROW_NUM,
+    CAR_DENY_NO,
+    CAR_NO,
+    DENY_STRT_DT,
+    DENY_END_DT,
+    DENY_RSN,
+    DEL_YN,
+    AC_IP,
+    FN_GET_EMP_JW_NM(CRT_BY) ||'('||CRT_BY||')' AS CRT_BY,
+    TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+    CASE WHEN MOD_BY IS NULL THEN '' ELSE FN_GET_EMP_JW_NM(MOD_BY) ||'('||MOD_BY||')' END AS MOD_BY,
+    TO_CHAR(MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+    FROM T
+    WHERE ROW_NUM
+    BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1
+    AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectCarLimitsCount" parameterType="Map" resultType="Integer">
+    /* IO: insNet.envrSetup.carlimits.DU_CarLimits_dmCarLimitsCount_2012-08-30T12:04:59(2012-08-30T13:02:26) */
+    SELECT
+    COUNT(*) AS TOTAL_COUNT
+    FROM IO_CARDENY
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND CAR_NO LIKE '%' || #{searchCarNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDelYn)">
+
+      <if test="searchDelYn.equals('Y')">
+        AND TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') &lt;= SYSDATE
+        AND TO_DATE(DENY_END_DT, 'YYYY-MM-DD') &gt;= SYSDATE
+      </if>
+      <if test="searchDelYn.equals('N')">
+        AND (
+        TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') &gt; SYSDATE
+        OR TO_DATE(DENY_END_DT, 'YYYY-MM-DD') &lt; SYSDATE
+        )
+      </if>
+    </if>
+  </select>
+
+  <!-- 출입 차량 제한 관리 > 엑셀다운 - selectCarLimitsListExcel (ASIS :  ) -->
+  <select id="selectCarLimitsListExcel" parameterType="Map" resultType="CamelHashMap">
+    /* 출입 차량 제한 관리 > 엑셀다운 - selectCarLimitsListExcel */
+    SELECT
+    ROW_NUMBER() OVER ( ORDER BY CAR_DENY_NO DESC ) AS ROW_NUM,
+    CAR_DENY_NO,
+    CAR_NO,
+    DENY_STRT_DT,
+    DENY_END_DT,
+    DENY_RSN,
+    DEL_YN,
+    AC_IP,
+    CRT_BY,
+    CRT_DTM,
+    MOD_BY,
+    MOD_DTM
+    FROM IO_CARDENY
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND CAR_NO LIKE '%' || #{searchCarNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDelYn)">
+      <if test='"Y".equals(searchDelYn)'>
+        <![CDATA[
+        		AND TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') <= SYSDATE
+				AND TO_DATE(DENY_END_DT, 'YYYY-MM-DD') >= SYSDATE
+			]]>
+      </if>
+      <if test='"N".equals(searchDelYn)'>
+        <![CDATA[
+        		AND ( 
+					TO_DATE(DENY_STRT_DT, 'YYYY-MM-DD') > SYSDATE
+			      	OR TO_DATE(DENY_END_DT, 'YYYY-MM-DD') < SYSDATE
+			    )
+			]]>
+      </if>
+    </if>
+  </select>
+
+  <!-- 출입 차량 제한 관리 > 상세 - selectCarLimitsView (ASIS : dmCarLimitsView ) -->
+  <select id="selectCarLimitsView" parameterType="Map" resultType="CamelHashMap">
+    /* 출입 차량 제한 관리 > 상세 - selectCarLimitsView */
+    SELECT CAR_DENY_NO,
+           CAR_NO,
+           DENY_STRT_DT,
+           DENY_END_DT,
+           DENY_RSN,
+           DEL_YN,
+           AC_IP,
+           CRT_BY,
+           TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+           MOD_BY,
+           TO_CHAR(MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+    FROM IO_CARDENY
+    WHERE CAR_DENY_NO = #{carDenyNo}
+  </select>
+
+  <!-- 출입 차량 제한 관리 > 입력 - insertCarLimits (ASIS : dmCarLimitsInsert ) -->
+  <insert id="insertCarLimits" parameterType="Map">
+    /* 출입 차량 제한 관리 > 입력 - insertCarLimits */
+    INSERT INTO IO_CARDENY (CAR_DENY_NO, CAR_NO, DENY_STRT_DT,
+                            DENY_END_DT, DENY_RSN, DEL_YN,
+                            AC_IP, CRT_BY, CRT_DTM)
+    VALUES (SEQ_CAR_DENY_NO.NEXTVAL,
+            #{carNo},
+            #{denyStrtDt},
+            #{denyEndDt},
+            #{denyRsn},
+            #{delYn},
+            #{acIp},
+            #{crtBy},
+            SYSDATE)
+  </insert>
+
+  <!-- 출입 차량 제한 관리 > 수정 - updateCarLimits (ASIS : dmCarLimitsUpdate ) -->
+  <update id="updateCarLimits" parameterType="Map">
+    /* 출입 차량 제한 관리 > 수정 - updateCarLimits */
+    UPDATE SECURITYADM.IO_CARDENY
+    SET CAR_NO       = #{carNo},
+        DENY_STRT_DT = #{denyStrtDt},
+        DENY_END_DT  = #{denyEndDt},
+        DENY_RSN     = #{denyRsn},
+        DEL_YN       = #{delYn},
+        AC_IP        = #{acIp},
+        MOD_BY       = #{modBy},
+        MOD_DTM      = SYSDATE
+    WHERE CAR_DENY_NO = #{carDenyNo}
+  </update>
+
+  <!-- 출입 차량 제한 관리 > 삭제 - deleteCarLimits (ASIS : dmCarLimitsDelete ) -->
+  <delete id="deleteCarLimits" parameterType="Map">
+    /* 출입 차량 제한 관리 > 삭제 - deleteCarLimits */
+    DELETE
+    FROM IO_CARDENY
+    WHERE CAR_DENY_NO = #{carDenyNo}
+  </delete>
+
+
+  <!-- 구성원 관리(제한관리) > 조회 - offLimitsEmpCardList (ASIS : dmOffLimitsEmpCardList ) -->
+  <select id="offLimitsEmpCardList" parameterType="Map" resultType="CamelHashMap">
+    /* 구성원 관리(제한관리) > 조회 - offLimitsEmpCardList */
+    WITH PAGE AS (
+    SELECT X.*
+    FROM
+    (SELECT T1.*
+    FROM (
+    SELECT ROWNUM AS ROW_NUM
+    , COUNT(*) OVER () AS TOTAL_COUNT
+    , A.*
+    FROM CO_EMP A
+    WHERE A.USE_YN = 'Y'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchLimitsYn)">
+      <if test='"Y".equals(searchLimitsYn)'>
+        AND EMP_ID IN (
+        SELECT EMP_ID
+        FROM CO_EMPCARD_DENY
+        WHERE DENY_END_DT IS NOT NULL AND NVL(DENY_YN, 'Y') ='Y' AND NVL(DEL_YN, 'N') ='N'
+        )
+      </if>
+      <if test='"N".equals(searchLimitsYn)'>
+        AND EMP_ID NOT IN (
+        SELECT EMP_ID
+        FROM CO_EMPCARD_DENY
+        WHERE DENY_END_DT IS NOT NULL AND NVL(DENY_YN, 'Y') ='Y' AND NVL(DEL_YN, 'N') ='N'
+        )
+      </if>
+    </if>
+    <if test='searchEmpIdList != null and searchEmpIdList.length != 0'>
+      AND EMP_ID IN
+      <foreach item="empId" index="index" collection="searchEmpIdList" open="(" close=")"
+        separator=", ">
+        #{empId}
+      </foreach>
+    </if>
+    <if test='searchEmpNmList != null and searchEmpNmList.length != 0'>
+      AND EMP_NM IN
+      <foreach item="empNm" index="index" collection="searchEmpNmList" open="(" close=")"
+        separator=", ">
+        #{empNm}
+      </foreach>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND FN_GET_DEPT_NM(DEPT_ID) LIKE '%' || #{searchDeptNm} || '%'
+    </if>
+    ) T1
+    <if test='"Y".equals(pagingYn)'>
+      WHERE ROW_NUM BETWEEN ( (#{currentPage} - 1) * #{rowPerPage}) + 1
+      AND ( (#{currentPage} - 1) * #{rowPerPage}) + #{rowPerPage}
+    </if>
+    ) X
+    )
+    SELECT B.DENY_NO AS DENY_NO
+    , AA.TOTAL_COUNT
+    , AA.EMP_ID
+    , AA.EMP_NM
+    , AA.DEPT_ID
+    , FN_GET_DEPT_NM(AA.DEPT_ID) AS DEPT_NM
+    , DECODE(B.DENY_YN,'N','',B.DENY_STRT_DT) AS DENY_STRT_DT
+    , DECODE(B.DENY_YN,'N','',B.DENY_END_DT) AS DENY_END_DT
+    , DECODE(B.DENY_YN,'N','',FN_GET_EMP_JW_NM(B.CRT_BY)) AS CRT_BY
+    , #{searchLimitsYn} AS SEARCH_LIMITS_YN
+    FROM PAGE AA
+    , (SELECT A1.DENY_NO, A1.EMP_ID, A1.DENY_YN, A1.DENY_STRT_DT, A1.DENY_END_DT, A1.CRT_BY
+    FROM CO_EMPCARD_DENY A1
+    WHERE A1.DENY_YN='Y'
+    ORDER BY A1.DENY_NO DESC) B
+    WHERE AA.EMP_ID= B.EMP_ID(+)
+  </select>
+
+
+  <!-- 구성원 관리(제한관리) > 엑셀다운 - offLimitsEmpCardListExcel (ASIS : dmOffLimitsEmpCardList_excel ) -->
+  <select id="offLimitsEmpCardListExcel" parameterType="Map" resultType="CamelHashMap">
+    /* 구성원 관리(제한관리) > 엑셀다운 - offLimitsEmpCardListExcel */
+    WITH PAGE AS (
+    SELECT *
+    FROM
+    (SELECT T1.*
+    FROM (
+    SELECT ROWNUM AS ROW_NUM
+    , A.*
+    FROM CO_EMP A
+    WHERE A.USE_YN = 'Y'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchLimitsYn)">
+      <if test='"Y".equals(searchLimitsYn)'>
+        AND EMP_ID IN (
+        SELECT EMP_ID
+        FROM CO_EMPCARD_DENY
+        WHERE DENY_END_DT IS NOT NULL AND NVL(DENY_YN, 'Y') ='Y' AND NVL(DEL_YN, 'N') ='N'
+        )
+      </if>
+      <if test='"N".equals(searchLimitsYn)'>
+        AND EMP_ID NOT IN (
+        SELECT EMP_ID
+        FROM CO_EMPCARD_DENY
+        WHERE DENY_END_DT IS NOT NULL AND NVL(DENY_YN, 'Y') ='Y' AND NVL(DEL_YN, 'N') ='N'
+        )
+      </if>
+    </if>
+    <if test='searchEmpIdList != null and searchEmpIdList.length != 0'>
+      AND EMP_ID IN
+      <foreach item="empId" index="index" collection="searchEmpIdList" open="(" close=")"
+        separator=", ">
+        #{empId}
+      </foreach>
+    </if>
+    <if test='searchEmpNmList != null and searchEmpNmList.length != 0'>
+      AND EMP_NM IN
+      <foreach item="empNm" index="index" collection="searchEmpNmList" open="(" close=")"
+        separator=", ">
+        #{empNm}
+      </foreach>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND FN_GET_DEPT_NM(DEPT_ID) LIKE '%' || #{searchDeptNm} || '%'
+    </if>
+    ) T1
+    ) X
+    )
+    SELECT
+    ( ROW_NUMBER() OVER ( ORDER BY A1.DENY_NO ASC, AA.EMP_ID ASC )) AS ROW_NUM
+    ,A1.DENY_NO AS DENY_NO
+    , AA.EMP_ID
+    , AA.EMP_NM
+    , AA.DEPT_ID
+    , FN_GET_DEPT_NM(AA.DEPT_ID) AS DEPT_NM
+    , DECODE(A1.DENY_YN,'N','',A1.DENY_STRT_DT) AS DENY_STRT_DT
+    , DECODE(A1.DENY_YN,'N','',A1.DENY_END_DT) AS DENY_END_DT
+    , DECODE(A1.DENY_YN,'N','',FN_GET_EMP_JW_NM(A1.CRT_BY)) AS CRT_BY
+    , A1.DENY_CODE
+    , FN_GET_CODE_NM('A076',A1.DENY_CODE) AS DENY_CODE_NM
+    , A1.DENY_RSN
+    , A1.DENY_CANCEL_DT
+    , A1.DENY_CANCEL_CODE
+    , FN_GET_CODE_NM('A077',A1.DENY_CANCEL_CODE) AS DENY_CANCEL_CODE_NM
+    , A1.DENY_CANCEL_RSN
+    , A1.DENY_YN
+    , A1.DEL_YN
+    , FN_GET_EMP_JW_NM(A1.MOD_BY) AS MOD_BY
+    FROM PAGE AA , CO_EMPCARD_DENY A1
+    WHERE AA.EMP_ID= A1.EMP_ID(+)
+  </select>
+
+  <!-- 구성원 관리(제한관리) > 출입제한 등록 - offLimitsEmpCardDenyInsert (ASIS : dmOffLimitsEmpCardDenyInsert ) -->
+  <insert id="offLimitsEmpCardDenyInsert" parameterType="Map">
+    /* 구성원 관리(제한관리) > 출입제한 등록 - offLimitsEmpCardDenyInsert */
+    INSERT INTO CO_EMPCARD_DENY ( DENY_NO, EMP_ID, EMPCARD_NO, DEPT_ID
+                                , DENY_RSN, DENY_STRT_DT, DENY_END_DT
+                                , DENY_CODE, DENY_YN
+                                , CRT_BY, CRT_DTM, MOD_BY, MOD_DTM)
+    VALUES ( SEQ_EMPCARD_DENY_NO.NEXTVAL
+           , #{empId}
+           , #{empcardNo}
+           , #{deptId}
+           , #{denyRsn}
+           , #{denyStrtDt}
+           , #{denyEndDt}
+           , #{denyCode}
+           , 'Y'
+           , #{crtBy}
+           , SYSDATE
+           , #{crtBy}
+           , SYSDATE)
+  </insert>
+
+  <!-- 구성원 관리(제한관리) > 출입제한 해제 - offLimitsEmpCardDenyUpdate (ASIS : dmOffLimitsEmpCardDenyUpdate ) -->
+  <update id="offLimitsEmpCardDenyUpdate" parameterType="Map">
+    /* 구성원 관리(제한관리) > 출입제한 해제 - offLimitsEmpCardDenyUpdate */
+    UPDATE CO_EMPCARD_DENY
+    SET DENY_CANCEL_DT   = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+      , DENY_CANCEL_CODE = 'A0770001'
+      , DENY_CANCEL_RSN  = #{denyCancelRsn}
+      , DENY_YN          = 'N'
+      , MOD_BY           = #{modBy}
+      , MOD_DTM          = SYSDATE
+    WHERE DENY_NO = #{denyNo}
+  </update>
+
+  <!-- 구성원 관리(제한관리) > 출입날짜 변경 - offLimitsEmpCardDenyDateUpdate (ASIS : dmOffLimitsEmpCardDenyDateUpdate ) -->
+  <update id="offLimitsEmpCardDenyDateUpdate">
+    /* 구성원 관리(제한관리) > 출입날짜 변경 - offLimitsEmpCardDenyDateUpdate */
+    UPDATE CO_EMPCARD_DENY
+    SET DENY_END_DT = #{denyEndDt}
+      , MOD_BY      = #{modBy}
+      , MOD_DTM     = SYSDATE
+    WHERE DENY_NO = #{denyNo}
+      AND EMP_ID = #{empId}
+  </update>
+
+  <!-- 구성원 관리(제한관리) > 상세 - offLimitsEmpCardView (ASIS : dmOffLimitsEmpCardView ) -->
+  <select id="offLimitsEmpCardView" parameterType="Map" resultType="CamelHashMap">
+    /* 구성원 관리(제한관리) > 상세 - offLimitsEmpCardView */
+    SELECT
+    X.DENY_NO ,
+    A.EMP_ID,
+    A.EMP_NM,
+    A.EMAIL ,
+    A.JUMIN_NO,
+    A.DEPT_ID ,
+    FN_GET_DEPT_NM(A.DEPT_ID) AS DEPT_NM ,
+    FN_GET_JW_NM(A.JW_ID) AS JW_ID ,
+    A.TEL_NO1,
+    A.TEL_NO2 ,
+    X.DENY_YN,
+    X.DENY_STRT_DT,
+    X.DENY_END_DT
+    FROM
+    CO_EMP A,
+    (
+    SELECT
+    X.*
+    FROM
+    (
+    SELECT
+    ROW_NUMBER() OVER ( PARTITION BY X.EMP_ID
+    ORDER BY
+    X.DENY_NO DESC,
+    X.EMP_ID ASC ) AS ROW_NUM ,
+    X.*
+    FROM
+    CO_EMPCARD_DENY X
+    WHERE
+    NVL(DEL_YN, 'N') = 'N' ) X
+    WHERE
+    X.ROW_NUM = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDenyNo)">
+      AND X.DENY_NO = #{searchDenyNo}
+    </if>
+    ) X
+    WHERE
+    A.EMP_ID = X.EMP_ID(+)
+    AND A.EMP_ID = #{searchEmpId}
+  </select>
+
+  <!-- 구성원 관리(제한관리) > 출입제한이력 - offLimitsEmpCardHistory (ASIS : dmOffLimitsEmpCardHistory ) -->
+  <select id="offLimitsEmpCardHistory" parameterType="Map" resultType="CamelHashMap">
+    /* 구성원 관리(제한관리) > 출입제한이력 - offLimitsEmpCardHistory */
+    SELECT DENY_STRT_DT
+         , DENY_END_DT
+         , FN_GET_CODE_NM('A076', DENY_CODE)               AS DENY_CTG_NM
+         , DENY_RSN
+         , TO_CHAR(CRT_DTM, 'YYYY-MM-DD HH24:MI:SS')       AS CRT_DTM
+         , CRT_BY
+         , TO_CHAR(MOD_DTM, 'YYYY-MM-DD HH24:MI:SS')       AS MOD_DTM
+         , MOD_BY
+         , DEL_YN
+         , CASE WHEN DENY_YN = 'Y' THEN '정지' ELSE '해제' END AS GBN
+    FROM CO_EMPCARD_DENY
+    WHERE EMP_ID = #{searchEmpId}
+    ORDER BY DENY_NO DESC
+  </select>
+
+
+  <!-- 방문객 관리(제한관리) > 조회 - offLimitsList (ASIS : dmOffLimitsList ) -->
+  <select id="offLimitsList" parameterType="Map" resultType="CamelHashMap">
+    /* 방문객 관리(제한관리) > 조회 - offLimitsList (ASIS : dmOffLimitsList ) */
+    WITH T AS
+    (
+    SELECT
+    CCC.*
+    FROM (
+    SELECT
+    ROWNUM AS ROW_NUM,
+    T1.*
+    FROM (
+    SELECT
+    B.COMP_KO_NM AS COMP_KO_NM,
+    A.EMP_NM AS EMP_NM,
+    A.IO_EMP_ID AS IO_EMP_ID,
+    A.JW_NM AS JW_NM,
+    A.NATION,
+    A.JUMIN_NO,
+    (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]>
+    2) AS SMART_IDCARD,
+    A.PASSPORT_NO,
+    A.HP_NO AS HP_NO,
+    A.DEL_YN AS DEL_YN,
+    X.DENY_STRT_DT AS DENY_STRT_DT,
+    X.DENY_END_DT AS DENY_END_DT,
+    A.SLEEP_YN,
+    A.NAME_CHK_CI,
+    C.CERTI_YN,
+    A.LOGIN_DTM,
+    A.CRT_DTM,
+    A.WITHDRAW_DTM,
+    C.CERTI_DTM
+    FROM IO_EMP A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT
+    MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+    WHERE A.IO_COMP_ID = B.IO_COMP_ID
+    AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+    AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+    AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+      <if test='"Y".equals(limitsYn)'>
+        AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+      </if>
+      <if test='"N".equals(limitsYn)'>
+        AND (
+        X.DENY_STRT_DT IS NULL
+        OR
+        (
+        X.DENY_STRT_DT <![CDATA[>]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        )
+        )
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+      AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+      <if test='"N".equals(limitsYn)'>
+        AND A.SLEEP_YN = 'N'
+        AND A.DEL_YN = #{userDelYn}
+      </if>
+      <if test='"S".equals(limitsYn)'>
+        AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='"Y".equals(limitsYn) or "H".equals(limitsYn)'>
+        AND A.DEL_YN = #{userDelYn}
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+      AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+      AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DAMO WHERE SEC_JUMIN_NO LIKE '%' ||
+      #{juminNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+      AND A.PASSPORT_NO LIKE '%' || #{passportNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+      AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum
+      <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+      AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+      AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+    </if>
+
+    UNION ALL
+    SELECT
+    B.COMP_KO_NM AS COMP_KO_NM,
+    A.EMP_NM AS EMP_NM,
+    A.IO_EMP_ID AS IO_EMP_ID,
+    A.JW_NM AS JW_NM,
+    A.NATION,
+    A.JUMIN_NO,
+    (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]>
+    2) AS SMART_IDCARD,
+    A.PASSPORT_NO,
+    A.HP_NO AS HP_NO,
+    A.DEL_YN AS DEL_YN,
+    X.DENY_STRT_DT AS DENY_STRT_DT,
+    X.DENY_END_DT AS DENY_END_DT,
+    A.SLEEP_YN,
+    A.NAME_CHK_CI,
+    C.CERTI_YN,
+    A.LOGIN_DTM,
+    A.CRT_DTM,
+    A.WITHDRAW_DTM,
+    C.CERTI_DTM
+    FROM IO_EMP_DEL A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN
+    (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+    WHERE A.IO_COMP_ID = B.IO_COMP_ID
+    AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+    AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+    AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+      <if test='"Y".equals(limitsYn)'>
+        AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+      </if>
+      <if test='"N".equals(limitsYn)'>
+        AND (
+        X.DENY_STRT_DT IS NULL
+        OR
+        (
+        X.DENY_STRT_DT > TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        )
+        )
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+      AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+      <if test='"N".equals(userDelYn)'>
+        AND A.SLEEP_YN = 'N'
+        AND A.DEL_YN = #{userDelYn}
+      </if>
+      <if test='"S".equals(userDelYn)'>
+        AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='"Y".equals(userDelYn) or "H".equals(userDelYn)'>
+        AND A.DEL_YN = #{userDelYn}
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+      AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+      AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DEL_DAMO WHERE SEC_JUMIN_NO LIKE '%' ||
+      #{juminNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+      AND A.PASSPORT_NO LIKE '%' || #{passportNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+      AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum
+      <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+      AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+      AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+    </if>
+    ) T1
+    WHERE ROWNUM <![CDATA[<=]]> ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize} ) CCC
+    WHERE ROW_NUM >= ( (#{pageIndex} - 1) * #{pageSize}) + 1
+
+    )
+    SELECT
+    ROW_NUM,
+    COMP_KO_NM,
+    CASE WHEN DEL_YN = 'Y' THEN '탈퇴자' ELSE EMP_NM END AS EMP_NM,
+    IO_EMP_ID,
+    JW_NM,
+    FN_GET_CODE( 'Z001', NATION, 'DETL_CD') AS NATION_NM,
+    CASE WHEN DEL_YN = 'Y' THEN '000000' ELSE JUMIN_NO END as JUMIN_NO,
+    SMART_IDCARD,
+    PASSPORT_NO,
+    HP_NO,
+    DEL_YN,
+    DENY_STRT_DT,
+    DENY_END_DT,
+    (
+    SELECT
+    /*+ INDEX_DESC(B PK_IO_EMP_DENY) */
+    FN_GET_EMP_JW_NM(CRT_BY) ||'('||CRT_BY||')'
+    FROM IO_EMP_DENY B
+    WHERE IO_EMP_ID = T.IO_EMP_ID
+    AND ROWNUM = 1
+    ) AS CRT_BY,
+    SLEEP_YN,
+    TO_CHAR(LOGIN_DTM, 'YYYY-MM-DD') AS LOGIN_DTM,
+    TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+    TO_CHAR(WITHDRAW_DTM, 'YYYY-MM-DD') AS WITHDRAW_DTM,
+    CASE WHEN NAME_CHK_CI IS NOT NULL AND NVL(CERTI_YN, 'N') = 'N'
+    THEN To_char(crt_dtm, 'YYYY-MM-DD') || ' (본인인증)'
+    WHEN NAME_CHK_CI IS NULL AND NVL(CERTI_YN, 'N') = 'Y'
+    THEN To_char(CERTI_DTM, 'YYYY-MM-DD') || ' (구성원인증)'
+    WHEN NAME_CHK_CI IS NOT NULL AND NVL(CERTI_YN, 'N') = 'Y'
+    THEN '2018-11-01 (본인인증)'
+    WHEN NAME_CHK_CI IS NULL AND NVL(CERTI_YN, 'N') = 'N'
+    THEN '미인증'
+    END AS CERTI_DT
+    FROM T
+  </select>
+
+  <select id="offLimitsCount" parameterType="Map" resultType="Integer">
+    SELECT
+    SUM(TOTAL_COUNT) AS TOTAL_COUNT
+    FROM(
+    SELECT COUNT(*) AS TOTAL_COUNT
+    FROM IO_EMP A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+    WHERE A.IO_COMP_ID = B.IO_COMP_ID
+    AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+    AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+    AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+      <if test='"Y".equals(limitsYn)'>
+        AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+      </if>
+      <if test='"N".equals(limitsYn)'>
+        AND (
+        X.DENY_STRT_DT IS NULL
+        OR
+        (
+        X.DENY_STRT_DT <![CDATA[>]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        )
+        )
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+      AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+      <if test='"N".equals(limitsYn)'>
+        AND A.SLEEP_YN = 'N'
+        AND A.DEL_YN = #{userDelYn} 			</if>
+      <if test='"S".equals(limitsYn)'>
+        AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='"Y".equals(limitsYn) or "H".equals(limitsYn)'>
+        AND A.DEL_YN = #{userDelYn} 			</if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+      AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+      AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+      AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+      AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+      AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+      AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+    </if>
+
+    UNION ALL
+    SELECT COUNT(*) AS TOTAL_COUNT
+    FROM IO_EMP_DEL A, IO_COMP B, IO_EMP_CO_CERTI C, (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+    WHERE A.IO_COMP_ID = B.IO_COMP_ID
+    AND A.IO_COMP_ID NOT IN ('VIP', 'FAMILY')
+    AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+    AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+    <if test="not @org.springframework.util.StringUtils@isEmpty(limitsYn)">
+      <if test='"Y".equals(limitsYn)'>
+        AND X.DENY_STRT_DT <![CDATA[<=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        AND X.DENY_END_DT <![CDATA[>=]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+      </if>
+      <if test='"N".equals(limitsYn)'>
+        AND (
+        X.DENY_STRT_DT IS NULL
+        OR
+        (
+        X.DENY_STRT_DT > TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        OR X.DENY_END_DT <![CDATA[<]]> TO_CHAR(SYSDATE,'YYYY-MM-DD')
+        )
+        )
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(compKoNm)">
+      AND B.COMP_KO_NM LIKE '%' || #{compKoNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(userDelYn)">
+      <if test='"N".equals(userDelYn)'>
+        AND A.SLEEP_YN = 'N'
+        AND A.DEL_YN = #{userDelYn} 			</if>
+      <if test='"S".equals(userDelYn)'>
+        AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='"Y".equals(userDelYn) or "H".equals(userDelYn)'>
+        AND A.DEL_YN = #{userDelYn} 			</if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+      AND A.EMP_NM LIKE '%' || #{empNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+      AND A.IO_EMP_ID IN (SELECT IO_EMP_ID FROM IO_EMP_DEL_DAMO WHERE SEC_JUMIN_NO LIKE '%' || #{juminNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(passportNo)">
+      AND A.PASSPORT_NO LIKE  '%' || #{passportNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(smartIdcard)">
+      AND (SELECT SMART_IDCARD FROM VW_IO_PASS_MST2 WHERE IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) like '%' || #{smartIdcard} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(hpNo)">
+      AND A.HP_NO LIKE '%' || #{hpNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompId)">
+      AND A.IO_COMP_ID LIKE '%' || #{ioCompId} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmFr)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[>=]]> REPLACE(#{crtDtmFr}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(crtDtmTo)">
+      AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[<=]]> REPLACE(#{crtDtmTo}, '-', '')
+    </if>
+    )
+  </select>
+
+  <!-- 방문객 관리(제한관리) > 엑셀다운 - offLimitsListExcel (ASIS : dmOffLimitsList_excel ) -->
+  <select id="offLimitsListExcel" parameterType="Map" resultType="CamelHashMap">
+    /* 방문객 관리(제한관리) > 엑셀다운 - offLimitsListExcel (ASIS : dmOffLimitsList_excel ) */
+    WITH PAGE AS (
+    SELECT *
+    FROM
+    (SELECT T1.*
+    FROM (
+    SELECT ROWNUM AS ROW_NUM,
+    DD.*
+    FROM (
+
+    SELECT /*+ INDEX(A IDX_IO_EMP_DEL_YN) */ *
+    FROM IO_EMP A
+    WHERE A.IO_COMP_ID NOT IN ('VIP', 'FAMILY', 'GS')
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchLimitsYn)">
+      <if test='"Y".equals(searchLimitsYn)'>
+        <![CDATA[
+				     		AND EXISTS (SELECT * 
+				                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+				                                        ,X1.*       
+				                                   FROM IO_EMP_DENY X1  
+				                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+				                          WHERE X2.ROW_NUM = 1
+				                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+				                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+				     		]]>
+      </if>
+      <if test='"N".equals(searchLimitsYn)'>
+        <![CDATA[
+				     		AND NOT EXISTS (SELECT * 
+				                              FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+				                                          ,X1.*       
+				                                      FROM IO_EMP_DENY X1  
+				                                     WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+				                             WHERE X2.ROW_NUM = 1
+				                               AND X2.IO_EMP_ID = A.IO_EMP_ID
+				                               AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				                               AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+				     		]]>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchUserDelYn)">
+      <if test='"S".equals(searchUserDelYn)'>
+        AND A.DEL_YN = 'N' AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='!"S".equals(searchUserDelYn)'>
+        AND A.DEL_YN = #{searchUserDelYn}
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompKoNm)">
+      AND A.IO_COMP_ID = (SELECT B.IO_COMP_ID
+      FROM IO_COMP B
+      WHERE B.COMP_KO_NM LIKE '%' || #{searchCompKoNm} || '%'
+      AND A.IO_COMP_ID = B.IO_COMP_ID)
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND A.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchJuminNo)">
+      AND A.BIRTH_DT LIKE #{searchJuminNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchHpNo)">
+      AND A.HP_NO LIKE REPLACE(#{searchHpNo}, '-', '') || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchPassportNo)">
+      AND A.PASSPORT_NO LIKE #{searchPassportNo} || '%'
+    </if>
+    <if test='searchPassNoList != null and searchPassNoList.length != 0'>
+      AND A.IO_EMP_ID IN (
+      SELECT IO_EMP_ID
+      FROM VW_IO_PASS_MST2
+      WHERE SMART_IDCARD IN
+      <foreach item="passNo" index="index" collection="searchPassNoList" open="(" close=")"
+        separator=", ">
+        #{passNo}
+      </foreach>
+      )
+    </if>
+    UNION ALL
+    SELECT /*+ INDEX(A IDX_IO_EMP_DEL_DEL_YN) */ *
+    FROM IO_EMP_DEL A
+    WHERE A.IO_COMP_ID NOT IN ('VIP', 'FAMILY', 'GS')
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchLimitsYn)">
+      <if test='"Y".equals(searchLimitsYn)'>
+        <![CDATA[
+				      			AND EXISTS (SELECT * 
+				                           FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+				                                        ,X1.*       
+				                                   FROM IO_EMP_DENY X1  
+				                                  WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+				                          WHERE X2.ROW_NUM = 1
+				                            AND X2.IO_EMP_ID = A.IO_EMP_ID
+				                            AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				                            AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+				      		]]>
+      </if>
+      <if test='"N".equals(searchLimitsYn)'>
+        <![CDATA[
+				      			AND NOT EXISTS (SELECT * 
+				                              FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC ) AS ROW_NUM        
+				                                          ,X1.*       
+				                                      FROM IO_EMP_DENY X1  
+				                                     WHERE NVL(X1.DEL_YN,'N') = 'N' ) X2  
+				                             WHERE X2.ROW_NUM = 1
+				                               AND X2.IO_EMP_ID = A.IO_EMP_ID
+				                               AND X2.DENY_STRT_DT <= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+				                               AND X2.DENY_END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD') )
+				      		]]>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchUserDelYn)">
+      <if test='"S".equals(searchUserDelYn)'>
+        AND A.DEL_YN = 'N' AND A.SLEEP_YN = 'Y'
+      </if>
+      <if test='!"S".equals(searchUserDelYn)'>
+        AND A.DEL_YN = #{searchUserDelYn}
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompKoNm)">
+      AND A.IO_COMP_ID = (SELECT B.IO_COMP_ID
+      FROM IO_COMP B
+      WHERE B.COMP_KO_NM LIKE '%' || #{searchCompKoNm} || '%'
+      AND A.IO_COMP_ID = B.IO_COMP_ID)
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND A.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchJuminNo)">
+      AND A.BIRTH_DT LIKE #{searchJuminNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchHpNo)">
+      AND A.HP_NO LIKE REPLACE(#{searchHpNo}, '-', '') || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchPassportNo)">
+      AND A.PASSPORT_NO LIKE #{searchPassportNo} || '%'
+    </if>
+    <if test='searchPassNoList != null and searchPassNoList.length != 0'>
+      AND A.IO_EMP_ID IN (
+      SELECT IO_EMP_ID
+      FROM VW_IO_PASS_MST2
+      WHERE SMART_IDCARD IN
+      <foreach item="passNo" index="index" collection="searchPassNoList" open="(" close=")"
+        separator=", ">
+        #{passNo}
+      </foreach>
+      )
+    </if>
+    ) DD
+    ) T1
+    ) X
+    )
+
+    SELECT T.ROW_NUM,
+    CO.COMP_KO_NM,
+    T.EMP_NM,
+    T.IO_EMP_ID,
+    T.JW_NM,
+    FN_GET_CODE( 'Z001', T.NATION, 'DETL_CD') AS NATION_NM,
+    DECODE(T.NATION, 'Z0011001', T.JUMIN_NO , RPAD(SUBSTR(T.PASSPORT_NO,1,5),9,'*')) AS JUMIN_NO,
+    T.HP_NO,
+    T.DEL_YN,
+    X.DENY_STRT_DT AS DENY_STRT_DT,
+    X.DENY_END_DT AS DENY_END_DT,
+    FN_GET_EMP_JW_NM(X.CRT_BY) ||'('||X.CRT_BY||')' AS CRT_BY,
+    FN_GET_IO_EMP_NM(CO.ADMIN1_EMAIL) ADM_NM,
+    CASE WHEN EXISTS (SELECT IO_EMP_ID
+    FROM IO_EMP EM
+    WHERE EM.IO_EMP_ID=T.IO_EMP_ID) THEN 'IO_EMP'
+    ELSE 'IO_EMP_DEL'
+    END AS TABLE_NM,
+    X.DENY_NO,
+    X.HS_DENY_NO,
+    X.SI_DENY_NO,
+    T.SLEEP_YN,
+    CO.IO_COMP_ID,
+    (SELECT NVL(MAX(SMART_IDCARD),'----------') FROM VW_IO_PASS_MST2 A WHERE A.IO_EMP_ID =
+    T.IO_EMP_ID) AS IDCARD_ID,
+    (SELECT MAX(CARD_NO) FROM VW_IO_PASS_MST2 A WHERE A.IO_EMP_ID = T.IO_EMP_ID) AS CARD_NO
+    FROM PAGE T
+    ,(SELECT X2.*
+    FROM (SELECT ROW_NUMBER() OVER ( PARTITION BY IO_EMP_ID ORDER BY DENY_NO DESC, IO_EMP_ID ASC )
+    AS ROW_NUM
+    ,X1.*
+    FROM IO_EMP_DENY X1
+    WHERE NVL(X1.DEL_YN,'N') = 'N'
+    AND X1.IO_EMP_ID IN (SELECT IO_EMP_ID from PAGE)) X2
+    WHERE X2.ROW_NUM = 1) X
+    ,IO_COMP CO
+    WHERE T.IO_EMP_ID = X.IO_EMP_ID(+)
+    AND T.IO_COMP_ID = CO.IO_COMP_ID(+)
+  </select>
+
+
+  <!-- 방문객 관리(제한관리) > 상세 - offLimitsView (ASIS : dmOffLimitsView ) -->
+  <select id="offLimitsView" parameterType="Map" resultType="CamelHashMap">
+    /* 방문객 관리(제한관리) > 상세 - offLimitsView (ASIS : dmOffLimitsView ) */
+    /* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmOffLimitsView_2012-08-27T11:00:01(2012-08-31T18:58:27) */
+    SELECT
+      A.IO_EMP_ID 		AS IO_EMP_ID,
+      A.IO_COMP_ID 		AS IO_COMP_ID,
+      CASE WHEN A.delFlag='D' THEN '탈퇴자' ELSE A.EMP_NM END            AS IO_EMP_NM,
+      B.COMP_KO_NM        AS COMP_KO_NM,
+      CASE WHEN A.delFlag='D' THEN '' ELSE A.EMAIL END AS EMAIL,
+      NVL(A.ESH_DT,'N')   AS ESH_DT,
+      B.ADMIN1_EMAIL,
+      A.JW_NM             AS JW_NM,
+      CASE WHEN A.delFlag='D' THEN '00000000000' ELSE A.HP_NO     END     AS HP_NO,
+      A.NATION            AS NATION,
+      FN_GET_CODE( 'Z001', A.NATION, 'DETL_CD') AS NATION_NM,
+      CASE WHEN A.delFlag='D' THEN '000000' ELSE A.JUMIN_NO END JUMIN_NO,
+      CASE WHEN A.delFlag='D' THEN '' ELSE
+        (
+          SELECT
+            SMART_IDCARD
+          FROM
+            VW_IO_PASS_MST2
+          WHERE
+            IO_EMP_ID = A.IO_EMP_ID AND rownum <![CDATA[<]]> 2) END AS SMART_IDCARD,
+      A.PASSPORT_NO,
+      X.DENY_STRT_DT 		AS DENY_STRT_DT,
+      X.DENY_END_DT 		AS DENY_END_DT,
+      CASE WHEN TO_DATE(X.DENY_STRT_DT, 'YYYY-MM-DD') <![CDATA[<=]]> SYSDATE AND TO_DATE(X.DENY_END_DT, 'YYYY-MM-DD') &gt;= SYSDATE THEN 'Y' ELSE 'N' END AS DENY_YN,
+      A.CRT_BY 			AS CRT_BY,
+      TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+      A.MOD_BY 			AS MOD_BY,
+      TO_CHAR(A.MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM,
+      CASE WHEN A.delFlag='D' THEN '' ELSE A.FILE_PHOTO END AS FILE_PHOTO,
+      A.DEL_YN,
+      REPLACE(REPLACE(SUBSTR(A.FILE_PHOTO, 1,INSTR(A.FILE_PHOTO, ';')-1),'data/data', 'data'),'data\data', 'data') as FILE_PHOTO_ADDR,
+      REPLACE(REPLACE(SUBSTR(FILE_PHOTO, 1,INSTR(FILE_PHOTO, ';')-1),'\','/'),'data/data', 'data') as WEB_PHOTO_ADDR,
+      C.IDCARD_ID,
+      C.CARD_NO,
+      DECODE(A.NAME_CHK, 'Y', '인증', '미인증') AS NAME_CHK_NM,
+      CASE WHEN A.NAME_CHK_CI IS NOT NULL AND NVL(D.CERTI_YN, 'N') = 'N'
+             THEN To_char(A.crt_dtm, 'YYYY-MM-DD') || ' (본인인증)'
+           WHEN A.NAME_CHK_CI IS NULL AND NVL(D.CERTI_YN, 'N') = 'Y'
+             THEN To_char(D.CERTI_DTM, 'YYYY-MM-DD') || ' (구성원인증)'
+           WHEN A.NAME_CHK_CI IS NOT NULL AND NVL(D.CERTI_YN, 'N') = 'Y'
+             THEN '2018-11-01 (본인인증)'
+           WHEN A.NAME_CHK_CI IS NULL AND NVL(D.CERTI_YN, 'N') = 'N'
+             THEN '미인증'
+        END AS CERTI_DT
+    FROM (SELECT SA.*,CASE WHEN DEL_YN='Y' THEN 'D' ELSE 'N' END AS delFlag FROM IO_EMP SA WHERE IO_EMP_ID = #{ioEmpId} AND IO_EMP_ID NOT IN (SELECT IO_EMP_ID FROM IO_EMP_DEL)
+          UNION ALL
+          SELECT SB.*,'D' AS delFlag FROM IO_EMP_DEL SB WHERE IO_EMP_ID = #{ioEmpId}) A, IO_COMP B,
+         ( SELECT IDCARD_ID, CARD_NO, IO_EMP_ID
+           FROM IO_PASS
+           WHERE PASS_APPL_NO =
+                 (SELECT MAX(PASS_APPL_NO) AS PASS_APPL_NO
+                  FROM IO_PASS
+                  WHERE IDCARD_ID is not NULL
+                    AND IO_EMP_ID = #{ioEmpId}
+                 )
+         )C, IO_EMP_CO_CERTI D
+      , (SELECT * FROM IO_EMP_DENY WHERE DENY_NO IN (SELECT MAX(DENY_NO) FROM IO_EMP_DENY GROUP BY IO_EMP_ID) AND NVL(DEL_YN,'N') = 'N') X
+    WHERE A.IO_COMP_ID = B.IO_COMP_ID
+      AND A.IO_EMP_ID = C.IO_EMP_ID(+)
+      AND A.IO_EMP_ID = D.IO_EMP_ID(+)
+      AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+  </select>
+
+  <!-- 방문객 관리(제한관리) > 출입제한이력 - offLimitsHistoryList (ASIS : dmOffLimitsHistoryList ) -->
+  <select id="offLimitsHistoryList" parameterType="Map" resultType="CamelHashMap">
+    /* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmOffLimitsHistoryList_2012-08-27T11:00:01(2012-08-28T08:58:34) */
+    SELECT
+      DENY_NO,
+      IO_EMP_ID,
+      DENY_STRT_DT,
+      DENY_END_DT,
+      DENY_CTG_CD,
+      '' AS DENY_CTG_NM,
+      DENY_RSN,
+      DEL_YN,
+      AC_IP,
+      FN_GET_EMP_JW_NM(CRT_BY) AS CRT_BY,
+      TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+      FN_GET_EMP_JW_NM(MOD_BY) AS MOD_BY,
+      TO_CHAR(MOD_DTM, 'YYYY-MM-DD') AS MOD_DTM
+    FROM SECURITYADM.IO_EMP_DENY
+    WHERE IO_EMP_ID = #{ioEmpId}
+    ORDER BY DENY_NO DESC
+  </select>
+
+
+  <!-- 방문객 관리(제한관리) > 보안위규이력 - offLimitSecViolationHist (ASIS : dmSecIoEmp_Violation_Detail_Hist_S ) -->
+  <select id="offLimitSecViolationHist" parameterType="Map" resultType="CamelHashMap">
+    /* 방문객 관리(제한관리) > 보안위규이력 - offLimitSecViolationHist */
+    SELECT A.*
+    FROM (
+           SELECT SUBSTR(A.OFEND_DT, 1, 4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' ||
+                  SUBSTR(A.OFEND_DT, 7, 2) || ' ' ||
+                  CASE
+                    WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1, 2) || ':' ||
+                                                     SUBSTR(A.OFEND_TM, 3, 2)
+                    ELSE '0' || SUBSTR(A.OFEND_TM, 1, 1) || ':' || SUBSTR(A.OFEND_TM, 2, 2)
+                    END                                                                       OFEND_DTM
+                , FN_GET_IO_EMP_NM(A.OFEND_EMP_ID)                                         as OFEND_EMP_NM
+                , (SELECT F.DETL_NM
+                   FROM CO_CODE_D F
+                   WHERE F.DETL_CD = A.OFEND_DETAIL_GBN)                                   AS OFEND_DETAIL_GBN_NM
+                , (SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.CRT_BY)                AS CRT_BY_NM
+                , (SELECT F.DETL_NM
+                   FROM CO_CODE_D F
+                   WHERE F.GRP_CD = 'C028'
+                     AND F.DETL_CD = A.ACT_DO)                                             AS ACT_DO_NM
+                , (SELECT B.EMP_NM FROM CO_EMP B WHERE B.EMP_ID = A.ACT_BY)                AS ACT_BY_NM
+                , TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd HH24:MI:SS')                              AS ACT_DTM
+                , DECODE(A.OFEND_DETAIL_GBN, 'C0651001', '집계제외', 'C0651003', '집계제외', '')   AS BIGO
+                , TO_CHAR(TO_DATE(A.OFEND_DT, 'yyyy-mm-dd'), 'q')                          AS QT
+                , SUBSTR(A.OFEND_DT, 1, 4) || '-' || SUBSTR(A.OFEND_DT, 5, 2) || '-' ||
+                  SUBSTR(A.OFEND_DT, 7, 2)                                                 AS OFEND_DT
+                , CASE
+                    WHEN LENGTH(A.OFEND_TM) = 4 THEN SUBSTR(A.OFEND_TM, 1, 2) || ':' ||
+                                                     SUBSTR(A.OFEND_TM, 3, 2)
+                    ELSE '0' || SUBSTR(A.OFEND_TM, 1, 1) || ':' || SUBSTR(A.OFEND_TM, 2, 2)
+             END                                                                              OFEND_TM
+                , TO_CHAR(A.ACT_DTM, 'yyyy-MM-dd')                                         AS ACT_DT
+                , TO_CHAR(A.ACT_DTM, 'HH24:MI')                                            AS ACT_TM
+           FROM SC_IO_OFEND A
+           WHERE A.OLD_YN = 'N'
+             AND UPPER(A.OFEND_EMP_ID) = UPPER(#{offendEmpId})
+             AND A.DEL_YN = 'N' /* 김용범책임 요청 , 삭제처리된 위규리스트 감추기 20160308*/
+         ) A
+    ORDER BY A.OFEND_DTM DESC
+  </select>
+
+  <insert id="insertOffLimitsHistory" parameterType="Map">
+/* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmOffLimitsHistoryInsert_2012-08-27T11:00:01(2012-08-27T15:54:47) */
+  INSERT INTO IO_EMP_DENY
+  (DENY_NO,
+   IO_EMP_ID,
+   DENY_STRT_DT,
+   DENY_END_DT,
+   DENY_CTG_CD,
+   DENY_RSN,
+   DEL_YN,
+   AC_IP,
+   CRT_DTM,
+   CRT_BY)
+  VALUES (SEQ_IO_EMP_DENY.NEXTVAL,
+          #{ioEmpId},
+          #{denyStrtDt},
+          #{denyEndDt},
+          #{denyCtgCd},
+          #{denyRsn},
+          #{delYn},
+          #{acIp},
+          SYSDATE,
+          #{crtBy})
+  </insert>
+
+  <update id="updateOffLimitsHistory" parameterType="Map">
+/* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmOffLimitsHistoryUpdate_2012-08-27T11:00:01(2012-08-27T16:51:15) */
+  UPDATE IO_EMP_DENY
+  SET    DEL_YN		   = 'Y',
+         MOD_BY		   = #{modBy},
+         MOD_DTM		   = SYSDATE
+  WHERE  IO_EMP_ID       = #{ioEmpId}
+    AND    DENY_NO		   = #{denyNo}
+  </update>
+
+  <select id="selectPassCheck" parameterType="Map" resultType="CamelHashMap">
+/* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmPassCheck_2012-08-27T11:00:01(2012-09-25T16:24:24) */
+  SELECT IDCARD_ID,
+         CARD_NO
+  FROM IO_PASS
+  WHERE IO_EMP_ID = #{ioEmpId}
+    AND CRT_DTM = (SELECT MAX(CRT_DTM)
+                   FROM IO_PASS
+                   WHERE IO_EMP_ID = #{ioEmpId}
+                     AND STATUS IN ('A0091004', 'A0091005')
+                     AND NVL(DEL_YN, 'N') = 'N'
+                     AND IDCARD_ID IS NOT NULL
+  )
+  </select>
+
+  <insert id="insertOffLimitsExprHistory" parameterType="Map">
+    <selectKey keyProperty="exprApplNo" resultType="Integer" order="BEFORE">
+      SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL AS exprApplNo FROM DUAL
+    </selectKey>
+
+/* IO: insNet.envrSetup.offlimits.DU_OffLimits_dmOffLimitsExprHistoryInsert_2012-08-27T11:00:01(2017-03-22T14:47:01) */
+  INSERT INTO IO_PASS_EXPR_HIST
+  (
+    EXPR_APPL_NO
+  , EXPR_GBN
+  , IO_COMP_ID
+  , IO_EMP_ID
+  , IDCARD_ID
+  , CARD_NO
+  , COMP_ID
+  , DEPT_ID
+  , JW_ID
+  , EMP_ID
+  , EXPR_RSN
+  , EXPR_STRT_DT
+  , EXPR_END_DT
+  , AC_IP
+  , CRT_BY
+  , CRT_DTM
+  , S_C_GBN
+  )
+  SELECT
+    #{exprApplNo}
+       , 'A0460009'
+       , #{ioCompId}
+       , #{ioEmpId}
+       , #{idcardId}
+       , #{cardNo}
+       , COMP_ID
+       , DEPT_ID
+       , JW_ID
+       , EMP_ID
+       , #{denyRsn}
+       , replace(#{denyStrtDt},'-','')
+       , replace(#{denyEndDt},'-','')
+       , #{acIp}
+       , #{crtBy}
+       , SYSDATE
+       , #{sCGbn}
+  FROM CO_EMP
+  WHERE EMP_ID = #{crtBy}
+  </insert>
+
+</mapper>

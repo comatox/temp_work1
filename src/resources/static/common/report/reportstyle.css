@@ -1,0 +1,303 @@
+<style type="text/css">
+<!--
+body {  
+}
+
+bo-dy {
+}
+
+table.table_border {
+	border-collapse: collapse;
+	border: 1px solid #000;
+}
+
+table.table_border td {
+    border: 1px solid #000;
+}
+
+P {font-family:"맑은 고딕", "Dotum", "돋움", "Gulim", "굴림","Helvetica","sans-serif"; overflow:hidden;border-style:none;}
+.reporttitle
+{
+	font-size:22pt; 
+	font-weight:bold;
+	text-align:center; 
+	height:30px;
+	text-decoration:underline;
+}
+.reporttitle_middle
+{
+	font-size:14pt; 
+	font-weight:bold;
+	text-align:center; 
+	height:30px;
+	text-decoration:underline;
+}
+.reporttitle_middle_left
+{
+	font-size:14pt; 
+	font-weight:bold;
+	text-align:left; 
+	height:30px;
+	text-decoration:underline;
+}
+.reporttitle_second
+{
+	font-size:22pt; 
+	font-weight:bold;
+	text-align:center; 
+	height:30px;
+}
+.reporttitle_second_middle
+{
+	font-size:14pt; 
+	font-weight:bold;
+	text-align:center; 
+	height:30px;
+}
+
+.reportfield
+{
+	font-size:10pt; 
+}
+
+
+
+.reportfield_l
+{
+	font-size:8pt; 
+}
+.reportfield10_l
+{
+	font-size:10pt; 
+}
+.reportfield11_l
+{
+	font-size:11pt; 
+}
+.reportfield11_c
+{
+	font-size:11pt; 
+	text-align:center; 
+}
+.reportfield11_r
+{
+	font-size:11pt; 
+	text-align:right; 
+}
+.reportfield_c
+{
+	font-size:8pt; 
+	text-align:center; 
+}
+.reportfield10_c
+{
+	font-size:10pt; 
+	text-align:center; 
+}
+.reportfieldtitle_c
+{
+	font-size:8pt; 
+	background:#C2DAE2; 
+	height:28px; 
+	text-align:center;
+}
+.reportfieldtitle10_c
+{
+	font-size:10pt; 
+	height:28px; 
+	text-align:center;
+}
+.reportfieldtitle10_l
+{
+	font-size:10pt; 
+	background:#C2DAE2; 
+	height:28px; 
+}
+.reportfieldcolortitle_l
+{
+	font-size:8pt; 
+	background:#FFDFDD; 
+	height:28px; 
+	text-align:left;
+}
+.reportfieldcolortitle10_l
+{
+	font-size:10pt; 
+	height:28px; 
+	text-align:left;
+}
+.reportfieldcolortitle10_c
+{
+	font-size:10pt; 
+	height:28px; 
+	text-align:center;
+}
+
+
+
+
+.reportfieldcenternotheight
+{
+	font-size:8pt; 
+	text-align:center;
+	line-height:200%
+}
+.reportfieldrightnoheight
+{
+	font-size:8pt; 
+	text-align:right; 
+	line-height:200%
+}
+.reportfieldleftnotheight
+{
+	font-size:8pt; 
+	text-align:left; 
+	line-height:200%
+}
+
+.reportfieldcenter
+{
+	font-size:8pt; 
+	text-align:center;
+	height:20px;
+	line-height:200%
+}
+.reportfieldcenter4
+{
+	font-size:7pt; 
+	text-align:center;
+	height:20px;
+	line-height:120%
+}
+.reportfieldcenter7
+{
+	font-size:7pt; 
+	text-align:center;
+	height:20px;
+	line-height:200%
+}
+.reportfieldcenterlineheight150
+{
+	font-size:8pt; 
+	text-align:center;
+	height:15px;
+	line-height:150%
+}
+.reportfieldright
+{
+	font-size:8pt; 
+	text-align:right; 
+	height:20px;
+	line-height:200%
+}
+.reportfieldleft
+{
+	font-size:8pt; 
+	text-align:left; 
+	height:20px;
+	line-height:200%
+}
+.reportfieldleft7
+{
+	font-size:7pt; 
+	text-align:left; 
+	height:20px;
+	line-height:200%
+}
+.reportfieldleft2
+{
+	font-size:8pt; 
+	text-align:left; 
+	height:40px;
+	line-height:200%;
+	vertical-align:bottom;
+}
+.reportfieldaddress
+{
+	font-size:8pt; 
+	text-align:left; 
+	height:25px;
+	vertical-align:middle;
+}
+.reportfieldaddress_c
+{
+	font-size:8pt; 
+	text-align:center; 
+	height:25px;
+	vertical-align:middle;
+}
+.reportfieltd
+{
+	font-size:12pt; 
+	text-align:left; 
+	height:25px;
+	vertical-align:middle;
+}
+.PaperA4LandScape {
+	background-image:  url('/eSecurity/common/report/images/paper_a4_landscape.gif');
+	background-repeat: no-repeat;
+	background-position: center top;
+	background-color: #999999;
+}
+
+.input_readonly {
+	background:#F0F0F0;
+	border: 1px solid #999999;
+}
+.input_readonly100 {
+	background:#F0F0F0;
+	width:100%;
+	border: 1px solid #999999;
+}
+.input_readonly100_r {
+	background:#F0F0F0;
+	width:100%;
+	border: 1px solid #999999;
+	text-align:right;
+}
+.inputreadonly_border1 { 
+	border: 1px solid #999999; 
+	background:#D6D7C1;
+}
+.inputreadonly { 
+	font-size:8pt; 
+	width:100%;
+	border: 1px solid #FFFFFF; 
+	background:#FFFFFF;
+}
+.inputreadonly_r { 
+	font-size:8pt; 
+	border: 1px solid #FFFFFF; 
+	text-align:right;
+	background:#FFFFFF;
+}
+.inputreadonly_c { 
+	font-size:8pt; 
+	border: 1px solid #FFFFFF; 
+	text-align:center;
+	background:#FFFFFF;
+}
+.inputreadonly_l { 
+	font-size:8pt; 
+	border: 1px solid #FFFFFF; 
+	background:#FFFFFF;
+}
+.inputreadonly100 { 
+	font-size:8pt; 
+	width:100%;
+	border: 1px solid #FFFFFF; 
+	background:#FFFFFF;
+}
+.inputreadonly100_c { 
+	font-size:8pt; 
+	width:100%;
+	border: 1px solid #FFFFFF; 
+	text-align:center;
+	background:#FFFFFF;
+}
+.td_title_c			{ border: 1px solid #FFFFFF ; padding: 2px; padding-top:4px; background:#C2DAE2; white-space: nowrap; padding-left:4px; padding-right:4px; color: #133F5C; height:20px; text-align:center;}
+
+
+.break {page-break-before: always;} 
+-->
+</style>

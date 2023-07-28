@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.ApproverLineRepository">
+
+
+	<select id="selectApprovalDoc" parameterType="Integer" resultType="ApprovalDocDTO">
+		/* common-api: ApproverLineRepository.selectApprovalDoc */
+SELECT
+	DOC_ID,			/*	결재문서ID	*/
+	SCHEMA_NM,		/*	스키마명	*/
+	AP_SEQ,			/*	결재순번	*/
+	COMP_ID,		/*	업체ID	*/
+	DEPT_ID,		/*	부서ID	*/
+	JW_ID,			/*	직위ID	*/
+	EMP_ID,			/*	결재직원ID	*/
+	APPR_DEPT_GBN,	/*	결재부서구분	*/
+	APPR_DTM,		/*	승인일시	*/
+	APPR_STAT,		/*	결재상태 0대기 10진행 20완료	*/
+	APPR_RESULT,	/*	결재결과 0결과전 1승인 2부결	*/
+	CANCELETC,		/*	부결기타	*/
+	APPL_EMP_ID,	/*	신청직원ID	*/
+	APPL_EMP_NM,	/*	신청직원명	*/
+	APPL_DEPT_ID,	/*	신청부서ID	*/
+	APPL_DEPT_NM,	/*	신청부서명	*/
+	APPL_JW_NM,		/*	신청직위명	*/
+	DOC_ETC,		/*	상신 의견	*/
+	DEL_YN,			/*	삭제구분	*/
+	CRT_BY,			/*	등록자	*/
+	CRT_DTM,		/*	등록일시	*/
+	MOD_BY,			/*	수정자	*/
+	MOD_DTM			/*	수정일시	*/
+
+  FROM AP_DOC
+ WHERE DOC_ID = #{docId}
+	</select>
+	<select id="selectSavedApproverLine" parameterType="SavedApproverLineDTO" resultType="SavedApproverLineDTO"><![CDATA[
+		/* common-api: ApproverLineRepository.selectSavedApproverLine */
+SELECT
+   DOC_ID,
+   AP_SEQ,
+   APPR_DEPT_GBN,
+   COMP_ID,
+   DEPT_ID,
+   JW_ID,
+   EMP_ID,
+   APPR_DTM,
+   APPR_RESULT,
+   CANCELETC,
+   AUTO_SIGN,
+   TRGFLAG,
+   DEL_YN,
+   AC_IP,
+   CRT_BY,
+   TO_CHAR(CRT_DTM, 'YYYY-MM-DD HH24:MI') AS CRT_DTM,
+   MOD_BY,
+   TO_CHAR(MOD_DTM, 'YYYY-MM-DD HH24:MI') AS MOD_DTM,
+   FN_GET_EMP_NM(EMP_ID) AS EMP_NM,
+   FN_GET_CONAME('DEPT', DEPT_ID, COMP_ID) AS DEPT_NM,
+   FN_GET_CONAME('JW', JW_ID, COMP_ID) AS JW_NM,
+   FN_GET_CONAME('JC', JC_CD, COMP_ID) AS JC_NM
+FROM SECURITYADM.AP_APPR
+WHERE DOC_ID = #{docId}
+  AND APPR_DEPT_GBN = #{apprDeptGbn}
+ORDER BY APPR_DEPT_GBN, AP_SEQ ASC]]>
+	</select>
+
+	<select id="selectApprovalLineRequestLine" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO"><![CDATA[
+		/* common-api: ApproverLineRepository.selectApprovalLineRequestLine */
+			SELECT
+					DISTINCT
+					COMP_ID,
+			        APPR_JW_ID,
+					APPR_JW_NM,
+					APPR_JC_ID,
+					APPR_JC_NM,
+					APPR_DEPT_ID,
+					APPR_DEPT_NM,
+					APPR_EMP_ID,
+					APPR_EMP_NM,
+					APPR_DIV_NM,
+					AUTO_SIGN,
+					JC_GRADE,
+					JW_GRADE,
+					ORDER_SEQ,
+					ENTRUST_YN,
+					ENTRUST_DEPT_ID,
+					ENTRUST_JW_ID,
+					ENTRUST_JC_ID,
+					ENTRUST_EMP_ID,
+
+					ENTRUST_DEPT_NM,
+					ENTRUST_JW_NM,
+					ENTRUST_JC_NM,
+					ENTRUST_EMP_NM,
+
+					SUBCONT_YN
+			FROM (
+					SELECT
+
+							B.COMP_ID AS COMP_ID,
+
+					        B.JW_ID AS APPR_JW_ID,
+							FN_GET_JW_NM(B.JW_ID) AS APPR_JW_NM,
+
+							B.JC_CD AS APPR_JC_ID,
+							FN_GET_JC_NM(B.JC_CD) AS APPR_JC_NM,
+
+							B.DEPT_ID AS APPR_DEPT_ID,
+							FN_GET_DEPT_NM(B.DEPT_ID) AS APPR_DEPT_NM,
+
+							B.EMP_ID AS APPR_EMP_ID,
+							FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+
+							FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+							A.AUTO_SIGN AS AUTO_SIGN,
+							FN_GET_JC_GRADE(A.ENTRUST_JC_ID) AS JC_GRADE,
+							FN_GET_JW_GRADE(A.ENTRUST_JW_ID) AS JW_GRADE,
+							DECODE( SUBSTR(B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+							A.ENTRUST_YN AS ENTRUST_YN,
+							A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+							A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+							A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+							A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+
+							FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+							FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+							FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+							FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+
+							A.SUBCONT_YN AS SUBCONT_YN
+					FROM
+					(
+							SELECT
+							            DISTINCT
+							            A.AP_SEQ AS AP_SEQ,
+							            NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+							            CASE WHEN
+							            			FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'
+							            			ELSE 'N' END
+							            AS ENTRUST_YN,
+							            B.DEPT_ID AS ENTRUST_DEPT_ID,
+							            B.JW_ID AS ENTRUST_JW_ID,
+										B.JC_CD AS ENTRUST_JC_ID,
+							           	B.EMP_ID AS ENTRUST_EMP_ID,
+							            A.AUTO_SIGN AS AUTO_SIGN,
+							            A.SUBCONT_YN AS SUBCONT_YN
+							FROM AP_APPR_DEF A, CO_EMP B
+							WHERE A.MENU_ID = #{menuId}
+							AND A.DEPT_ID = #{deptId}
+							AND A.USE_YN = 'Y'
+							AND A.APPR_DEPT_GBN = '1'
+							AND B.HT_CD = 'C'
+							AND B.USE_YN = 'Y'
+							AND A.GBN='EMP'
+							AND B.EMP_ID =  A.GBN_VAL
+
+							UNION
+
+							SELECT
+							            DISTINCT
+							            A.AP_SEQ AS AP_SEQ,
+							            NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+							            CASE WHEN
+							            			FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'
+							            			ELSE 'N' END
+							            AS ENTRUST_YN,
+							            B.DEPT_ID AS ENTRUST_DEPT_ID,
+							            B.JW_ID AS ENTRUST_JW_ID,
+										B.JC_CD AS ENTRUST_JC_ID,
+							           	B.EMP_ID AS ENTRUST_EMP_ID,
+							            A.AUTO_SIGN AS AUTO_SIGN,
+							            A.SUBCONT_YN AS SUBCONT_YN
+							FROM AP_APPR_DEF A, CO_EMP B
+							WHERE A.MENU_ID = #{menuId}
+							AND A.USE_YN = 'Y'
+							AND A.APPR_DEPT_GBN = '1'
+							AND B.HT_CD = 'C'
+							AND B.DEPT_ID IN (#{deptId},(SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId}))
+							AND B.USE_YN = 'Y'
+							AND (
+							           (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+   						            OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+   						            OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+							        OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+                                    OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+
+							)
+							AND A.DEPT_ID IS NULL
+
+							UNION
+
+							SELECT
+							            DISTINCT
+							            A.AP_SEQ AS AP_SEQ,
+							            NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+							            CASE WHEN
+							            			FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'
+							            			ELSE 'N' END
+							            AS ENTRUST_YN,
+							            B.DEPT_ID AS ENTRUST_DEPT_ID,
+							            B.JW_ID AS ENTRUST_JW_ID,
+										B.JC_CD AS ENTRUST_JC_ID,
+							           	B.EMP_ID AS ENTRUST_EMP_ID,
+							            A.AUTO_SIGN AS AUTO_SIGN,
+							            A.SUBCONT_YN AS SUBCONT_YN
+							FROM AP_APPR_DEF A, CO_EMP B
+							WHERE A.DEPT_ID = B.DEPT_ID
+							AND A.MENU_ID = #{menuId}
+							AND A.USE_YN = 'Y'
+							AND A.APPR_DEPT_GBN = '1'
+							AND B.HT_CD = 'C'
+							AND B.DEPT_ID IN (#{deptId},(SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId}))
+							AND B.USE_YN = 'Y'
+							AND (
+							           (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+							        OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+   						            OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+									OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+                                    OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+							)
+							AND A.DEPT_ID IS NOT NULL
+
+							UNION
+
+							SELECT
+							            DISTINCT
+							            1 AS AP_SEQ,
+							            NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+							            CASE WHEN
+							            			FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'
+							            			ELSE 'N' END
+							            AS ENTRUST_YN,
+							            B.DEPT_ID AS ENTRUST_DEPT_ID,
+							            B.JW_ID AS ENTRUST_JW_ID,
+										B.JC_CD AS ENTRUST_JC_ID,
+							           	B.EMP_ID AS ENTRUST_EMP_ID,
+							            A.AUTO_SIGN AS AUTO_SIGN,
+							            A.SUBCONT_YN AS SUBCONT_YN
+							FROM AP_APPR_DEF A, CO_EMP B
+							WHERE A.MENU_ID = #{menuId}
+							AND A.COMP_ID = #{compId}
+							AND A.USE_YN = 'Y'
+							AND A.APPR_DEPT_GBN = '1'
+							AND B.HT_CD = 'C'
+							AND B.DEPT_ID IN ( SELECT UPDEPT_ID FROM CO_DEPT WHERE DEPT_ID = #{deptId} )
+							AND B.USE_YN = 'Y'
+							AND (
+							           (  A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+							        OR (  A.GBN='JW'  AND B.JW_ID  =  A.GBN_VAL)
+   						            OR (  A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+									OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'H' AND SUBSTR(B.JW_ID, 1, 1) = 'H' )
+                                    OR (  A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL AND SUBSTR(A.GBN_VAL, 1, 1) = 'C' AND SUBSTR(B.JW_ID, 1, 1) = 'C' )
+
+							)
+					) A, CO_EMP B
+					WHERE A.APPR_EMP_ID = B.EMP_ID
+			)
+			ORDER BY ORDER_SEQ ASC, JC_GRADE ASC, JW_GRADE ASC, APPR_EMP_NM ASC]]>
+	</select>
+	<select id="selectApprovalLineReqDeptTeamLeader" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO">
+            /* common-api: 요청부서 결재선 담당, 팀장, 팀장 지정자 목록
+             * ApproverLineRepository.selectApprovalLineReqDeptTeamLeader */
+	SELECT
+	     B.COMP_ID AS COMP_ID,
+         B.JW_ID AS APPR_JW_ID,
+         FN_GET_JW_NM (B.JW_ID) AS APPR_JW_NM,
+         B.JC_CD AS APPR_JC_ID,
+         FN_GET_JC_NM (B.JC_CD) AS APPR_JC_NM,
+         B.DEPT_ID AS APPR_DEPT_ID,
+         FN_GET_DEPT_NM (B.DEPT_ID) AS APPR_DEPT_NM,
+         B.EMP_ID AS APPR_EMP_ID,
+         FN_GET_EMP_NM (B.EMP_ID) AS APPR_EMP_NM,
+         FN_GET_DIV_NM (B.DEPT_ID) AS APPR_DIV_NM,
+         0 AS AUTO_SIGN,
+         FN_GET_JC_GRADE (A.ENTRUST_JC_ID) AS JC_GRADE,
+         FN_GET_JW_GRADE (A.ENTRUST_JW_ID) AS JW_GRADE,
+         DECODE (SUBSTR (B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+         DECODE (A.GBN_CD, '2', 'Y', 'N') AS ENTRUST_YN,
+         A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+         A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+         A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+         A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+         FN_GET_DEPT_NM (A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+         FN_GET_JW_NM (A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+         FN_GET_JC_NM (A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+         FN_GET_EMP_NM (A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+         'N' AS SUBCONT_YN,
+         A.GBN_CD
+    FROM (SELECT   A.DEPT_ID
+                 , NVL (FN_GET_APPR_TO_EMP_ID (A.EMP_ID), A.EMP_ID) AS EMP_ID
+                 , A.GBN_CD
+                 , C.DEPT_ID AS ENTRUST_DEPT_ID
+                 , C.JW_ID   AS ENTRUST_JW_ID
+                 , C.JC_CD   AS ENTRUST_JC_ID
+                 , C.EMP_ID  AS ENTRUST_EMP_ID
+            FROM AP_APPOINT A, CO_EMP C
+           WHERE 1=1
+            <if test='!"ALL".equals(searchType)'>
+	         AND   A.DEPT_ID = #{deptId}
+	        </if>
+             /*AND A.DEPT_ID = C.DEPT_ID*/
+             AND A.EMP_ID = C.EMP_ID 
+            <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+	         AND A.EMP_ID = #{empId}
+	        </if>
+        ) A
+        INNER JOIN CO_EMP B
+        ON 1=1 /*A.DEPT_ID = B.DEPT_ID*/
+        AND A.EMP_ID = B.EMP_ID
+        INNER JOIN CO_DEPT E
+        ON A.DEPT_ID = E.DEPT_ID
+        LEFT OUTER JOIN CO_JC C ON B.JC_CD = C.JC_ID
+        LEFT OUTER JOIN CO_JW D ON B.JW_ID = D.JW_ID
+        WHERE B.USE_YN = 'Y'
+        AND   B.JW_ID IS NOT NULL
+        AND   B.HT_CD = 'C'
+        <if test='!"ALL".equals(searchType)'>
+        AND   A.DEPT_ID = #{deptId}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+        AND   B.EMP_NM LIKE '%'||#{empNm}||'%'
+        </if>
+        ORDER BY A.GBN_CD ASC,
+                 DECODE (SUBSTR (B.JW_ID, 1, 1), 'A', 99, 0) ASC,
+                 TO_NUMBER(FN_GET_JC_GRADE(B.JC_CD)) ASC,
+                 B.JC_CD ASC,
+                 TO_NUMBER(FN_GET_JW_GRADE(B.JW_ID)) ASC,
+                 B.JW_ID ASC,
+                 B.EMP_NM ASC
+	</select>
+	<select id="selectApprovalLineReqDeptPLAndDamdang" parameterType="String" resultType="SpecifiedApproverLineDTO">
+            /* common-api: 로그인한 EMP_ID의 속한 부서 PL(팀장)과 상위 부서의 담당(부서장) 조회
+             * ApproverLineRepository.selectApprovalLineReqDeptPLAndDamdang */
+             /*
+    로그인한 EMP_ID 로 자신이 속한 부서의 PL(팀장) 과 상위 부서의 담당(부서장)을 조회하여 자동 결재선 추가(AUTO_SIGN:1)한다.
+      - 결재선에는 로그인한 자신을 포함시킬 수 없다.
+      - 로그인한 자신이 팀장인 경우 상위부서 담당만 추가한다. 팀장 결재 SKIP
+      - 상위부서에 담당이 없으면 그 상위 부서의 담당으로
+      - 결재선 순서는 팀장이 먼저 결재하고 담당이 그 다음 순서
+      - 최대 2행만 조회된다. 팀장 1명(자신이 팀장이면 없을 수 잆음), 담당 1명(필수)
+      - 자동 결재선 추가(AUTO_SIGN:1)되면 화면에 선택된 요청부서 결재선에 자동으로 추가되고 제거되지 못하도록 강제되어야 한다.
+      - 만일 이 쿼리의 조회결과가 0행이면 해당 부서ID에 해당하는 일반 결재선 조회(AUTO_SIGN:0)하여야 한다.
+ */
+ <![CDATA[
+ SELECT
+     COMP_ID,
+     APPR_JW_ID,
+     APPR_JW_NM,
+     APPR_JC_ID,
+     APPR_JC_NM,
+     APPR_DEPT_ID,
+     APPR_DEPT_NM,
+     APPR_EMP_ID,
+     APPR_EMP_NM,
+     APPR_DIV_NM,
+     AUTO_SIGN,
+     JC_GRADE,
+     JW_GRADE,
+     ORDER_SEQ,
+     ENTRUST_YN,
+     ENTRUST_DEPT_ID,
+     ENTRUST_JW_ID,
+     ENTRUST_JC_ID,
+     ENTRUST_EMP_ID,
+     ENTRUST_DEPT_NM,
+     ENTRUST_JW_NM,
+     ENTRUST_JC_NM,
+     ENTRUST_EMP_NM,
+     SUBCONT_YN,
+     DEPTH,
+     GBN_CD
+   FROM (
+	SELECT
+	     B.COMP_ID AS COMP_ID,
+         B.JW_ID AS APPR_JW_ID,
+         FN_GET_JW_NM (B.JW_ID) AS APPR_JW_NM,
+         B.JC_CD AS APPR_JC_ID,
+         FN_GET_JC_NM (B.JC_CD) AS APPR_JC_NM,
+         B.DEPT_ID AS APPR_DEPT_ID,
+         FN_GET_DEPT_NM (B.DEPT_ID) AS APPR_DEPT_NM,
+         B.EMP_ID AS APPR_EMP_ID,
+         FN_GET_EMP_NM (B.EMP_ID) AS APPR_EMP_NM,
+         FN_GET_DIV_NM (B.DEPT_ID) AS APPR_DIV_NM,
+         1 AS AUTO_SIGN,
+         FN_GET_JC_GRADE (A.ENTRUST_JC_ID) AS JC_GRADE,
+         FN_GET_JW_GRADE (A.ENTRUST_JW_ID) AS JW_GRADE,
+         DECODE (SUBSTR (B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+         CASE
+            WHEN FN_GET_APPR_TO_EMP_ID (A.ENTRUST_EMP_ID) IS NOT NULL THEN 'Y'
+            ELSE 'N'
+         END AS ENTRUST_YN,
+         A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+         A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+         A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+         A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+         FN_GET_DEPT_NM (A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+         FN_GET_JW_NM (A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+         FN_GET_JC_NM (A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+         FN_GET_EMP_NM (A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+         'N' AS SUBCONT_YN,
+         E.DEPTH,
+         A.GBN_CD,
+         ROW_NUMBER() OVER( PARTITION BY B.JC_CD ORDER BY E.DEPTH DESC ) AS SUB_ORDER,
+         ROW_NUMBER() OVER( ORDER BY E.DEPTH DESC ) AS ROW_NUM
+    FROM (SELECT   A.DEPT_ID
+                 , NVL (FN_GET_APPR_TO_EMP_ID (A.EMP_ID), A.EMP_ID) AS EMP_ID
+                 , A.GBN_CD
+                 , C.DEPT_ID AS ENTRUST_DEPT_ID
+                 , C.JW_ID   AS ENTRUST_JW_ID
+                 , C.JC_CD   AS ENTRUST_JC_ID
+                 , C.EMP_ID  AS ENTRUST_EMP_ID
+                 , B.DEPTH
+            FROM AP_APPOINT A, (
+                SELECT
+                    LEVEL AS DEPTH,
+                    REGEXP_SUBSTR(C.DEPT_FPATH_ID, '[^>]+', 1, LEVEL) AS DEPT_ID
+                  FROM (SELECT
+                           DEPT_FPATH_ID
+                      FROM CO_DEPT A,
+                           CO_EMP B
+                     WHERE A.DEPT_ID = B.DEPT_ID
+                       AND B.EMP_ID = #{empId}
+                    ) C
+                 CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(C.DEPT_FPATH_ID, '[^>]+', '')) + 1
+             ) B, CO_EMP C
+           WHERE 1 = 1
+	         AND A.DEPT_ID = B.DEPT_ID
+             AND A.DEPT_ID = C.DEPT_ID
+             AND A.EMP_ID = C.EMP_ID
+             AND FN_GET_JC_GRADE (C.JC_CD) <= 5 /* 팀장이상, 담당 */
+             AND A.EMP_ID <> #{empId}  /* 로그인한 사용자 제외 */
+             AND A.GBN_CD = '1'
+        ) A
+        INNER JOIN CO_EMP B ON A.DEPT_ID = B.DEPT_ID AND A.EMP_ID = B.EMP_ID
+        INNER JOIN (
+                SELECT
+                    LEVEL AS DEPTH,
+                    REGEXP_SUBSTR(C.DEPT_FPATH_ID, '[^>]+', 1, LEVEL) AS DEPT_ID
+                  FROM (SELECT
+                           DEPT_FPATH_ID
+                      FROM CO_DEPT A,
+                           CO_EMP B
+                     WHERE A.DEPT_ID = B.DEPT_ID
+                       AND B.EMP_ID = #{empId}
+                    ) C
+                 CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(C.DEPT_FPATH_ID, '[^>]+', '')) + 1
+             ) E ON A.DEPT_ID = E.DEPT_ID
+        LEFT OUTER JOIN CO_JC C ON B.JC_CD = C.JC_ID
+        LEFT OUTER JOIN CO_JW D ON B.JW_ID = D.JW_ID
+        WHERE B.USE_YN = 'Y'
+        AND   B.JW_ID IS NOT NULL
+        AND   FN_GET_JC_GRADE (A.ENTRUST_JC_ID) <= 5 /* 팀장이상, 담당 */
+        AND   B.HT_CD = 'C'
+        AND   A.EMP_ID <> #{empId}  /* 로그인한 사용자 제외 */
+        AND   B.EMP_ID <> #{empId}  /* 로그인한 사용자 제외 */
+        AND   A.DEPT_ID IN (
+                SELECT
+                    REGEXP_SUBSTR(C.DEPT_FPATH_ID, '[^>]+', 1, LEVEL) AS DEPT_ID
+                  FROM (SELECT
+                           DEPT_FPATH_ID
+                      FROM CO_DEPT A,
+                           CO_EMP B
+                     WHERE A.DEPT_ID = B.DEPT_ID
+                       AND B.EMP_ID = #{empId}
+                    ) C
+                 CONNECT BY LEVEL <= LENGTH(REGEXP_REPLACE(C.DEPT_FPATH_ID, '[^>]+', '')) + 1
+             )
+        ORDER BY A.GBN_CD ASC,
+                 E.DEPTH DESC,
+                 DECODE (SUBSTR (B.JW_ID, 1, 1), 'A', 99, 0) ASC,
+                 TO_NUMBER(FN_GET_JC_GRADE(B.JC_CD)) ASC,
+                 B.JC_CD ASC,
+                 TO_NUMBER(FN_GET_JW_GRADE(B.JW_ID)) ASC,
+                 B.JW_ID ASC,
+                 B.EMP_NM ASC
+) X
+WHERE X.SUB_ORDER = 1
+  AND X.ROW_NUM <= 2
+]]>
+	</select>
+
+	<select id="selectApprovalLinePermitLine" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO"><![CDATA[
+            /* common-api: ApproverLineRepository.selectApprovalLinePermitLine */
+			SELECT  /*+INDEX(B CO_EMP_PK)*/
+					A.COMP_ID AS COMP_ID,
+			        B.JW_ID AS APPR_JW_ID,
+					FN_GET_CONAME('', B.JW_ID, B.COMP_ID) AS APPR_JW_NM,
+					B.JC_CD AS APPR_JC_ID,
+					FN_GET_CONAME('JC', B.JC_CD,  B.COMP_ID) AS APPR_JC_NM,
+					B.DEPT_ID AS APPR_DEPT_ID,
+					FN_GET_CONAME('DEPT', B.DEPT_ID, B.COMP_ID) AS APPR_DEPT_NM,
+					B.EMP_ID AS APPR_EMP_ID,
+					FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+					FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+					A.AUTO_SIGN AS AUTO_SIGN,
+
+					A.ENTRUST_YN AS ENTRUST_YN,
+					A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+					A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+					A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+
+					FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+					FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+					FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+					FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+
+					A.SUBCONT_YN AS SUBCONT_YN
+			FROM
+			(
+					SELECT
+							A.AP_SEQ,
+							A.COMP_ID,
+							NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+							CASE WHEN
+				            			FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'
+				            			ELSE 'N' END
+				            AS ENTRUST_YN,
+				            B.DEPT_ID AS ENTRUST_DEPT_ID,
+				            B.JW_ID AS ENTRUST_JW_ID,
+							B.JC_CD AS ENTRUST_JC_ID,
+							B.EMP_ID AS ENTRUST_EMP_ID,
+							A.AUTO_SIGN AS AUTO_SIGN,
+							A.SUBCONT_YN AS SUBCONT_YN
+					FROM (
+                        SELECT
+                            MIN(AP_SEQ) AS AP_SEQ,
+                            COMP_ID,
+                            AUTO_SIGN,
+                            GBN,
+                            GBN_VAL,
+                            LISTAGG(SUBCONT_YN, ':') WITHIN GROUP ( ORDER BY SUBCONT_YN ) AS SUBCONT_YN
+                        FROM AP_APPR_DEF
+                        WHERE MENU_ID = #{menuId}
+                        AND COMP_ID = #{compId}
+                        AND APPR_DEPT_GBN = '2'
+                        AND USE_YN = 'Y'
+                        GROUP BY COMP_ID, AUTO_SIGN, GBN, GBN_VAL
+                    ) A, CO_EMP B
+					WHERE B.USE_YN = 'Y'
+					AND B.HT_CD = 'C'
+					AND (
+					           (A.GBN='JC'  AND B.JC_CD  =  A.GBN_VAL)
+					        OR (A.GBN='JW'  AND B.JW_ID  <= A.GBN_VAL)
+					        OR (A.GBN='EMP' AND B.EMP_ID =  A.GBN_VAL)
+					)
+			) A, CO_EMP B
+			WHERE A.APPR_EMP_ID = B.EMP_ID
+			ORDER BY A.AP_SEQ ASC, B.JW_ID ASC]]>
+	</select>
+	<select id="selectApprovalLinePermitLineCorrPlan" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO" ><![CDATA[
+            /* common-api: 시정계획서 허가부서 부서별 결재선 지정자 목록
+             * ApproverLineRepository.selectApprovalLinePermitLineCorrPlan */
+            SELECT
+                    B.COMP_ID AS COMP_ID,
+                    B.JW_ID AS APPR_JW_ID,
+                    FN_GET_CONAME('', B.JW_ID, B.COMP_ID) AS APPR_JW_NM,
+                    B.JC_CD AS APPR_JC_ID,
+                    FN_GET_CONAME('JC', B.JC_CD,  B.COMP_ID) AS APPR_JC_NM,
+                    B.DEPT_ID AS APPR_DEPT_ID,
+                    FN_GET_CONAME('DEPT', B.DEPT_ID, B.COMP_ID) AS APPR_DEPT_NM,
+                    B.EMP_ID AS APPR_EMP_ID,
+                    FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+                    FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+                    A.AUTO_SIGN AS AUTO_SIGN,
+
+                    A.ENTRUST_YN AS ENTRUST_YN,
+                    B.JW_ID AS ENTRUST_JW_ID,
+                    B.JC_CD AS ENTRUST_JC_ID,
+                    B.EMP_ID AS ENTRUST_EMP_ID,
+
+                    FN_GET_DEPT_NM(B.DEPT_ID) AS ENTRUST_DEPT_NM,
+                    FN_GET_JW_NM(B.JW_ID) AS ENTRUST_JW_NM,
+                    FN_GET_JC_NM(B.JC_CD) AS ENTRUST_JC_NM,
+                    FN_GET_EMP_NM(B.EMP_ID) AS ENTRUST_EMP_NM,
+
+                    A.SUBCONT_YN AS SUBCONT_YN
+            FROM
+            (
+                    SELECT ROWNUM AS AP_SEQ,
+                           'N' AS SUBCONT_YN,
+                           '0' AS AUTO_SIGN,
+                           'Y' AS ENTRUST_YN,
+                           EMP_ID  AS APPR_EMP_ID
+                    FROM SC_DETL_EMP
+                    WHERE DETL_CD = #{ofendDetailGbn}
+                    AND COMP_ID = #{ofendCompId}
+              		]]><if test="actDo != null and actDo == 'C0280003'"><![CDATA[
+              			AND FN_GET_DEPT_ID(EMP_ID) <> '10114064' /* 물리보안팀 허가자 제외 김성원 TL. 요청 20200604 | actDo: 시정계획서(C0280002), 경고장개선계획서(C0280003) */
+              		]]></if><![CDATA[
+            ) A, CO_EMP B
+            WHERE A.APPR_EMP_ID = B.EMP_ID
+            ORDER BY A.AP_SEQ ASC, B.JW_ID ASC]]>
+	</select>
+
+	<select id="selectApprEmpListByDept" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO">
+		/* selectApprEmpListByDept (dmApprEmpListByDept) */
+            SELECT
+                    DISTINCT
+                    COMP_ID,
+                    APPR_JW_ID,
+                    APPR_JW_NM,
+                    APPR_JC_ID,
+                    APPR_JC_NM,
+                    APPR_DEPT_ID,
+                    APPR_DEPT_NM,
+                    APPR_EMP_ID,
+                    APPR_EMP_NM,
+                    APPR_DIV_NM,
+                    AUTO_SIGN,
+                    JC_GRADE,
+                    JW_GRADE,
+                    ORDER_SEQ,
+                    ENTRUST_YN,
+                    ENTRUST_DEPT_ID,
+                    ENTRUST_JW_ID,
+                    ENTRUST_JC_ID,
+                    ENTRUST_EMP_ID,
+
+                    ENTRUST_DEPT_NM,
+                    ENTRUST_JW_NM,
+                    ENTRUST_JC_NM,
+                    ENTRUST_EMP_NM,
+
+                    SUBCONT_YN
+            FROM (
+                    SELECT
+
+                            B.COMP_ID AS COMP_ID,
+
+                            B.JW_ID AS APPR_JW_ID,
+                            FN_GET_JW_NM(B.JW_ID) AS APPR_JW_NM,
+
+                            B.JC_CD AS APPR_JC_ID,
+                            FN_GET_JC_NM(B.JC_CD) AS APPR_JC_NM,
+
+                            B.DEPT_ID AS APPR_DEPT_ID,
+                            FN_GET_DEPT_NM(B.DEPT_ID) AS APPR_DEPT_NM,
+
+                            B.EMP_ID AS APPR_EMP_ID,
+                            FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+
+                            FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+                            A.AUTO_SIGN AS AUTO_SIGN,
+                            FN_GET_JC_GRADE(A.ENTRUST_JC_ID) AS JC_GRADE,
+                            FN_GET_JW_GRADE(A.ENTRUST_JW_ID) AS JW_GRADE,
+                            DECODE( SUBSTR(B.JW_ID, 1, 1), 'A', 99, 0) AS ORDER_SEQ,
+                            A.ENTRUST_YN AS ENTRUST_YN,
+                            A.ENTRUST_DEPT_ID AS ENTRUST_DEPT_ID,
+                            A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+                            A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+                            A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+
+                            FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+                            FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+                            FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+                            FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+
+                            A.SUBCONT_YN AS SUBCONT_YN
+                    FROM
+                    (
+                            SELECT
+                                        DISTINCT
+                                        0 AS AP_SEQ,
+                                        NVL(FN_GET_APPR_TO_EMP_ID(A.EMP_ID), A.EMP_ID) AS APPR_EMP_ID,
+                                        CASE WHEN
+                                                    FN_GET_APPR_TO_EMP_ID(A.EMP_ID) IS NOT NULL THEN 'Y'
+                                                    ELSE 'N' END
+                                        AS ENTRUST_YN,
+                                        A.DEPT_ID AS ENTRUST_DEPT_ID,
+                                        A.JW_ID AS ENTRUST_JW_ID,
+                                        A.JC_CD AS ENTRUST_JC_ID,
+                                        A.EMP_ID AS ENTRUST_EMP_ID,
+                                        0 AS AUTO_SIGN,
+                                        'N' AS SUBCONT_YN
+                            FROM  CO_EMP A
+                            WHERE 1=1
+
+                            <if test='!"ALL".equals(searchType)'>
+                            AND A.DEPT_ID = #{deptId}
+                            </if>
+                            <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+                            AND A.EMP_NM LIKE '%'||#{empNm}||'%'
+                            </if>
+                            <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+                            AND A.EMP_ID = #{empId}
+                            </if>
+
+                            AND A.USE_YN = 'Y'
+                            AND A.HT_CD = 'C'
+                            /*
+                            AND (
+                            		A.JW_ID NOT IN ( 'ACM', 'C5', 'C7', 'CA', 'CB', 'CE', 'CF', 'CI', 'CJ', 'CM', 'CN', 'CO', 'CP', 'CQ', 'CS', 'CT', 'CU', 'CV', 'HG', 'HI', 'HK', 'HM', 'HN', 'HO', 'HP', 'JA', 'JD', 'JE', 'ZH' )
+									OR
+									A.EMP_ID IN ( '2024909' )
+							)
+							*/
+							/* 사번조직변경
+							AND A.JW_ID NOT IN ( 'ACM', 'C5', 'C7', 'CA', 'CB',
+												 'CE', 'CF', 'CI', 'CJ', 'CM',
+												 'CN', 'CO', 'CP', 'CQ', 'CS',
+												 'CT', 'CU', 'CV', 'HG', 'HI',
+												 'HK', 'HM', 'HN', 'HO', 'HP',
+												 'JA', 'JD', 'JE', 'ZH' ) */
+							/* 모든 부서인원인 나오도록 요청 - 정종옥사원-산보팀- 20180817 : CCTV 전사용자, 후 사용자등에 대한 결재선 지정을 위함
+							AND A.JW_ID NOT IN ( 'ACM', 'EC', 'ED', '3A', '3C',
+												 '3F', '3I','3J', '3P', '3O',
+												 '3T', '4A', '4E', 'FA', '5B',
+												 'FB', '5C', 'FC', 'ND', 'NE',
+												 'NF', '4C', 'NG', '4D', 'NH',
+												 'PA', 'GA', 'OA', '9F' )
+							*/
+							AND A.JW_ID IS NOT NULL
+
+							<if test='"ALL".equals(searchType)'>
+							UNION
+
+							SELECT
+									DISTINCT
+									0 AS AP_SEQ,
+                                    NVL(FN_GET_APPR_TO_EMP_ID(A.GBN_VAL), A.GBN_VAL) AS APPR_EMP_ID,
+                                    CASE WHEN
+                                                    FN_GET_APPR_TO_EMP_ID(A.GBN_VAL) IS NOT NULL THEN 'Y'
+                                                    ELSE 'N'
+									END AS ENTRUST_YN,
+                                    A.DEPT_ID AS ENTRUST_DEPT_ID,
+                                    B.JW_ID AS ENTRUST_JW_ID,
+                                    B.JC_CD AS ENTRUST_JC_ID,
+                                    B.EMP_ID AS ENTRUST_EMP_ID,
+                                    0 AS AUTO_SIGN,
+                                    'N' AS SUBCONT_YN
+							FROM SECURITYADM.AP_APPR_DEF A, CO_EMP B
+							WHERE A.GBN_VAL = B.EMP_ID
+							AND A.APPR_DEPT_GBN = '1'
+							AND A.GBN = 'EMP'
+                            AND A.DEPT_ID = #{deptId}
+                            AND A.MENU_ID = #{menuId}
+                            <if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+                            AND B.EMP_ID = #{empId}
+                            </if>
+                            </if>
+                    ) A, CO_EMP B
+                    WHERE A.APPR_EMP_ID = B.EMP_ID
+                    <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+						AND B.EMP_NM LIKE '%' || #{empNm} || '%'
+					</if>
+
+            )
+            ORDER BY ORDER_SEQ ASC, JC_GRADE ASC, JW_GRADE ASC, APPR_EMP_NM ASC
+	</select>
+
+	<select id="selectInoutPermitSpecifiedApproverList" parameterType="PermitSpecifiedApproverQueryDTO" resultType="PermitSpecifiedApproverDTO">
+		/* approverLineRepository.selectInoutPermitSpecifiedApproverList */
+		SELECT
+		    A.APPRDEF_NO,
+		    A.APPR_SEQ,
+		    A.ARTICLE_KND_NO,
+		    DECODE(A.ARTICLE_KND_NO, '1', '물품', '2', '휴대용 전산저장장치', '3', '문서', '4', 'W/S(舊)', '5', 'W/S(新)', '6', '원자재/완제품/PKG Chip', '') AS ARTICLE_KND_NM,
+		    A.ARTICLE_GROUP_ID,
+		    NVL(( SELECT B.ARTICLEGROUPNAME FROM ARTICLEGROUP B WHERE A.ARTICLE_KND_NO = B.ARTICLEKNDNO AND A.ARTICLE_GROUP_ID = B.ARTICLEGROUPID ), '전체') AS ARTICLE_GROUP_NM,
+		    A.APPR_NAME,
+		    A.EMP_ID,
+		    FN_GET_EMP_DEPT_JW_NM(A.EMP_ID) AS EMP_NM,
+		    A.USE_YN,
+		    DECODE(A.USE_YN, 'Y', '사용', 'N', '사용중지', '') AS USE_YN_NM
+		  FROM AP_APPR_DEF_PIOS A, CO_EMP B
+		 WHERE A.EMP_ID = B.EMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+			AND A.USE_YN = #{useYn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(articleKndNo)">
+			AND A.ARTICLE_KND_NO = #{articleKndNo}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(articleGroupId)">
+			AND A.ARTICLE_GROUP_ID = #{articleGroupId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND B.EMP_NM LIKE '%' || #{empNm} || '%'
+		</if>
+	</select>
+
+	<select id="selectInoutPermitSpecifiedApprover" parameterType="Integer" resultType="PermitSpecifiedApproverDTO">
+		/* approverLineRepository.selectInoutPermitSpecifiedApprover */
+		SELECT
+		    APPRDEF_NO,
+		    APPR_SEQ,
+		    ARTICLE_KND_NO,
+			DECODE(ARTICLE_KND_NO, '1', '물품', '2', '휴대용 전산저장장치', '3', '문서', '4', 'W/S(舊)', '5', 'W/S(新)', '6', '원자재/완제품/PKG Chip', '') AS ARTICLE_KND_NM,
+		    ARTICLE_GROUP_ID,
+		    NVL(( SELECT B.ARTICLEGROUPNAME FROM ARTICLEGROUP B WHERE ARTICLE_KND_NO = B.ARTICLEKNDNO AND ARTICLE_GROUP_ID = B.ARTICLEGROUPID ), '전체') AS ARTICLE_GROUP_NM,
+		    APPR_NAME,
+		    EMP_ID,
+		    FN_GET_EMP_NM(EMP_ID) AS EMP_NM,
+		    USE_YN,
+		    DECODE(USE_YN, 'Y', '사용', 'N', '사용중지', '') AS USE_YN_NM,
+		    HYNIX_YN,
+		    COMPANY_YN,
+		    INOUT_KND1,
+		    INOUT_KND2,
+		    INOUT_KND3,
+		    INOUT_KND4
+		 FROM AP_APPR_DEF_PIOS
+		WHERE APPRDEF_NO = #{apprdefNo}
+	</select>
+
+
+	<insert id="insertInoutPermitSpecifiedApprover" parameterType="PermitSpecifiedApproverDTO">
+		/* approverLineRepository.insertInoutPermitSpecifiedApprover */
+		INSERT INTO AP_APPR_DEF_PIOS (
+		    APPRDEF_NO,
+		    APPR_SEQ,
+		    ARTICLE_KND_NO,
+		    ARTICLE_GROUP_ID,
+		    APPR_NAME,
+		    EMP_ID,
+		    USE_YN,
+		    CRT_BY,
+		    CRT_DTM,
+		    HYNIX_YN,
+		    COMPANY_YN,
+		    INOUT_KND1,
+		    INOUT_KND2,
+		    INOUT_KND3,
+		    INOUT_KND4,
+		    PRE_APPR_1
+		) VALUES (
+			AP_APPR_DEF_PIOS_SEQ.NEXTVAL,
+			'1',
+			#{articleKndNo},
+			#{articleGroupId},
+			#{apprName},
+			#{empId},
+			#{useYn},
+			#{crtBy},
+		    SYSDATE,
+			#{hynixYn},
+			#{companyYn},
+			#{inoutKnd1},
+			#{inoutKnd2},
+			#{inoutKnd3},
+			#{inoutKnd4},
+			#{preAppr1}
+		)
+	</insert>
+
+	<update id="updateInoutPermitSpecifiedApprover" parameterType="PermitSpecifiedApproverDTO">
+		/* approverLineRepository.updateInoutPermitSpecifiedApprover */
+		UPDATE AP_APPR_DEF_PIOS
+		SET
+		    ARTICLE_KND_NO		= #{articleKndNo},
+		    ARTICLE_GROUP_ID	= #{articleGroupId},
+		    APPR_NAME			= #{apprName},
+		    EMP_ID				= #{empId},
+		    USE_YN				= #{useYn},
+		    MOD_BY				= #{modBy},
+		    MOD_DTM				= SYSDATE,
+		    HYNIX_YN			= #{hynixYn},
+		    COMPANY_YN			= #{companyYn},
+		    INOUT_KND1			= #{inoutKnd1},
+		    INOUT_KND2			= #{inoutKnd2},
+		    INOUT_KND3			= #{inoutKnd3},
+		    INOUT_KND4			= #{inoutKnd4},
+		    PRE_APPR_1			= #{preAppr1}
+		WHERE
+		    APPRDEF_NO = #{apprdefNo}
+	</update>
+
+	<select id="selectInoutPermitApprovalLine" parameterType="ApproverLineQueryDTO" resultType="SpecifiedApproverLineDTO">
+		/* common-api: InoutPermitApproverLineRepository.selectInoutPermitApprovalLine */
+		SELECT
+		A.LEAVEAPPROVALNAME AS LEAVEAPPROVALNAME,
+		B.COMP_ID AS COMP_ID,
+		B.JW_ID AS APPR_JW_ID,
+		FN_GET_CONAME('', B.JW_ID, B.COMP_ID) AS APPR_JW_NM,
+		B.JC_CD AS APPR_JC_ID,
+		FN_GET_CONAME('JC', B.JC_CD,  B.COMP_ID) AS APPR_JC_NM,
+		B.DEPT_ID AS APPR_DEPT_ID,
+		FN_GET_CONAME('DEPT', B.DEPT_ID, B.COMP_ID) AS APPR_DEPT_NM,
+		B.EMP_ID AS APPR_EMP_ID,
+		FN_GET_EMP_NM(B.EMP_ID) AS APPR_EMP_NM,
+		FN_GET_DIV_NM(B.DEPT_ID) AS APPR_DIV_NM,
+		A.AUTO_SIGN AS AUTO_SIGN,
+		A.ENTRUST_YN AS ENTRUST_YN,
+		A.ENTRUST_JW_ID AS ENTRUST_JW_ID,
+		A.ENTRUST_JC_ID AS ENTRUST_JC_ID,
+		A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+		FN_GET_DEPT_NM(A.ENTRUST_DEPT_ID) AS ENTRUST_DEPT_NM,
+		FN_GET_JW_NM(A.ENTRUST_JW_ID) AS ENTRUST_JW_NM,
+		FN_GET_JC_NM(A.ENTRUST_JC_ID) AS ENTRUST_JC_NM,
+		FN_GET_EMP_NM(A.ENTRUST_EMP_ID) AS ENTRUST_EMP_NM,
+		A.SUBCONT_YN AS SUBCONT_YN,
+		A.PRE_APPR_1,
+		FN_GET_EMP_NM(A.PRE_APPR_1) AS PRE_APPR_NM_1,
+		FN_GET_JW_ID(A.PRE_APPR_1) AS PRE_APPR_JW_ID_1,
+		FN_GET_JW_NM(FN_GET_JW_ID(A.PRE_APPR_1)) AS PRE_APPR_JW_NM_1,
+		FN_GET_DEPT_ID(A.PRE_APPR_1) AS PRE_APPR_DEPT_ID_1,
+		FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.PRE_APPR_1)) AS PRE_APPR_DEPT_NM_1
+		FROM (
+		SELECT
+		DISTINCT
+		A.LEAVEAPPROVALNAME AS LEAVEAPPROVALNAME,
+		0 AS AP_SEQ,
+		NVL(FN_GET_APPR_TO_EMP_ID(B.EMP_ID), B.EMP_ID) AS APPR_EMP_ID,
+		CASE WHEN FN_GET_APPR_TO_EMP_ID(B.EMP_ID) IS NOT NULL THEN 'Y'  ELSE 'N' END  AS ENTRUST_YN,
+		B.DEPT_ID AS ENTRUST_DEPT_ID,
+		B.JW_ID AS ENTRUST_JW_ID,
+		B.JC_CD AS ENTRUST_JC_ID,
+		B.EMP_ID AS ENTRUST_EMP_ID,
+		--DECODE(ARTICLE_KND_NO, '98', '1', '99', '1', '0') AS AUTO_SIGN,
+		DECODE(A.EMP_ID,'2070039','1','2033937','1','2073642','1','2070629','1',DECODE(ARTICLE_KND_NO, '98', '1', '99', '1', '97', '1', '96', '1', '0'))  AS AUTO_SIGN,
+		'N' AS SUBCONT_YN,
+		A.PRE_APPR_1,
+		A.APPR_SEQ
+		FROM (
+		SELECT
+		APPR_NAME AS LEAVEAPPROVALNAME,
+		EMP_ID AS EMP_ID,
+		APPRDEF_NO AS APPRDEF_NO,
+		ARTICLE_KND_NO,
+		PRE_APPR_1,
+		APPR_SEQ
+		FROM AP_APPR_DEF_PIOS
+		WHERE USE_YN = 'Y'
+		AND ARTICLE_KND_NO   = #{articlekndno}
+		AND ( ARTICLE_GROUP_ID = #{articlegroupid} OR ARTICLE_GROUP_ID IS NULL OR ARTICLE_GROUP_ID = '' )
+		/* 상대처구분 */
+		<if test="not @org.springframework.util.StringUtils@isEmpty(outcompanyknd)">
+			<if test='outcompanyknd.equals(1)'>
+				AND HYNIX_YN = 'Y'
+			</if>
+			<if test='outcompanyknd.equals(2)'>
+				AND COMPANY_YN = 'Y'
+			</if>
+			<if test='outcompanyknd.equals(3)'>
+				AND COMPANY_YN = 'Y'
+			</if>
+		</if>
+
+
+		/* 반입구분 */
+		<if test="not @org.springframework.util.StringUtils@isEmpty(inoutknd)">
+			<if test='inoutknd.equals("1")'>
+				AND INOUT_KND1 = 'Y'
+			</if>
+			<if test='inoutknd.equals("2")'>
+				AND INOUT_KND2 = 'Y'
+			</if>
+			<if test='inoutknd.equals("3")'>
+				AND INOUT_KND3 = 'Y'
+			</if>
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(inoutknd)">
+			AND INOUT_KND1 = 'Y'
+			AND INOUT_KND2 = 'Y'
+			AND INOUT_KND3 = 'Y'
+		</if>
+
+
+		/* 패턴 구분 */
+		<if test="not @org.springframework.util.StringUtils@isEmpty(patternknd)">
+			<if test='patternknd.equals("Y")'>
+				AND INOUT_KND4 = 'Y'
+			</if>
+			<if test='patternknd.equals("N")'>
+				AND INOUT_KND4 = 'N'
+			</if>
+			<if test='patternknd.equals("P")'>
+				AND INOUT_KND4 = 'P'
+			</if>
+		</if>
+
+
+		) A, CO_EMP B
+		WHERE A.EMP_ID =  B.EMP_ID
+		) A, CO_EMP B
+		WHERE A.APPR_EMP_ID = B.EMP_ID
+		ORDER BY A.APPR_SEQ, A.LEAVEAPPROVALNAME ASC
+	</select>
+
+</mapper>
+
+

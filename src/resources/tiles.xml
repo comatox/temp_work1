@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC
+        "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+    <!-- main layout -->
+    <definition name="main-layout" template="/WEB-INF/views/common/layout/main_layout.jsp">
+        <put-attribute name="constants" value="/WEB-INF/views/common/layout/default_constants.jsp"/>
+        <put-attribute name="include" value="/WEB-INF/views/common/layout/default_include.jsp"/>
+        <put-attribute name="header" value="/WEB-INF/views/common/layout/default_header.jsp"/>
+        <put-attribute name="footer" value="/WEB-INF/views/common/layout/default_footer.jsp"/>
+    </definition>
+    <definition name="tiles:/main/main" extends="main-layout">
+        <put-attribute name="body" value="/WEB-INF/views/main/main.jsp"/>
+    </definition>
+
+    <!-- popup layout -->
+    <definition name="popup-layout" template="/WEB-INF/views/common/layout/popup_layout.jsp">
+        <put-attribute name="constants" value="/WEB-INF/views/common/layout/default_constants.jsp"/>
+        <put-attribute name="include" value="/WEB-INF/views/common/layout/default_include.jsp"/>
+    </definition>
+    <definition name="tiles:/common/popup/*" extends="popup-layout">
+        <put-attribute name="body" value="/WEB-INF/views/common/popup/{1}.jsp"/>
+    </definition>
+
+    <!-- default layout -->
+    <definition name="default-layout" template="/WEB-INF/views/common/layout/default_layout.jsp">
+        <put-attribute name="constants" value="/WEB-INF/views/common/layout/default_constants.jsp"/>
+        <put-attribute name="include" value="/WEB-INF/views/common/layout/default_include.jsp"/>
+        <put-attribute name="header" value="/WEB-INF/views/common/layout/default_header.jsp"/>
+        <put-attribute name="sidemenu" value="/WEB-INF/views/common/layout/default_sidemenu.jsp"/>
+        <put-attribute name="footer" value="/WEB-INF/views/common/layout/default_footer.jsp"/>
+    </definition>
+    <definition name="tiles:/*" extends="default-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}.jsp"/>
+    </definition>
+    <definition name="tiles:/*/*" extends="default-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}.jsp"/>
+    </definition>
+
+    <definition name="tiles:/popup/*/*/*" extends="popup-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}/{3}.jsp"/>
+    </definition>
+    <definition name="tiles:/*/*/*" extends="default-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}/{3}.jsp"/>
+    </definition>
+
+    <definition name="tiles:/popup/*/*/*/*" extends="popup-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp"/>
+    </definition>
+    <definition name="tiles:/*/*/*/*" extends="default-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}/{3}/{4}.jsp"/>
+    </definition>
+
+    <definition name="tiles:/main/test" extends="main-layout">
+        <put-attribute name="body" value="/WEB-INF/views/main/test.jsp"/>
+    </definition>
+</tiles-definitions>

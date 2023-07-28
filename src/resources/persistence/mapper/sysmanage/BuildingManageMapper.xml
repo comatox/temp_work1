@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.BuildingManageRepository">
+
+    <select id="selectGateListTop" parameterType="String" resultType="CamelHashMap">
+    /* buildingManageRepository.selectGateListTop (dmUpGateList) */
+    SELECT GATE_ID, GATE_NM, GATE_EN_NM, COMP_ID, FN_GET_CODE('A038', COMP_ID, 'ETC1') AS COMP_NM, UP_GATE_ID, CLEAN_EDU_YN, CTRL_YN
+      FROM CO_BLDG
+     WHERE UP_GATE_ID = '0'
+       AND VSTR_AVAIL_YN = 'Y'
+       AND NVL(DEL_YN,'N') = 'N'
+       AND GATE_KND = '2'
+       <choose>
+              <when test='"1108000001".equals(compId)'>
+       AND COMP_ID IN ('1108000001','1138000001')
+              </when>
+           <when test='not @org.springframework.util.StringUtils@isEmpty(compId) and !"1108000001".equals(compId)'>
+       AND COMP_ID = #{compId}
+           </when>
+              <otherwise>
+              </otherwise>
+       </choose>
+     ORDER BY COMP_ID, SORT_SEQ
+    </select>
+
+    <select id="selectGateListSub" parameterType="HashMap" resultType="CamelHashMap">
+      /* IO: insNet.entManage.buildingmanage.DU_BuildingManage_dmUpGateList_2012-07-26T15:11:47(2012-09-17T20:10:45) */
+      SELECT
+      GATE_ID,
+      GATE_NM,
+      GATE_EN_NM,
+      UP_GATE_ID
+      FROM CO_BLDG
+      WHERE VSTR_AVAIL_YN = 'Y'
+      AND NVL(DEL_YN,'N') = 'N'
+      <if test='"1109000001".equals(compId)'>
+        AND COMP_ID IN (#{compId}, '1137000001')
+      </if>
+      AND COMP_ID = #{compId}
+      AND UP_GATE_ID = #{upGateId}
+      <if test="not @org.springframework.util.StringUtils@isEmpty(gateKnd)">
+        AND GATE_KND = #{gateKnd}
+      </if>
+      ORDER BY GATE_NM ASC
+    </select>
+
+    <select id="selectBuildingList" resultType="CamelHashMap" parameterType="Map">
+      /* IO: insNet.entManage.buildingmanage.DU_BuildingManage_dmBuildingList_2012-07-26T15:11:47(2012-09-03T19:59:47) */
+      WITH T AS (
+      SELECT
+      ROW_NUMBER() OVER( ORDER BY COMP_ID ASC, UP_GATE_ID ASC, GATE_NM ASC ) AS ROW_NUM,
+      GATE_ID,
+      FN_GET_CO_BLDG(GATE_ID, '3') AS GATE_NM,
+      COMP_ID,
+      (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'F004' AND ETC1 = COMP_ID) AS COMP_NM,
+      GATE_CD,
+      UP_GATE_ID,
+      GATE_KND,
+      VSTR_AVAIL_YN,
+      CLEAN_EDU_YN,
+      CTRL_YN,
+      SORT_SEQ,
+      DEL_YN,
+      DEPTH
+      FROM CO_BLDG
+      WHERE 1 = 1
+
+      <if test="searchCompId != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+          AND COMP_ID = #{searchCompId}
+        </if>
+      </if>
+      <if test="searchUpGateId != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchUpGateId)">
+          AND UP_GATE_ID = #{searchUpGateId}
+        </if>
+      </if>
+      <if test="searchGateNm != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateNm)">
+          AND GATE_NM LIKE '%'|| #{searchGateNm} ||'%'
+        </if>
+      </if>
+      <if test="searchVstrAvailYn != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchVstrAvailYn)">
+          AND VSTR_AVAIL_YN = #{searchVstrAvailYn}
+        </if>
+      </if>
+      <if test="searchCtrlYn != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCtrlYn)">
+          AND NVL(CTRL_YN, 'N') = #{searchCtrlYn}
+        </if>
+      </if>
+      <if test="searchCleanEduYn != null">
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCleanEduYn)">
+          <if test="searchCleanEduYn.equals('Y')">
+            AND CLEAN_EDU_YN = 'Y'
+          </if>
+          AND CLEAN_EDU_YN <![CDATA[<>]]> 'Y'
+        </if>
+      </if>
+
+      )
+      SELECT
+      ROW_NUM,
+      GATE_ID,
+      GATE_NM,
+      COMP_ID,
+      COMP_NM,
+      GATE_CD,
+      UP_GATE_ID,
+      GATE_KND,
+      VSTR_AVAIL_YN,
+      CLEAN_EDU_YN,
+      CTRL_YN,
+      SORT_SEQ,
+      DEL_YN,
+      DEPTH
+      FROM T
+
+      WHERE ROW_NUM
+      BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1
+      AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+    </select>
+
+  <select id="selectBuildingCount" resultType="Integer" parameterType="Map">
+    /* IO: insNet.entManage.buildingmanage.DU_BuildingManage_dmBuildingCount_2012-07-26T15:11:47(2012-09-03T19:59:36) */
+    SELECT
+    COUNT(*) AS TOTAL_COUNT
+    FROM CO_BLDG
+    WHERE 1 = 1
+
+    <if test="searchCompId != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+        AND COMP_ID = #{searchCompId}
+      </if>
+    </if>
+    <if test="searchUpGateId != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchUpGateId)">
+        AND UP_GATE_ID = #{searchUpGateId}
+      </if>
+    </if>
+    <if test="searchGateNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateNm)">
+        AND GATE_NM LIKE '%'|| #{searchGateNm} ||'%'
+      </if>
+    </if>
+    <if test="searchVstrAvailYn != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchVstrAvailYn)">
+        AND VSTR_AVAIL_YN = #{searchVstrAvailYn}
+      </if>
+    </if>
+    <if test="searchCtrlYn != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchCtrlYn)">
+        AND NVL(CTRL_YN, 'N') = #{searchCtrlYn}
+      </if>
+    </if>
+    <if test="searchCleanEduYn != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchCleanEduYn)">
+        <if test="searchCleanEduYn.equals('Y')">
+          AND CLEAN_EDU_YN = 'Y'
+        </if>
+        AND CLEAN_EDU_YN <![CDATA[<>]]> 'Y'
+      </if>
+    </if>
+  </select>
+    
+    <select id="selectBuildingView" parameterType="String" resultType="CamelHashMap">
+    /* buildingManageRepository.selectBuildingView (dmBuildingView) */
+    SELECT 
+           GATE_ID, 
+           GATE_NM,
+           GATE_EN_NM,
+           UP_GATE_ID,
+           FN_GET_GATE_NM(UP_GATE_ID) AS UP_GATE_NM,
+           COMP_ID, 
+           FN_GET_CONAME('COMP', COMP_ID, COMP_ID) AS COMP_NM,
+           GATE_CD, 
+           GATE_KND, 
+           VSTR_AVAIL_YN, 
+           CLEAN_EDU_YN, 
+           CTRL_YN, 
+           SORT_SEQ, 
+           DEL_YN,
+           DEPTH,
+           TAGIDKND,
+           APPR_EMP_ID,
+           FN_GET_EMP_NM(APPR_EMP_ID) AS APPR_EMP_NM,
+           APPR_EMP_ID2,
+           FN_GET_EMP_NM(APPR_EMP_ID2) AS APPR_EMP_NM2
+      FROM CO_BLDG
+     WHERE GATE_ID = #{gateId}
+    </select>
+
+    <insert id="insertBuilding" parameterType="Map">
+    /* buildingManageRepository.insertBuilding (dmBuildingInsert) */
+    INSERT INTO CO_BLDG (
+        GATE_ID, COMP_ID, GATE_NM, 
+        GATE_CD, UP_GATE_ID, VSTR_AVAIL_YN, 
+        CLEAN_EDU_YN, CTRL_YN, SORT_SEQ, 
+        DEL_YN, TAGIDKND, AC_IP, 
+        CRT_BY, CRT_DTM, GATE_EN_NM, APPR_EMP_ID, APPR_EMP_ID2) 
+    VALUES ( 
+        SEQ_CO_BLDG.NEXTVAL,
+        #{compId},
+        #{gateNm},
+        #{gateNm},
+        #{upGateId},
+        #{vstrAvailYn},
+        #{cleanEduYn},
+        #{ctrlYn},
+        #{sortSeq},
+        #{delYn},
+        #{tagidknd},
+        #{acIp},
+        #{crtBy},
+        SYSDATE,
+        #{gateEnNm},
+        #{apprEmpId},
+        #{apprEmpId2}
+    )
+    </insert>
+
+    <update id="updateBuilding" parameterType="Map">
+    /* buildingManageRepository.updateBuilding (dmBuildingUpdate) */
+    UPDATE SECURITYADM.CO_BLDG
+    SET    VSTR_AVAIL_YN = #{vstrAvailYn},
+           CLEAN_EDU_YN  = #{cleanEduYn},
+           CTRL_YN       = #{ctrlYn},
+           SORT_SEQ      = #{sortSeq},
+           TAGIDKND      = #{tagidknd},
+           MOD_BY        = #{modBy},
+           MOD_DTM       = SYSDATE,
+           GATE_EN_NM    = #{gateEnNm},
+           APPR_EMP_ID   = #{apprEmpId},
+           APPR_EMP_ID2  = #{apprEmpId2},
+           DEL_YN        = #{delYn}
+    WHERE  GATE_ID       = #{gateId}
+    </update>
+</mapper>

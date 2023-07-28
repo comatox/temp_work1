@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.esecuritysi.EsecuritySiRepository">
+
+	<select id="dmSecIoEmp_Violation_PassExprHist_Seq_S" resultType="Integer">
+		<![CDATA[
+		/*  EsecuritySiRepository.dmSecIoEmp_Violation_PassExprHist_Seq_S (dmSecIoEmp_Violation_PassExprHist_Seq_S) */
+		SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL AS EXPR_APPL_NO FROM DUAL
+		]]>
+	</select>
+	
+	<insert id="dmSecIoEmp_Violation_PassExprHist_IEtc" parameterType="Map">
+	<![CDATA[
+	/*  EsecurityHsRepository.dmSecIoEmp_Violation_PassExprHist_IEtc (dmSecIoEmp_Violation_PassExprHist_IEtc) */
+	INSERT INTO IO_PASS_EXPR_HIST 
+	(
+	  EXPR_APPL_NO
+	, EXPR_GBN
+	, IO_COMP_ID
+	, IO_EMP_ID
+	, IDCARD_ID
+	, CARD_NO
+	, COMP_ID
+	, DEPT_ID
+	, JW_ID
+	, EMP_ID
+	, EXPR_IO_COMP_ID
+	, EXPR_IO_EMP_ID
+	, EXPR_RSN
+	, EXPR_STRT_DT
+	, EXPR_END_DT
+	, AC_IP
+	, CRT_BY
+	, CRT_DTM
+	, MOD_BY
+	, MOD_DTM
+	) 
+	SELECT
+		 #{exprApplNo}
+		,DECODE(#{actDo}, 'C0280007', 'A0460007', 'C0280008', 'A0460008', 'C0280012', 'A0460021')
+		,IO_COMP_ID
+		,IO_EMP_ID
+		,SMART_IDCARD
+		,CARD_NO
+		,'' AS COMP_ID 
+		,'' AS DEPT_ID
+		,'' AS JW_ID
+		,'' AS EMP_ID
+		,IO_COMP_ID
+		,(	SELECT	A.ADMIN1_EMAIL
+			FROM	IO_COMP A,
+					IO_EMP B
+			WHERE	A.IO_COMP_ID = B.IO_COMP_ID
+			AND		A.IO_COMP_ID != 'PERSONAL'
+			AND		A.ADMIN1_EMAIL IS NOT NULL
+			AND		B.IO_EMP_ID = #{ofendEmpId}
+	     )
+		,NVL( (SELECT DETL_NM FROM CO_CODE_D WHERE DETL_CD = #{actDo}), '')
+		,CASE	WHEN #{actDo} = 'C0280007' THEN TO_CHAR(SYSDATE, 'yyyyMMdd')
+				WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE, 'yyyyMMdd')
+				WHEN #{actDo} = 'C0280012' THEN TO_CHAR(SYSDATE, 'yyyyMMdd')
+				ELSE ''
+		 END   
+		,CASE	WHEN #{actDo} = 'C0280007' THEN '99991231'
+				WHEN #{actDo} = 'C0280008' THEN TO_CHAR(SYSDATE+29, 'yyyyMMdd')
+				WHEN #{actDo} = 'C0280012' THEN TO_CHAR(SYSDATE+179, 'yyyyMMdd')
+				ELSE ''
+		 END  
+	    ,#{acIp}
+		,#{crtBy}
+	    ,SYSDATE
+	    ,#{crtBy} 
+	    ,SYSDATE
+	FROM VW_IO_PASS_MST2
+	WHERE IO_EMP_ID = #{ofendEmpId}
+	]]>
+	</insert>
+	
+	<select id="dmSecIoEmp_Violation_Idcard_InfoEtc" parameterType="Map" resultType="CamelHashMap">
+	<![CDATA[
+	/*  EsecurityHsRepository.dmSecIoEmp_Violation_Idcard_InfoEtc (dmSecIoEmp_Violation_Idcard_InfoEtc) */
+	SELECT
+	  NVL(MAX(SMART_IDCARD), '')  AS IDCARD_ID 
+	 FROM VW_IO_PASS_MST2  
+	WHERE IO_EMP_ID = #{ofendEmpId}
+	]]>
+	</select>
+	
+	<!-- 외부인 보안 위규자 상세 > 출입 외부 제한 이력 Seq  - offLimitsIoPassExprHistSeq (ASIS : dmOffLimitsIoPassExprHistSeq ) -->
+	<select id="offLimitsIoPassExprHistSeq" resultType="java.lang.String">
+		/* [SI]외부인 보안 위규자 상세 > 출입 외부 제한 이력 Seq  - offLimitsIoPassExprHistSeq */
+		SELECT SEQ_IO_PASS_EXPR_HIST.NEXTVAL  AS EXPR_APPL_NO 
+		  FROM DUAL
+	</select>
+	
+	<!-- 외부인 보안 위규자 상세 > 출입 외부 제한 이력 등록  - offLimitsExprHistoryInsert (ASIS : dmOffLimitsExprHistoryInsert ) -->
+	<insert id="offLimitsExprHistoryInsert" parameterType="Map" >
+		/* [SI]외부인 보안 위규자 상세 > 출입 외부 제한 이력 등록  - offLimitsExprHistoryInsert */
+		INSERT INTO IO_PASS_EXPR_HIST 
+		(
+		  EXPR_APPL_NO
+		, EXPR_GBN
+		, IO_COMP_ID
+		, IO_EMP_ID
+		, IDCARD_ID
+		, CARD_NO
+		, COMP_ID
+		, DEPT_ID
+		, JW_ID
+		, EMP_ID
+		, EXPR_RSN
+		, EXPR_STRT_DT
+		, EXPR_END_DT
+		, AC_IP
+		, CRT_BY
+		, CRT_DTM
+		, S_C_GBN
+		) VALUES
+		(
+      	  #{exprApplNo}
+		, #{exprGbn}
+		, #{ioCompId}
+		, #{ioEmpId}
+		, #{smartIdcard}
+		, #{cardNo}
+		, #{compId}
+		, #{deptId}
+		, #{jwId}
+		, #{crtBy}
+		, #{denyRsn}
+		, replace(#{denyStrtDt},'-','')
+		, replace(#{denyEndDt},'-','')
+		, #{acIp}
+		, #{crtBy}
+		, SYSDATE
+		, #{scGbn}
+		)
+	</insert>
+</mapper>

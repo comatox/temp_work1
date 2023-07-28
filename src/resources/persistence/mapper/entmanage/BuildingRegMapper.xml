@@ -1,0 +1,2437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.BuildingRegRepository">
+
+	<select id="selectEmpCardNo" parameterType="String" resultType="String">
+		/* BuildingRegRepository.selectEmpCardNo (dmGetEmpApplInfo_empCard) */
+		SELECT
+        	AA.CARD_NO
+		FROM IO_EMPCARD AA
+		WHERE AA.EMPCARD_APPL_NO = (SELECT MAX(A.EMPCARD_APPL_NO) FROM IO_EMPCARD A
+          						  WHERE A.EMP_ID = #{empId} AND A.STATUS in ('A0091005','A0091004') AND A.TAG_GBN != '2' )
+	</select>
+
+	<select id="selectCardNo" parameterType="String" resultType="String">
+		/* BuildingRegRepository.selectCardNo (dmGetEmpApplInfo) */
+		SELECT CARD_NO
+		FROM CO_EMP_BLDG
+		WHERE EMP_ID = #{empId}
+		AND ROWNUM = 1
+	</select>
+
+	<select id="selectCardKeyBldgList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyBldgList (dmCARD_KEY_BLDG_LIST) */
+		SELECT A.BLDG_ID
+			 , A.BLDG_NM
+			 , DECODE(B.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_BLDG A
+		LEFT OUTER JOIN (SELECT DISTINCT GATE_ID FROM IF_CARDKEY_MYGATE WHERE COMP_ID='A' AND AREA_TYPE='0' AND EMP_ID= #{empId}) B 
+		 ON B.GATE_ID = A.BLDG_ID
+		WHERE A.ESECU_BLDG_ID IS NOT NULL
+		  AND A.COMP_ID = 'A'
+		<if test='"CO".equals(empType) and "Y".equals(listBldg)'>
+		  AND A.BLDG_ID NOT IN ( SELECT BLDG_ID 
+          						 FROM CO_EMP_BLDG 
+          						 WHERE EMP_ID = #{empId}
+          						   AND FLR_ID IS NULL
+          						   AND GATE_ID IS NULL
+          						   AND SPE_ZONE = '0' )
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+		  AND UPPER(A.BLDG_NM) LIKE '%'|| UPPER(#{bldgNm}) ||'%' 
+		</if>
+		ORDER BY B.GATE_ID, A.BLDG_NM ASC     			
+	</select>
+	
+	<select id="selectCardKeyFloorList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyFloorList (dmCARD_KEY_FLOOR_SPE_ZONE_0_LIST) */
+		/* (이천)출입건물(일반구역) 검색팝업 */
+		SELECT  DISTINCT
+				'FLOOR' AS GATE_TYPE,
+				A.BLDG_ID AS BLDG_ID,
+				A.FLOOR_ID AS FLOOR_ID,
+				'' AS GATE_ID,
+				B.BLDG_NM AS BLDG_NM,
+				C.FLOOR_NM AS FLOOR_NM,
+				'' AS APPR_EMP_ID,
+				'' AS APPR_EMP_NM,
+				/* A.APPR_EMP_ID AS APPR_EMP_ID,
+				A.APPR_EMP_NM AS APPR_EMP_NM, */
+				NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'FLOOR' || '@' ||  A.BLDG_ID|| '@' || NVL(A.FLOOR_ID,' ') || '@' ||  A.GATE_ID || '@' || ' ' || '@' || ' ' || '@' || ' ' AS FULL_GATE_ID,
+				DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_GATE A
+		LEFT OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.BLDG_ID AND M.FLOOR_ID = A.FLOOR_ID AND M.COMP_ID='A' AND M.AREA_TYPE='0' AND M.EMP_ID = #{empId}
+		, IF_CARDKEY_BLDG B, IF_CARDKEY_FLOOR C		
+		WHERE A.BLDG_ID = B.BLDG_ID
+		AND A.FLOOR_ID = C.FLOOR_ID
+		AND A.USE_YN = 'Y'
+		AND B.USE_YN = 'Y'		
+		AND A.COMP_ID = 'A'
+		
+		<if test='"IO".equals(empType)'>
+        	AND A.IO_EMP_SPE_ZONE = '0'
+		</if>
+		<if test='"CO".equals(empType)'>
+			AND A.CO_EMP_SPE_ZONE = '0'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+		    AND A.BLDG_ID = #{bldgId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+		    AND UPPER(B.BLDG_NM) LIKE '%'|| UPPER(#{bldgNm}) ||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(floorNm)">
+		    AND UPPER(C.FLOOR_NM) LIKE '%'|| UPPER(#{floorNm}) ||'%' 
+		</if>
+		
+		GROUP BY A.BLDG_ID,A.FLOOR_ID,B.BLDG_NM,C.FLOOR_NM,A.APPR_EMP_ID,A.APPR_EMP_NM,A.IO_EMP_SPE_ZONE,A.GATE_ID,M.GATE_ID
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC ,B.BLDG_NM ASC, C.FLOOR_NM ASC
+	</select>
+
+	<select id="selectCardKeyCjBldgList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyCjBldgList (dmCARD_KEY_CJ_FLOOR_SPE_ZONE_0_LIST_EMPCARD) */
+		SELECT DISTINCT 
+              'FLOOR' AS GATE_TYPE,
+              B.BLDG_ID AS BLDG_ID, 
+              A.FLOOR_ID AS FLOOR_ID,
+              A.GATE_ID AS GATE_ID,
+              B.BLDG_NM AS BLDG_NM,
+              A.GATE_NM AS GATE_NM, 
+              '' AS APPR_EMP_ID,
+              '' AS APPR_EMP_NM,
+             /* A.APPR_EMP_ID AS APPR_EMP_ID,
+              A.APPR_EMP_NM AS APPR_EMP_NM,*/
+              NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'FLOOR' || '@' ||  A.BLDG_ID|| '@' || NVL(A.FLOOR_ID,' ') || '@' ||  A.GATE_ID || '@' || ' ' || '@' || ' ' || '@' || ' ' AS FULL_GATE_ID, 
+        	  /* 허가자 구성   NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'FLOOR' || '@' || A.GATE_ID || '@' || NVL(A.FLOOR_ID,' ') || '@' || ' ' || '@' || NVL(A.APPR_EMP_ID_2,' ') || '@' || NVL(A.APPR_EMP_ID_1,' ') || '@' || NVL(A.APPR_EMP_ID,' ') AS FULL_GATE_ID */
+        	  DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM  IF_CARDKEY_GATE A
+		LEFT  OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.BLDG_ID AND M.FLOOR_ID = A.FLOOR_ID AND M.COMP_ID='B' AND M.AREA_TYPE='0' AND M.EMP_ID = #{empId}
+			  ,IF_CARDKEY_BLDG B
+		WHERE B.BLDG_ID = A.BLDG_ID
+		    	AND B.COMP_ID = 'B'
+		    	AND A.USE_YN = 'Y'
+		    	AND B.USE_YN = 'Y'
+        		AND B.BLDG_ID NOT IN ( 
+                           SELECT 
+                               BLDG_ID 
+                           FROM CO_EMP_BLDG 
+                           WHERE EMP_ID = #{empId}
+                           AND FLR_ID IS NULL
+                           AND GATE_ID IS NULL
+                           AND SPE_ZONE = '0' 
+                       )     
+        <if test='"IO".equals(empType)'>
+        	AND A.IO_EMP_SPE_ZONE = '0'
+		</if>
+		<if test='"CO".equals(empType)'>
+			AND A.CO_EMP_SPE_ZONE = '0'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+		    AND A.BLDG_ID = #{bldgId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+		    AND UPPER(B.BLDG_NM) LIKE '%'|| UPPER(#{bldgNm}) ||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+		    AND UPPER(A.GATE_NM) LIKE '%'|| UPPER(#{gateNm}) ||'%' 
+		</if>
+		
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC , A.GATE_NM ASC
+	</select>
+
+	<select id="selectCardKeyGateSpeZone1List" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyGateSpeZone1List (dmCARD_KEY_GATE_SPE_ZONE_1_LIST) */
+		SELECT 		DISTINCT
+		            'GATE' AS GATE_TYPE,
+		            A.BLDG_ID AS BLDG_ID,
+		            A.FLOOR_ID AS FLOOR_ID,
+		            A.GATE_ID AS GATE_ID,
+		            B.BLDG_NM AS BLDG_NM,
+		            C.FLOOR_NM AS FLOOR_NM,
+		            A.GATE_NM AS GATE_NM,
+		            A.APPR_EMP_ID AS APPR_EMP_ID,
+		            A.APPR_EMP_NM AS APPR_EMP_NM,
+		            A.APPR_EMP_ID_1 AS APPR_EMP_ID_1,
+		            
+		            A.APPR_EMP_NM_1 AS APPR_EMP_NM_1,
+		            A.APPR_EMP_ID_2 AS APPR_EMP_ID_2,
+		            A.APPR_EMP_NM_2 AS APPR_EMP_NM_2,
+		            NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'GATE' || '@' || A.BLDG_ID || '@' || A.FLOOR_ID || '@' || A.GATE_ID || '@' || A.APPR_EMP_ID   AS FULL_GATE_ID,
+					A.DESCRPT,
+					DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_GATE A
+		LEFT OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.GATE_ID AND M.COMP_ID='A' AND M.EMP_ID = #{empId}
+		, IF_CARDKEY_BLDG B, IF_CARDKEY_FLOOR C
+		WHERE A.BLDG_ID = B.BLDG_ID
+		AND A.FLOOR_ID = C.FLOOR_ID
+		AND A.COMP_ID = 'A'
+		AND B.USE_YN ='Y'
+		AND A.USE_YN ='Y'
+		<if test='"IO".equals(empType)'>
+			<choose>
+				<when test='"3".equals(zoneType)'>
+				AND A.IO_EMP_SPE_ZONE = '3'
+				</when>
+				<otherwise>
+				AND A.IO_EMP_SPE_ZONE = '1'
+				</otherwise>
+			</choose>
+		</if>
+		<if test='"CO".equals(empType)'>
+			<choose>
+				<when test='"3".equals(zoneType)'>
+				AND A.CO_EMP_SPE_ZONE = '3'
+				</when>
+				<otherwise>
+				AND A.CO_EMP_SPE_ZONE = '1'
+				</otherwise>
+			</choose>
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+				AND A.BLDG_ID = #{bldgId} 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+				AND UPPER(B.BLDG_NM) LIKE '%'||UPPER(#{bldgNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+				AND UPPER(A.GATE_NM) LIKE '%'||UPPER(#{gateNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(descrptNm)">
+				AND UPPER(A.DESCRPT) LIKE '%'||UPPER(TRIM(#{descrptNm}))||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprEmpNm)">
+				AND A.APPR_EMP_NM LIKE '%'||#{apprEmpNm}||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND A.USE_YN = #{useYn} 
+		</if>
+		
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC ,B.BLDG_NM ASC, C.FLOOR_NM ASC, A.GATE_NM ASC
+	</select>
+
+	<select id="selectCardKeyCjGateSpeZone1List" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyCjGateSpeZone1List (dmCARD_KEY_CJ_GATE_SPE_ZONE_1_LIST) */
+		SELECT 
+              DISTINCT
+              'GATE' AS GATE_TYPE,
+              B.BLDG_ID AS BLDG_ID, 
+              A.FLOOR_ID AS FLOOR_ID,
+              A.GATE_ID AS GATE_ID,
+              B.BLDG_NM AS BLDG_NM,
+              A.GATE_NM AS GATE_NM,              
+              A.APPR_EMP_ID AS APPR_EMP_ID,
+              A.APPR_EMP_NM AS APPR_EMP_NM,               
+              A.APPR_EMP_ID_1 AS APPR_EMP_ID_1,
+              A.APPR_EMP_NM_1 AS APPR_EMP_NM_1,              
+              A.APPR_EMP_ID_2 AS APPR_EMP_ID_2,
+              A.APPR_EMP_NM_2 AS APPR_EMP_NM_2,
+              NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'GATE' || '@' || ' ' || '@' || NVL(A.FLOOR_ID,' ') || '@' || A.GATE_ID || '@' || NVL(A.APPR_EMP_ID,' ') || '@' || NVL(A.APPR_EMP_ID_1,' ') || '@' || NVL(A.APPR_EMP_ID_2,' ')  AS FULL_GATE_ID,
+			  A.DESCRPT,
+			  DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_GATE A
+		LEFT OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.GATE_ID AND M.COMP_ID='B' AND M.EMP_ID = #{empId}
+		, IF_CARDKEY_BLDG B 	
+	WHERE B.BLDG_ID = A.BLDG_ID
+			AND A.USE_YN ='Y'
+			AND B.USE_YN ='Y'
+		    AND B.COMP_ID = 'B' /* 청주 건물 리스트 */
+		<if test='"IO".equals(empType)'>
+			<choose>
+				<when test='"3".equals(zoneType)'>
+				AND A.IO_EMP_SPE_ZONE = '3'
+				</when>
+				<otherwise>
+				AND A.IO_EMP_SPE_ZONE = '1'
+				</otherwise>
+			</choose>
+		</if>
+		<if test='"CO".equals(empType)'>
+			<choose>
+				<when test='"3".equals(zoneType)'>
+				AND A.CO_EMP_SPE_ZONE = '3'
+				</when>
+				<otherwise>
+				AND A.CO_EMP_SPE_ZONE = '1'
+				</otherwise>
+			</choose>
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+				AND A.BLDG_ID = #{bldgId} 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+				AND UPPER(B.BLDG_NM) LIKE '%'||UPPER(#{bldgNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+				AND UPPER(A.GATE_NM) LIKE '%'||UPPER(#{gateNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(descrptNm)">
+				AND UPPER(A.DESCRPT) LIKE '%'||UPPER(TRIM(#{descrptNm}))||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprEmpNm)">
+				AND A.APPR_EMP_NM LIKE '%'||#{apprEmpNm}||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND A.USE_YN = #{useYn} 
+		</if>
+		
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC ,A.GATE_NM ASC
+	</select>
+
+	<select id="selectCardKeyGateSpeZone2List" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyGateSpeZone2List (dmCARD_KEY_GATE_SPE_ZONE_2_LIST) */
+		SELECT  DISTINCT
+	            'GATE' AS GATE_TYPE,
+	            A.BLDG_ID AS BLDG_ID,
+	            A.FLOOR_ID AS FLOOR_ID,
+	            A.GATE_ID AS GATE_ID,
+	            B.BLDG_NM AS BLDG_NM,
+	            C.FLOOR_NM AS FLOOR_NM,
+	            A.GATE_NM AS GATE_NM,
+	            A.APPR_EMP_ID AS APPR_EMP_ID,
+	            A.APPR_EMP_NM AS APPR_EMP_NM,
+	            A.APPR_EMP_ID_1 AS APPR_EMP_ID_1,
+	            A.APPR_EMP_NM_1 AS APPR_EMP_NM_1,
+	            A.APPR_EMP_ID_2 AS APPR_EMP_ID_2,
+	            A.APPR_EMP_NM_2 AS APPR_EMP_NM_2,
+	             NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'GATE' || '@' || A.BLDG_ID || '@' || A.FLOOR_ID || '@' || A.GATE_ID || '@' || A.APPR_EMP_ID   AS FULL_GATE_ID,
+				A.DESCRPT,
+				DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_GATE A
+		LEFT OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.GATE_ID AND M.COMP_ID='A' AND M.EMP_ID = #{empId}
+		, IF_CARDKEY_BLDG B, IF_CARDKEY_FLOOR C		
+		WHERE A.BLDG_ID = B.BLDG_ID
+		AND A.FLOOR_ID = C.FLOOR_ID
+		AND A.COMP_ID = 'A'
+		AND B.USE_YN ='Y'
+		AND A.USE_YN ='Y'
+		<if test='"IO".equals(empType)'>
+			AND A.IO_EMP_SPE_ZONE = '2'
+      		AND A.GATE_ID NOT IN ( 
+      			SELECT GATE_ID 
+      			FROM IO_EMP_BLDG 
+      			WHERE IO_EMP_ID = #{ioEmpId}
+      			AND CARD_NO = #{cardNo}
+      			AND COMP_ID NOT IN ('1102000001', '1105000001', '1106000001')  
+        	)
+		</if>
+		<if test='"CO".equals(empType)'>
+			AND A.CO_EMP_SPE_ZONE = '2'
+      		AND A.GATE_ID NOT IN ( 
+      			SELECT GATE_ID 
+      			FROM IO_EMP_BLDG 
+      			WHERE EMP_ID = #{empId}
+      			AND CARD_NO = #{cardNo}
+      			AND COMP_ID NOT IN ('1102000001', '1105000001', '1106000001')  
+        	)
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+				AND A.BLDG_ID = #{bldgId} 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+				AND UPPER(B.BLDG_NM) LIKE '%'||UPPER(#{bldgNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+				AND UPPER(A.GATE_NM) LIKE '%'||UPPER(#{gateNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(descrptNm)">
+				AND UPPER(A.DESCRPT) LIKE '%'||UPPER(TRIM(#{descrptNm}))||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprEmpNm)">
+				AND A.APPR_EMP_NM LIKE '%'||#{apprEmpNm}||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND A.USE_YN = #{useYn} 
+		</if>
+		
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC ,B.BLDG_NM ASC, C.FLOOR_NM ASC, A.GATE_NM ASC
+	</select>
+	
+	<select id="selectCardKeyCjGateSpeZone2List" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCardKeyCjGateSpeZone2List (dmCARD_KEY_CJ_GATE_SPE_ZONE_2_LIST) */
+		SELECT 
+            	DISTINCT
+              'GATE' AS GATE_TYPE,
+              B.BLDG_ID AS BLDG_ID, 
+              A.FLOOR_ID AS FLOOR_ID,
+              A.GATE_ID AS GATE_ID,
+              B.BLDG_NM AS BLDG_NM,
+              A.GATE_NM AS GATE_NM,              
+              A.APPR_EMP_ID AS APPR_EMP_ID,
+              A.APPR_EMP_NM AS APPR_EMP_NM,               
+              A.APPR_EMP_ID_1 AS APPR_EMP_ID_1,
+              A.APPR_EMP_NM_1 AS APPR_EMP_NM_1,              
+              A.APPR_EMP_ID_2 AS APPR_EMP_ID_2,
+              A.APPR_EMP_NM_2 AS APPR_EMP_NM_2,
+              NVL(A.IO_EMP_SPE_ZONE,'0')||'@'||'GATE' || '@' || ' ' || '@' || NVL(A.FLOOR_ID,' ') || '@' || A.GATE_ID || '@' || NVL(A.APPR_EMP_ID,' ') || '@' || NVL(A.APPR_EMP_ID_1,' ') || '@' || NVL(A.APPR_EMP_ID_2,' ')  AS FULL_GATE_ID,
+			  A.DESCRPT,
+			  DECODE(M.GATE_ID, NULL ,'N','Y') AS MY_GATE
+		FROM IF_CARDKEY_GATE A
+		LEFT OUTER JOIN IF_CARDKEY_MYGATE M ON M.GATE_ID = A.GATE_ID AND M.COMP_ID='B' AND M.EMP_ID = #{empId} , IF_CARDKEY_BLDG B				
+	   WHERE B.BLDG_ID = A.BLDG_ID
+			AND A.USE_YN ='Y'
+			AND B.USE_YN ='Y'
+		    AND B.COMP_ID = 'B' /* 청주 건물 리스트 */
+		<if test='"IO".equals(empType)'>
+			AND A.IO_EMP_SPE_ZONE = '2'
+      		AND A.GATE_ID NOT IN ( 
+      			SELECT GATE_ID 
+      			FROM IO_EMP_BLDG 
+      			WHERE IO_EMP_ID = #{ioEmpId}
+      			AND CARD_NO = #{cardNo}
+      			AND COMP_ID NOT IN ('1102000001', '1105000001', '1106000001')  
+        	)
+		</if>
+		<if test='"CO".equals(empType)'>
+			AND A.CO_EMP_SPE_ZONE = '2'
+      		AND A.GATE_ID NOT IN ( 
+      			SELECT GATE_ID 
+      			FROM IO_EMP_BLDG 
+      			WHERE EMP_ID = #{empId}
+      			AND CARD_NO = #{cardNo}
+      			AND COMP_ID NOT IN ('1102000001', '1105000001', '1106000001')  
+        	)
+		</if>
+		
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgId)">
+				AND A.BLDG_ID = #{bldgId} 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(bldgNm)">
+				AND UPPER(B.BLDG_NM) LIKE '%'||UPPER(#{bldgNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+				AND UPPER(A.GATE_NM) LIKE '%'||UPPER(#{gateNm})||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(descrptNm)">
+				AND UPPER(A.DESCRPT) LIKE '%'||UPPER(TRIM(#{descrptNm}))||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprEmpNm)">
+				AND A.APPR_EMP_NM LIKE '%'||#{apprEmpNm}||'%' 
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(useYn)">
+				AND A.USE_YN = #{useYn} 
+		</if>
+		
+		ORDER BY DECODE(M.GATE_ID, NULL ,'N','Y') DESC, A.GATE_NM ASC
+	</select>
+	
+	<select id="selectBuildPermitLine" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectBuildPermitLine (dmGetBuildPermitLine) */
+		SELECT
+	            A.COMP_ID AS COMP_ID,
+	            A.COMP_NM AS COMP_NM,
+	            
+	            A.APPR_EMP_ID  AS APPR_EMP_ID,
+	            A.APPR_EMP_NM  AS APPR_EMP_NM,
+	            A.APPR_JW_ID   AS APPR_JW_ID,
+	            A.APPR_JW_NM   AS APPR_JW_NM,
+	            A.APPR_JC_ID   AS APPR_JC_ID,
+	            A.APPR_JC_NM   AS APPR_JC_NM,
+	            A.APPR_DEPT_ID AS APPR_DEPT_ID,
+	            A.APPR_DEPT_NM AS APPR_DEPT_NM,
+	            A.APPR_DIV_NM  AS APPR_DIV_NM,
+	            '0' AS AUTO_SIGN,
+	            '2' AS APPR_DEPT_GBN,
+	            
+	            A.ENTRUST_YN AS ENTRUST_YN,
+	            A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+	            
+	            B.DEPT_ID AS ENTRUST_DEPT_ID,
+				B.JW_ID AS ENTRUST_JW_ID,
+				B.JC_CD AS ENTRUST_JC_ID,
+				
+				FN_GET_DEPT_NM(B.DEPT_ID) AS ENTRUST_DEPT_NM,
+				FN_GET_JW_NM(B.JW_ID) AS ENTRUST_JW_NM,
+				FN_GET_JC_NM(B.JC_CD) AS ENTRUST_JC_NM,
+				FN_GET_EMP_NM(B.EMP_ID) AS ENTRUST_EMP_NM
+		FROM (
+				SELECT
+			            B.COMP_ID AS COMP_ID,
+			            FN_GET_COMP_NM( B.COMP_ID ) AS COMP_NM,
+			            
+			            A.APPR_EMP_ID AS APPR_EMP_ID,
+			            B.EMP_NM AS APPR_EMP_NM,
+			            B.JW_ID AS APPR_JW_ID,
+			            FN_GET_JW_NM( B.JW_ID ) AS APPR_JW_NM,
+			            B.JC_CD AS APPR_JC_ID,
+			            FN_GET_JC_NM( B.JC_CD ) AS APPR_JC_NM,
+			            B.DEPT_ID AS APPR_DEPT_ID,
+			            FN_GET_DEPT_NM( B.DEPT_ID ) AS APPR_DEPT_NM,
+			            FN_GET_DIV_NM( B.DEPT_ID ) AS APPR_DIV_NM,
+			            
+			            A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+			            A.ENTRUST_YN AS ENTRUST_YN
+				FROM (
+						SELECT
+					            NVL(FN_GET_APPR_TO_EMP_ID(EMP_ID), EMP_ID) AS APPR_EMP_ID,
+					            EMP_ID AS ENTRUST_EMP_ID,
+					            CASE WHEN FN_GET_APPR_TO_EMP_ID(EMP_ID) IS NOT NULL THEN 'Y' ELSE 'N' END AS ENTRUST_YN
+						FROM CO_EMP
+						WHERE EMP_ID IN 
+						<foreach collection="apprEmpIds" item="apprEmpId" open="(" close=")" separator=",">
+							#{apprEmpId}
+						</foreach>
+				) A, CO_EMP B
+				WHERE A.APPR_EMP_ID = B.EMP_ID
+		) A, CO_EMP B
+		WHERE A.ENTRUST_EMP_ID = B.EMP_ID(+)
+		ORDER BY FN_GET_JC_GRADE( A.APPR_JC_ID ) DESC, FN_GET_JW_GRADE( A.APPR_JW_ID ) DESC, A.APPR_EMP_NM ASC
+	</select>
+	
+	<select id="selectCjBuildPermitLine" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectCjBuildPermitLine (dmGetBuildPermitLine_CJ) */
+		SELECT
+	            A.COMP_ID AS COMP_ID,
+	            A.COMP_NM AS COMP_NM,
+	            
+	            A.APPR_EMP_ID  AS APPR_EMP_ID,
+	            A.APPR_EMP_NM  AS APPR_EMP_NM,
+	            A.APPR_JW_ID   AS APPR_JW_ID,
+	            A.APPR_JW_NM   AS APPR_JW_NM,
+	            A.APPR_JC_ID   AS APPR_JC_ID,
+	            A.APPR_JC_NM   AS APPR_JC_NM,
+	            A.APPR_DEPT_ID AS APPR_DEPT_ID,
+	            A.APPR_DEPT_NM AS APPR_DEPT_NM,
+	            A.APPR_DIV_NM  AS APPR_DIV_NM,
+	            '0' AS AUTO_SIGN,
+	            '2' AS APPR_DEPT_GBN,
+	            
+	            A.ENTRUST_YN AS ENTRUST_YN,
+	            A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+	            
+	            B.DEPT_ID AS ENTRUST_DEPT_ID,
+				B.JW_ID AS ENTRUST_JW_ID,
+				B.JC_CD AS ENTRUST_JC_ID,
+				
+				FN_GET_DEPT_NM(B.DEPT_ID) AS ENTRUST_DEPT_NM,
+				FN_GET_JW_NM(B.JW_ID) AS ENTRUST_JW_NM,
+				FN_GET_JC_NM(B.JC_CD) AS ENTRUST_JC_NM,
+				FN_GET_EMP_NM(B.EMP_ID) AS ENTRUST_EMP_NM
+		FROM (
+				SELECT
+			            B.COMP_ID AS COMP_ID,
+			            FN_GET_COMP_NM( B.COMP_ID ) AS COMP_NM,
+			            
+			            A.APPR_EMP_ID AS APPR_EMP_ID,
+			            B.EMP_NM AS APPR_EMP_NM,
+			            B.JW_ID AS APPR_JW_ID,
+			            FN_GET_JW_NM( B.JW_ID ) AS APPR_JW_NM,
+			            B.JC_CD AS APPR_JC_ID,
+			            FN_GET_JC_NM( B.JC_CD ) AS APPR_JC_NM,
+			            B.DEPT_ID AS APPR_DEPT_ID,
+			            FN_GET_DEPT_NM( B.DEPT_ID ) AS APPR_DEPT_NM,
+			            FN_GET_DIV_NM( B.DEPT_ID ) AS APPR_DIV_NM,
+			            
+			            A.ENTRUST_EMP_ID AS ENTRUST_EMP_ID,
+			            A.ENTRUST_YN AS ENTRUST_YN
+				FROM (
+						SELECT
+					            NVL(FN_GET_APPR_TO_EMP_ID(EMP_ID), EMP_ID) AS APPR_EMP_ID,
+					            EMP_ID AS ENTRUST_EMP_ID,
+					            CASE WHEN FN_GET_APPR_TO_EMP_ID(EMP_ID) IS NOT NULL THEN 'Y' ELSE 'N' END AS ENTRUST_YN
+						FROM CO_EMP
+						WHERE EMP_ID IN
+						<foreach collection="apprEmpIds" item="apprEmpId" open="(" close=")" separator=",">
+							#{apprEmpId}
+						</foreach>
+				) A, CO_EMP B
+				WHERE A.APPR_EMP_ID = B.EMP_ID
+		) A, CO_EMP B
+		WHERE A.ENTRUST_EMP_ID = B.EMP_ID(+)
+		ORDER BY FN_GET_BLDG_CJ_APPR_GRADE( EMP_ID ) DESC,  EMP_NM ASC 
+	</select>
+
+	<insert id="insertEmpcardBldgMaster" parameterType="Map">
+		<selectKey keyProperty="empcardBldgApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMPCARD_BLDG_M.NEXTVAL AS empcardBldgApplNo FROM DUAL
+	    </selectKey>
+	    
+		/* BuildingRegRepository.insertEmpcardBldgMaster (EMPCARD_BLDG_M_INSERT) */
+		INSERT INTO IO_EMPCARD_BLDG_M 
+		(
+			EMPCARD_BLDG_APPL_NO, 
+			EMP_ID,
+			CARD_NO,
+			COMP_ID,
+			DOC_ID, 
+			DEL_YN, 
+			AC_IP, 
+			CRT_BY, 
+			CRT_DTM
+		) VALUES ( 
+			#{empcardBldgApplNo},
+			#{empId},
+			#{cardNo},
+			#{compId},
+			#{docId},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+	
+	<insert id="insertEmpcardBldgDetail" parameterType="Map">
+		/* BuildingRegRepository.insertEmpcardBldgDetail (EMPCARD_BLDG_D_INSERT) */
+		INSERT INTO IO_EMPCARD_BLDG_D
+		(
+			EMPCARD_BLDG_APPL_NO, 
+			SEQ,
+			BLDG_ID,
+			FLR_ID,
+			GATE_ID,
+			SPE_ZONE, 
+			DEL_YN, 
+			AC_IP, 
+			CRT_BY, 
+			CRT_DTM,
+			APPR_ID
+		) VALUES ( 
+			#{empcardBldgApplNo},
+			#{seq},
+			#{bldgId},
+			#{floorId},
+			#{gateId},
+			#{speZone},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{apprEmpId}
+		)
+	</insert>
+	
+	<update id="updateEmpcardBldgMasterDocId" parameterType="Map">
+		/* BuildingRegRepository.updateEmpcardBldgMasterDocId (dmEmpCardBuildDocIdUpdate) */
+		UPDATE IO_EMPCARD_BLDG_M
+		SET    DOC_ID               = #{docId}
+		WHERE  EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo}
+	</update>
+	
+	<update id="deleteEmpcardMyGate" parameterType="Map">
+		/* BuildingRegRepository.deleteEmpcardMyGate (dmCARD_MyGateDel) */
+		DELETE FROM IF_CARDKEY_MYGATE 
+		WHERE EMP_ID = #{empId} 
+		AND COMP_ID = #{compId}
+		AND AREA_TYPE = #{areaType}
+	</update>
+	
+	<insert id="insertEmpcardMyGate" parameterType="Map">
+		/* BuildingRegRepository.insertEmpcardMyGate (dmCARD_MyGateIns) */
+		INSERT INTO IF_CARDKEY_MYGATE
+		(
+			EMP_ID,
+			CARD_TYPE,
+			AREA_TYPE,
+			GATE_ID,
+			CRT_BY,
+			CRT_DTM,
+			COMP_ID,
+			FLOOR_ID
+		) VALUES(
+			#{empId},
+			#{cardType},
+			#{areaType},
+			#{gateId},
+			#{crtBy},
+			SYSDATE,
+			#{compId},
+			#{floorId}
+		)
+	</insert>
+	
+	<select id="selectEmpCardBuildRegList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegList (dmEmpCardBuildRegList) */
+		WITH T AS (
+			SELECT
+				ROW_NUMBER() OVER( ORDER BY A.EMPCARD_BLDG_APPL_NO DESC ) AS ROW_NUM,
+				A.EMPCARD_BLDG_APPL_NO,
+				A.DOC_ID,
+				A.CRT_DTM,
+				B.APPR_STAT,
+				B.APPR_RESULT,
+				B.APPR_DTM,
+				A.EMP_ID,
+				C.DEPT_ID
+			FROM IO_EMPCARD_BLDG_M A, AP_DOC B, CO_EMP C
+			WHERE A.DOC_ID  = B.DOC_ID(+)
+				AND   A.EMP_ID  = C.EMP_ID
+				AND   A.DEL_YN  = 'N'
+				AND   A.CRT_BY = #{empId}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+				AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+				AND B.APPR_RESULT = #{apprResult}
+			</if>
+		)
+		SELECT
+			ROW_NUM,
+			EMPCARD_BLDG_APPL_NO,
+			DOC_ID,
+			TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+			APPR_STAT,
+			DECODE(APPR_STAT, '0', '대기', '10', '진행', '20', '완료', '') AS APPR_STAT_NM,
+			APPR_RESULT,
+			DECODE(APPR_RESULT, '0', '진행중', '1', '승인', '2', '반려', '') AS APPR_RESULT_NM,
+			CASE WHEN APPR_RESULT = '1' THEN TO_CHAR(APPR_DTM, 'YYYY-MM-DD') ELSE '' END AS APPR_DTM,
+			FN_GET_EMP_JW_NM(EMP_ID) AS EMP_NM,
+			FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM
+		FROM T
+	</select>
+	
+	<select id="selectBldgEmpApplInfo" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectBldgEmpApplInfo (dmGetBldgEmpApplInfo) */
+		SELECT 
+			B.EMPCARD_BLDG_APPL_NO AS EMPCARD_BLDG_APPL_NO, 
+			B.DOC_ID AS DOC_ID, 
+			B.CARD_NO AS CARD_NO,
+			A.EMP_NM AS EMP_NM,
+			C.JW_NM AS JW_NM,
+			D.DEPT_NM AS DEPT_NM,
+			B.EMP_ID AS EMP_ID,
+			B.COMP_ID AS COMP_ID,
+			FN_GET_COMP_NM( A.COMP_ID ) AS COMP_NM
+		FROM  CO_EMP A, IO_EMPCARD_BLDG_M B, CO_JW C, CO_DEPT D
+		WHERE A.EMP_ID = B.EMP_ID
+		AND A.JW_ID = C.JW_ID
+		AND A.DEPT_ID = D.DEPT_ID
+		AND B.EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo} 
+	</select>
+	
+	<select id="selectNewEmpCardBuildingList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectNewEmpCardBuildingList (dmNewEmpCardBuildingList) */
+		SELECT
+			GATE_ID,
+			GATE_NM
+		FROM (
+			SELECT
+					FN_CARDKEY_GATE_ID( B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE ) AS GATE_ID,
+					FN_CARDKEY_GATE_NM( B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE ) AS GATE_NM
+			FROM IO_EMPCARD_BLDG_M A, IO_EMPCARD_BLDG_D B
+			WHERE A.EMPCARD_BLDG_APPL_NO = B.EMPCARD_BLDG_APPL_NO
+			AND A.EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo} 
+			AND A.COMP_ID NOT IN ('1102000001', '1105000001', '1106000001') 
+			     
+			UNION ALL
+			
+			SELECT
+                   		A.GATE_ID AS GATE_ID, 
+                   		B.GATE_NM AS GATE_NM
+			FROM IO_EMPCARD_BLDG_D A, IF_CARDKEY_GATE B
+			WHERE A.GATE_ID = TO_CHAR(B.GATE_ID)
+				AND A.EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo} 
+				AND B.COMP_ID = 'B' /* 청주 일반구역 및 특수 구역 */
+			UNION ALL	
+			SELECT
+                   		A.BLDG_ID AS GATE_ID, 
+                   		B.GATE_NM AS GATE_NM
+			FROM IO_EMPCARD_BLDG_D A, IF_CARDKEY_GATE B
+			WHERE A.BLDG_ID = TO_CHAR(B.GATE_ID)
+				AND A.EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo} 
+				AND B.COMP_ID = 'B' /* 청주 일반구역 및 특수 구역 */					
+		)
+		ORDER BY GATE_NM ASC
+	</select>
+	
+	<select id="selectPassIdcardId" parameterType="Map" resultType="String">
+		/* BuildingRegRepository.selectPassIdcardId (dmPassGetIDcardId) */
+		SELECT IDCARD_ID
+		FROM IO_PASS 
+		WHERE 1 = 1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(passApplNo)">
+			AND PASS_APPL_NO = #{passApplNo}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpId)">
+			AND IO_EMP_ID = #{ioEmpId}
+			AND USE_YN = 'Y'
+		</if>
+	</select>
+	
+	<insert id="insertEmpcardallM" parameterType="Map">
+		<selectKey keyProperty="empcardallBldgApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMPCARD_BLDG_M.NEXTVAL AS empcardallBldgApplNo FROM DUAL
+	    </selectKey>
+	
+		/* BuildingRegRepository.insertEmpcardMyGate (EMPCARDALL_M_INSERT) */
+		INSERT INTO IO_EMPCARDALL_M 
+		(
+			EMPCARDALL_BLDG_APPL_NO, 
+			COMP_ID,
+			DEL_YN, 
+			AC_IP, 
+			CRT_BY, 
+			CRT_DTM
+		) 
+		VALUES
+		( 
+			#{empcardallBldgApplNo},
+			#{compId},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<insert id="insertEmpcardallBldgD" parameterType="Map">
+		/* BuildingRegRepository.insertEmpcardallBldgD (EMPCARDALL_BLDG_D_INSERT) */
+		INSERT INTO IO_EMPCARDALL_BLDG_D 
+		(
+			EMPCARDALL_BLDG_APPL_NO, 
+			SEQ,
+			BLDG_ID, 
+			FLR_ID, 
+			GATE_ID, 
+			SPE_ZONE,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM,
+			APPR_ID,
+			APPR_ID_1,
+			APPR_ID_2
+		) 
+		VALUES
+		( 
+			#{empcardallBldgApplNo},
+			#{seq},
+			#{bldgId},
+			#{floorId},
+			#{gateId},
+			#{speZone},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE,
+			'',
+			'',
+			''
+		)
+	</insert>
+
+	<insert id="insertEmpcardallEmpD" parameterType="Map">
+		<selectKey keyProperty="empcardallEmpApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMPCARD_BLDG_M.NEXTVAL AS empcardallEmpApplNo FROM DUAL
+	    </selectKey>
+	    
+		/* BuildingRegRepository.insertEmpcardallEmpD (EMPCARDALL_EMP_D_INSERT) */
+		INSERT INTO IO_EMPCARDALL_EMP_D 
+		(
+			EMPCARDALL_EMP_APPL_NO, 
+			SEQ,
+			COMP_ID, 
+			EMP_ID, 
+			DEPT_ID, 
+			JW_ID,
+			EMPCARDALL_BLDG_APPL_NO, 
+			CARD_NO,
+			APPL_EMP_ID,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		) 
+		VALUES
+		( 
+			#{empcardallEmpApplNo},
+			#{seq},
+			#{compId},
+			#{empId},
+			FN_GET_DEPT_ID(#{empId}),
+			FN_GET_JW_ID(#{empId}),
+			#{empcardallBldgApplNo},
+			#{cardNo},
+			#{crtBy},
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+	
+	<select id="selectEmpCardBuildRegAllList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAllList (dmEmpCardBuildRegListAll) */
+		WITH T AS (
+			SELECT
+				ROW_NUMBER() OVER( ORDER BY EMPCARDALL_BLDG_APPL_NO DESC ) AS ROW_NUM,							
+				A.EMPCARDALL_BLDG_APPL_NO 	AS EMPCARDALL_BLDG_APPL_NO,
+				A.CRT_DTM 				AS CRT_DTM,
+				A.CRT_BY AS EMP_ID,
+				FN_GET_DEPT_ID(A.CRT_BY) AS DEPT_ID,
+				A.COMP_ID AS COMP_ID
+			FROM IO_EMPCARDALL_M A
+			WHERE 1 = 1
+			  AND A.DEL_YN = 'N'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+				AND A.CRT_BY = #{empId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+				AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+			</if>
+		)
+		SELECT
+				ROW_NUM,
+				EMPCARDALL_BLDG_APPL_NO,
+				TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,					
+				FN_GET_EMP_JW_NM(EMP_ID) AS EMP_NM,
+				FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM,
+				FN_GET_COMP_NM(COMP_ID) AS COMP_NM,
+				COMP_ID AS COMP_ID,
+				EMP_ID AS EMP_ID
+		FROM T
+	</select>
+	
+	<select id="selectEmpCardBuildRegAll" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAll */
+		SELECT
+			EMPCARDALL_BLDG_APPL_NO,
+			TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+			FN_GET_EMP_NM(CRT_BY) AS EMP_NM,
+			FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.CRT_BY)) AS DEPT_NM,
+			FN_GET_COMP_NM(COMP_ID) AS COMP_NM,
+			COMP_ID AS COMP_ID,
+			CRT_BY AS EMP_ID,
+			FN_GET_JW_BY_EMP(CRT_BY) AS JW_NM
+		FROM IO_EMPCARDALL_M A
+		WHERE A.EMPCARDALL_BLDG_APPL_NO = #{empcardallBldgApplNo} 
+		  AND A.DEL_YN = 'N'
+	</select>
+	
+	<select id="selectEmpCardBuildRegAllEmpList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAllEmpList (dmEmpCardBuildEmpRegListAll) */
+		SELECT 
+	        A.APPL_EMP_ID AS APPL_EMP_ID,
+	        FN_GET_EMP_NM(A.APPL_EMP_ID) || '(' || A.APPL_EMP_ID || ')' AS APPL_EMP_NM,
+	        FN_GET_COMP_NM(A.COMP_ID) AS APPL_COMP_NM,
+	        FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.APPL_EMP_ID)) AS APPL_DEPT_NM,
+	        FN_GET_EMP_NM(A.EMP_ID) AS EMP_NM,
+	        FN_GET_JW_NM(A.JW_ID) AS JW_NM,
+	        FN_GET_DEPT_NM(FN_GET_DEPT_ID(A.EMP_ID)) AS DEPT_NM,
+	        A.CARD_NO,
+	        EMP_ID
+        FROM IO_EMPCARDALL_EMP_D A 
+		WHERE A.EMPCARDALL_BLDG_APPL_NO = #{empcardallBldgApplNo} 
+		  AND DEL_YN = 'N'
+	</select>
+	
+	<select id="selectEmpCardBuildRegAllBuildIcList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAllBuildList (dmEmpCardBuildBldgRegListAll_IC/_CJ) */
+		SELECT
+			C.BLDG_ID AS GATE_ID,
+  			C.BLDG_NM AS GATE_NM
+		FROM IO_EMPCARDALL_BLDG_D A, IF_CARDKEY_BLDG C
+		WHERE A.BLDG_ID = C.BLDG_ID
+		  AND A.EMPCARDALL_BLDG_APPL_NO = #{empcardallBldgApplNo}
+	      AND DEL_YN = 'N'
+	</select>
+	
+	<select id="selectEmpCardBuildRegAllBuildCjList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAllBuildList (dmEmpCardBuildBldgRegListAll_CJ) */
+		SELECT
+			C.GATE_ID,
+  			C.GATE_NM
+		FROM IO_EMPCARDALL_BLDG_D A, IF_CARDKEY_GATE C
+		WHERE A.BLDG_ID = C.GATE_ID
+		  AND A.EMPCARDALL_BLDG_APPL_NO = #{empcardallBldgApplNo}
+	      AND DEL_YN = 'N'
+	</select>
+	
+	<select id="selectPassBuildRegList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBuildRegList (dmBuildinigRegList) */
+		WITH T AS
+		(
+			SELECT
+			            ROW_NUMBER() OVER( ORDER BY A.PASS_BLDG_APPL_NO DESC ) AS ROW_NUM,
+			            A.PASS_BLDG_APPL_NO AS PASS_BLDG_APPL_NO,
+			            A.CARD_NO AS CARD_NO,
+			            E.IDCARD_ID AS IDCARD_ID,
+			            B.IO_COMP_ID AS IO_COMP_ID,
+			            D.COMP_KO_NM AS IO_COMP_NM,
+			            B.EMP_NM AS IO_EMP_NM,
+			            B.JW_NM AS IO_JW_NM,
+			            B.IO_EMP_ID AS IO_EMP_ID,
+			            C.APPL_EMP_ID AS APPL_EMP_ID,
+			            A.DOC_ID AS DOC_ID,
+			            C.APPR_STAT AS APPR_STAT,
+			            C.APPR_RESULT AS APPR_RESULT,
+	                	TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+	                	E.IO_STRT_DT AS IO_STRT_DT,
+	        			E.IO_END_DT AS IO_END_DT,
+	        			E.EXTN_STRT_DT AS EXTN_STRT_DT,
+	        			E.EXTN_END_DT AS EXTN_END_DT,
+	        			E.ALTEMP_GBN AS ALTEMP_GBN,
+	        			E.APPLY_GBN AS APPLY_GBN,
+	        			E.PASS_APPL_NO AS PASS_APPL_NO
+			FROM IO_PASS_BLDG_M A, IO_EMP B, AP_DOC C, IO_COMP D, IO_PASS E
+			WHERE A.IO_EMP_ID   = B.IO_EMP_ID
+			AND   A.IO_COMP_ID  = B.IO_COMP_ID
+			AND   A.DOC_ID      = C.DOC_ID(+)
+			AND   A.IO_COMP_ID  = D.IO_COMP_ID
+			AND   A.PASS_APPL_NO = E.PASS_APPL_NO
+			AND   A.CRT_BY = #{empId}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND   A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND   A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+			AND   C.APPR_RESULT = #{apprResult}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+			AND   D.COMP_KO_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND   B.EMP_NM LIKE '%'|| #{ioEmpNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+			AND   E.APPLY_GBN(+) = #{applyGbn}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(altempGbn)">
+			AND   E.ALTEMP_GBN(+) = #{altempGbn}
+		</if>	
+		)
+		SELECT
+				ROW_NUM,
+				CARD_NO,
+				IDCARD_ID,
+				PASS_BLDG_APPL_NO,
+				IO_COMP_ID,
+				IO_COMP_NM,
+				IO_EMP_ID,
+				IO_COMP_NM || ' ' || IO_EMP_NM || ' ' || IO_JW_NM AS IO_EMP_NM,
+				IO_STRT_DT,
+		        IO_END_DT,
+		        EXTN_STRT_DT,
+		        EXTN_END_DT, 
+		        CASE WHEN APPLY_GBN = 'A0061003'
+	                 THEN SUBSTR(EXTN_STRT_DT, 1, 4)||'-'||SUBSTR(EXTN_STRT_DT, 5, 2)||'-' ||SUBSTR(EXTN_STRT_DT, 7, 2)|| ' ~ '||
+	                      SUBSTR(EXTN_END_DT,  1, 4)||'-'||SUBSTR(EXTN_END_DT,  5, 2)||'-' ||SUBSTR(EXTN_END_DT,  7, 2)
+	                 ELSE SUBSTR(IO_STRT_DT,   1, 4)||'-'||SUBSTR(IO_STRT_DT,   5, 2)||'-' ||SUBSTR(IO_STRT_DT,   7, 2)|| ' ~ '||
+	                      SUBSTR(IO_END_DT,    1, 4)||'-'||SUBSTR(IO_END_DT,    5, 2)||'-' ||SUBSTR(IO_END_DT,    7, 2)  END AS ACCESS_PERIOD,
+				ALTEMP_GBN,
+				FN_GET_CODE('A007', ALTEMP_GBN, '') AS ALTEMP_GBN_NM,
+				APPLY_GBN,
+		        FN_GET_CODE('A006', APPLY_GBN, 'DETL_CD')  AS APPLY_GBN_NM,
+				APPL_EMP_ID,
+				FN_GET_EMP_JW_NM(APPL_EMP_ID) AS APPL_EMP_NM,
+				APPR_RESULT,
+		        DECODE(APPR_RESULT, '0', '검토중', '1', '승인', '2', '반려', '') AS APPR_RESULT_NM,
+		        APPLY_DT,
+		        DOC_ID,
+		        PASS_APPL_NO
+		FROM T
+	</select>
+	
+	<select id="selectPassApplNoByBldgNO" parameterType="Map" resultType="String">
+		/* BuildingRegRepository.selectPassApplNoByBldgNO (dmPassApplNoByBldgNO) */
+		SELECT
+			CARD_NO
+		FROM MIG_IDCARD_EMP
+		WHERE CARD_NO = #{cardNo}
+		GROUP BY CARD_NO
+	</select>
+
+	<select id="selectPassReceiptViewByPassBldgApplNo" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassReceiptViewByPassBldgApplNo (dmPassReceiptView) */
+	<![CDATA[
+		SELECT 
+	        A.PASS_APPL_NO AS PASS_APPL_NO,
+	        A.APPLY_GBN AS APPLY_GBN, 
+	        FN_GET_CODE( 'A006',  A.APPLY_GBN, 'DETL_CD') AS APPLY_GBN_NM,
+	        A.IO_COMP_ID AS IO_COMP_ID, 
+	        C.BOSS_NM AS BOSS_NM,
+	        C.COMP_KO_NM AS COMP_KO_NM,
+	        A.IO_EMP_ID AS IO_EMP_ID, 
+	        B.EMP_NM AS IO_EMP_NM,
+	        DECODE(A.APPLY_DT, NULL, '', '', '', SUBSTR(A.APPLY_DT,1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-'||SUBSTR(A.APPLY_DT, 7, 2)) AS APPLY_DT, 
+	        A.IO_RSN AS IO_RSN,
+	        DECODE(A.IO_STRT_DT, NULL, '', '', '', SUBSTR(A.IO_STRT_DT,1, 4)||'-'||SUBSTR(A.IO_STRT_DT, 5, 2)||'-'||SUBSTR(A.IO_STRT_DT, 7, 2)) IO_STRT_DT,
+	        DECODE(A.IO_END_DT,  NULL, '', '', '', SUBSTR(A.IO_END_DT, 1, 4)||'-'||SUBSTR(A.IO_END_DT,  5, 2)||'-'||SUBSTR(A.IO_END_DT,  7, 2)) IO_END_DT,
+	        A.REISSUE_GBN AS REISSUE_GBN,
+	        FN_GET_CODE( 'A005',  A.REISSUE_GBN, 'DETL_CD') AS REISSUE_GBN_NM,
+	        A.REISSUE_RSN AS REISSUE_RSN,
+	        A.AMT_INFO AS AMT_INFO,
+	        DECODE(A.EXTN_STRT_DT, NULL, '', '', '', SUBSTR(A.EXTN_STRT_DT,1, 4)||'-'||SUBSTR(A.EXTN_STRT_DT, 5, 2)||'-'||SUBSTR(A.EXTN_STRT_DT, 7, 2)) EXTN_STRT_DT,
+	        DECODE(A.EXTN_END_DT,  NULL, '', '', '', SUBSTR(A.EXTN_END_DT, 1, 4)||'-'||SUBSTR(A.EXTN_END_DT,  5, 2)||'-'||SUBSTR(A.EXTN_END_DT,  7, 2)) EXTN_END_DT,
+	        CASE WHEN A.APPLY_GBN = 'A0061003'
+						THEN SUBSTR(A.EXTN_STRT_DT, 1, 4)||'-'||SUBSTR(A.EXTN_STRT_DT, 5, 2)||'-' ||SUBSTR(A.EXTN_STRT_DT, 7, 2)|| ' ~ '||
+						     SUBSTR(A.EXTN_END_DT,  1, 4)||'-'||SUBSTR(A.EXTN_END_DT,  5, 2)||'-' ||SUBSTR(A.EXTN_END_DT,  7, 2)
+						ELSE SUBSTR(A.IO_STRT_DT,   1, 4)||'-'||SUBSTR(A.IO_STRT_DT,   5, 2)||'-' ||SUBSTR(A.IO_STRT_DT,   7, 2)|| ' ~ '||
+						     SUBSTR(A.IO_END_DT,    1, 4)||'-'||SUBSTR(A.IO_END_DT,    5, 2)||'-' ||SUBSTR(A.IO_END_DT,    7, 2)  END AS ACCESS_PERIOD,
+	        A.EXTN_RSN AS EXTN_RSN,
+	        A.DOC_ID AS DOC_ID,
+	        A.LOSO_GBN AS LOSO_GBN,
+	        FN_GET_CODE( 'A020',  A.LOSO_GBN, 'DETL_CD') AS LOSO_GBN_NM,
+	        A.EMP_ID AS EMP_ID,
+	        A.APPL_STAT AS APPL_STAT ,
+	        A.CANCEL_RSN AS CANCEL_RSN,
+	        CASE WHEN B.NATION = 'Z0011001' THEN B.JUMIN_NO
+	             ELSE RPAD(SUBSTR(B.PASSPORT_NO,1,5),9,'*') 
+	         END AS JUMIN_NO,
+	        RPAD(SUBSTR(B.HP_NO,1,7),12,'*') AS IO_HP_NO,
+	        A.GATE AS GATE,
+	        A.CARD_NO AS CARD_NO,
+	        A.IDCARD_ID AS IDCARD_ID,
+	        A.COMP_ID AS COMP_ID,
+	        REPLACE(D.TEL_NO1, '-', '') AS CO_HP_NO,
+	        A.REST_CHK,
+	        A.REST_YN,
+	        A.EXTENTION_YN,
+	        B.DEL_YN,
+	        A.EXPR_YN,
+	        A.EXPR_EMP_ID,
+	        TO_CHAR(TO_DATE(A.EXPR_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS EXPR_DT,
+	        A.EXPR_RSN,
+	        FN_GET_EMP_NM(A.EXPR_EMP_ID) AS EXPR_EMP_NM,
+	        (SELECT FN_GET_DEPT_NM(DEPT_ID) FROM CO_EMP WHERE EMP_ID =A.EXPR_EMP_ID) AS EXPR_DEPT_NM,
+	        (SELECT FN_GET_JW_NM(JW_ID) FROM CO_EMP WHERE EMP_ID =A.EXPR_EMP_ID) AS EXPR_JW_NM,
+	        A.RCV_COMP_ID,
+	        NVL(FN_GET_CODE_RCV_GATE_NM(A.RCV_GATE),'해당사항없음') AS RCV_COMP_NM,			        
+	        (SELECT COUNT(*) AS WEEK_INOUT_CNT 
+	           FROM IO_VST_MAN_GATE_IO
+	          WHERE IO_EMP_ID = B.IO_EMP_ID
+	            AND VST_SEQ = '1' 
+	            AND GATE_ID <> '0' AND IOKND <> '0'
+	            AND VST_DT BETWEEN  to_char(TO_DATE(A.APPLY_DT,'yyyymmdd')-7,'yyyymmdd') AND to_char(TO_DATE(A.APPLY_DT,'yyyymmdd'),'yyyymmdd')) AS WEEK_INOUT_CNT,
+	        (SELECT COUNT(*) AS MONTH_INOUT_CNT  
+	           FROM IO_VST_MAN_GATE_IO
+	          WHERE IO_EMP_ID = B.IO_EMP_ID
+	            AND VST_SEQ = '1' 
+	            AND GATE_ID <> '0' AND IOKND <> '0'
+	            AND VST_DT BETWEEN  to_char(ADD_MONTHS(TO_DATE(A.APPLY_DT,'yyyymmdd'),-1),'yyyymmdd') AND to_char(TO_DATE(A.APPLY_DT,'yyyymmdd'),'yyyymmdd')) AS MONTH_INOUT_CNT ,
+	        NVL(A.TAG_GBN,'') AS TAG_GBN,
+	        NVL(C.SUBCONT_YN, 'N') AS SUBCONT_YN,
+			NVL(A.TAG_REISSUE_GBN, '') AS TAG_REISSUE_GBN,
+                 	FN_GET_CODE( 'A053',  A.TAG_REISSUE_GBN, 'DETL_CD') AS TAG_REISSUE_GBN_NM,
+			A.TAG_AMT_INFO,
+			A.BUILD_AUTH_DEL_YN,
+			A.AMT_DT,
+			A.IDCARD_EMP_NM
+		FROM IO_PASS_BLDG_M X, IO_PASS A, IO_EMP B, IO_COMP C, CO_EMP D
+		WHERE 1=1 
+		AND X.PASS_APPL_NO = A.PASS_APPL_NO 
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.IO_COMP_ID = C.IO_COMP_ID
+		AND A.EMP_ID = D.EMP_ID
+		AND X.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+	]]>
+	</select>
+	
+	<select id="selectPassReceiptViewByPassApplNo" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassReceiptViewByPassApplNo (dmPassReceiptView) */
+	<![CDATA[
+		SELECT 
+	        A.PASS_APPL_NO AS PASS_APPL_NO,
+	        A.APPLY_GBN AS APPLY_GBN, 
+	        FN_GET_CODE( 'A006',  A.APPLY_GBN, 'DETL_CD') AS APPLY_GBN_NM,
+	        A.IO_COMP_ID AS IO_COMP_ID, 
+	        C.BOSS_NM AS BOSS_NM,
+	        C.COMP_KO_NM AS COMP_KO_NM,
+	        A.IO_EMP_ID AS IO_EMP_ID, 
+	        B.EMP_NM AS IO_EMP_NM,
+	        DECODE(A.APPLY_DT, NULL, '', '', '', SUBSTR(A.APPLY_DT,1, 4)||'-'||SUBSTR(A.APPLY_DT, 5, 2)||'-'||SUBSTR(A.APPLY_DT, 7, 2)) AS APPLY_DT, 
+	        A.IO_RSN AS IO_RSN,
+	        DECODE(A.IO_STRT_DT, NULL, '', '', '', SUBSTR(A.IO_STRT_DT,1, 4)||'-'||SUBSTR(A.IO_STRT_DT, 5, 2)||'-'||SUBSTR(A.IO_STRT_DT, 7, 2)) IO_STRT_DT,
+	        DECODE(A.IO_END_DT,  NULL, '', '', '', SUBSTR(A.IO_END_DT, 1, 4)||'-'||SUBSTR(A.IO_END_DT,  5, 2)||'-'||SUBSTR(A.IO_END_DT,  7, 2)) IO_END_DT,
+	        A.REISSUE_GBN AS REISSUE_GBN,
+	        FN_GET_CODE( 'A005',  A.REISSUE_GBN, 'DETL_CD') AS REISSUE_GBN_NM,
+	        A.REISSUE_RSN AS REISSUE_RSN,
+	        A.AMT_INFO AS AMT_INFO,
+	        DECODE(A.EXTN_STRT_DT, NULL, '', '', '', SUBSTR(A.EXTN_STRT_DT,1, 4)||'-'||SUBSTR(A.EXTN_STRT_DT, 5, 2)||'-'||SUBSTR(A.EXTN_STRT_DT, 7, 2)) EXTN_STRT_DT,
+	        DECODE(A.EXTN_END_DT,  NULL, '', '', '', SUBSTR(A.EXTN_END_DT, 1, 4)||'-'||SUBSTR(A.EXTN_END_DT,  5, 2)||'-'||SUBSTR(A.EXTN_END_DT,  7, 2)) EXTN_END_DT,
+	        CASE WHEN A.APPLY_GBN = 'A0061003'
+						THEN SUBSTR(A.EXTN_STRT_DT, 1, 4)||'-'||SUBSTR(A.EXTN_STRT_DT, 5, 2)||'-' ||SUBSTR(A.EXTN_STRT_DT, 7, 2)|| ' ~ '||
+						     SUBSTR(A.EXTN_END_DT,  1, 4)||'-'||SUBSTR(A.EXTN_END_DT,  5, 2)||'-' ||SUBSTR(A.EXTN_END_DT,  7, 2)
+						ELSE SUBSTR(A.IO_STRT_DT,   1, 4)||'-'||SUBSTR(A.IO_STRT_DT,   5, 2)||'-' ||SUBSTR(A.IO_STRT_DT,   7, 2)|| ' ~ '||
+						     SUBSTR(A.IO_END_DT,    1, 4)||'-'||SUBSTR(A.IO_END_DT,    5, 2)||'-' ||SUBSTR(A.IO_END_DT,    7, 2)  END AS ACCESS_PERIOD,
+	        A.EXTN_RSN AS EXTN_RSN,
+	        A.DOC_ID AS DOC_ID,
+	        A.LOSO_GBN AS LOSO_GBN,
+	        FN_GET_CODE( 'A020',  A.LOSO_GBN, 'DETL_CD') AS LOSO_GBN_NM,
+	        A.EMP_ID AS EMP_ID,
+	        A.APPL_STAT AS APPL_STAT ,
+	        A.CANCEL_RSN AS CANCEL_RSN,
+	        CASE WHEN B.NATION = 'Z0011001' THEN B.JUMIN_NO 
+	             ELSE RPAD(SUBSTR(B.PASSPORT_NO,1,5),9,'*') 
+	         END AS JUMIN_NO,
+	        RPAD(SUBSTR(B.HP_NO,1,7),12,'*') AS IO_HP_NO,
+	        A.GATE AS GATE,
+	        A.CARD_NO AS CARD_NO,
+	        A.IDCARD_ID AS IDCARD_ID,
+	        A.COMP_ID AS COMP_ID,
+	        REPLACE(D.TEL_NO1, '-', '') AS CO_HP_NO,
+	        A.REST_CHK,
+	        A.REST_YN,
+	        A.EXTENTION_YN,
+	        B.DEL_YN,
+	        A.EXPR_YN,
+	        A.EXPR_EMP_ID,
+	        TO_CHAR(TO_DATE(A.EXPR_DT, 'yyyyMMdd'), 'yyyy-MM-dd') AS EXPR_DT,
+	        A.EXPR_RSN,
+	        FN_GET_EMP_NM(A.EXPR_EMP_ID) AS EXPR_EMP_NM,
+	        (SELECT FN_GET_DEPT_NM(DEPT_ID) FROM CO_EMP WHERE EMP_ID =A.EXPR_EMP_ID) AS EXPR_DEPT_NM,
+	        (SELECT FN_GET_JW_NM(JW_ID) FROM CO_EMP WHERE EMP_ID =A.EXPR_EMP_ID) AS EXPR_JW_NM,
+	        A.RCV_COMP_ID,
+	        NVL(FN_GET_CODE_RCV_GATE_NM(A.RCV_GATE),'해당사항없음') AS RCV_COMP_NM,						
+	        (SELECT COUNT(*) AS WEEK_INOUT_CNT 
+	           FROM IO_VST_MAN_GATE_IO
+	          WHERE IO_EMP_ID = B.IO_EMP_ID
+	            AND VST_SEQ = '1' 
+	            AND GATE_ID <> '0' AND IOKND <> '0'
+	            AND VST_DT BETWEEN  to_char(TO_DATE(A.APPLY_DT,'yyyymmdd')-7,'yyyymmdd') AND to_char(TO_DATE(A.APPLY_DT,'yyyymmdd'),'yyyymmdd')) AS WEEK_INOUT_CNT,
+	        (SELECT COUNT(*) AS MONTH_INOUT_CNT  
+	           FROM IO_VST_MAN_GATE_IO
+	          WHERE IO_EMP_ID = B.IO_EMP_ID
+	            AND VST_SEQ = '1' 
+	            AND GATE_ID <> '0' AND IOKND <> '0'
+	            AND VST_DT BETWEEN  to_char(ADD_MONTHS(TO_DATE(A.APPLY_DT,'yyyymmdd'),-1),'yyyymmdd') AND to_char(TO_DATE(A.APPLY_DT,'yyyymmdd'),'yyyymmdd')) AS MONTH_INOUT_CNT ,
+	        NVL(A.TAG_GBN,'') AS TAG_GBN,
+	        NVL(C.SUBCONT_YN, 'N') AS SUBCONT_YN ,
+			NVL(A.TAG_REISSUE_GBN, '') AS TAG_REISSUE_GBN,
+                 	FN_GET_CODE( 'A053',  A.TAG_REISSUE_GBN, 'DETL_CD') AS TAG_REISSUE_GBN_NM,
+			A.TAG_AMT_INFO,
+			A.BUILD_AUTH_DEL_YN,
+			A.AMT_DT,
+			A.IDCARD_EMP_NM
+		FROM IO_PASS A, IO_EMP B, IO_COMP C, CO_EMP D
+		WHERE 1=1 
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.IO_COMP_ID = C.IO_COMP_ID
+		AND A.EMP_ID = D.EMP_ID
+		AND A.PASS_APPL_NO = #{passApplNo}
+	]]>
+	</select>
+	
+	<select id="selectPassBuildingView" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBuildingView (dmPassBuildingView) */
+		SELECT 
+			A.PASS_BLDG_APPL_NO AS PASS_BLDG_APPL_NO, 
+			A.DOC_ID AS DOC_ID, 
+			A.CARD_NO AS CARD_NO,
+			B.APPL_EMP_NM AS EMP_NM,
+			B.APPL_JW_NM AS JW_NM,
+			B.APPL_DEPT_NM AS DEPT_NM,
+			C.COMP_ID AS COMP_ID,
+			FN_GET_COMP_NM( A.COMP_ID ) AS COMP_NM,
+			C.PASS_APPL_NO AS PASS_APPL_NO
+		FROM IO_PASS_BLDG_M A, AP_DOC B, IO_PASS C
+		WHERE A.DOC_ID  = B.DOC_ID
+		AND A.IO_EMP_ID = C.IO_EMP_ID
+		/*AND A.CARD_NO   = C.CARD_NO */
+		AND A.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+		AND ROWNUM = 1
+	</select>
+	
+	<select id="selectNewPassBuildingList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectNewPassBuildingList (dmNewPassBuildingList) */
+		SELECT
+				GATE_ID,
+				GATE_NM
+		FROM (
+			SELECT
+					FN_CARDKEY_GATE_ID( B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE ) AS GATE_ID,
+					FN_CARDKEY_GATE_NM( B.BLDG_ID, B.FLR_ID, B.GATE_ID, B.SPE_ZONE ) AS GATE_NM
+			FROM IO_PASS_BLDG_M A, IO_PASS_BLDG_D B
+			WHERE A.PASS_BLDG_APPL_NO = B.PASS_BLDG_APPL_NO
+			AND A.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+			AND A.COMP_ID NOT IN ('1102000001', '1105000001', '1106000001') 
+			     
+			UNION ALL
+			
+			SELECT
+            	A.GATE_ID AS GATE_ID, 
+            	B.GATE_NM AS GATE_NM
+			FROM IO_PASS_BLDG_D A, IF_CARDKEY_GATE B
+			WHERE A.GATE_ID = TO_CHAR(B.GATE_ID)
+				AND A.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+				AND B.COMP_ID ='B'
+        			UNION ALL
+        			SELECT
+            	A.BLDG_ID AS GATE_ID, 
+            	B.GATE_NM AS GATE_NM
+			FROM IO_PASS_BLDG_D A, IF_CARDKEY_GATE B
+			WHERE A.BLDG_ID = TO_CHAR(B.GATE_ID)
+				AND A.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+				AND B.COMP_ID ='B'
+		)
+		ORDER BY GATE_NM ASC
+	</select>
+	
+	<select id="selectIoPassCountByEmpName" parameterType="Map" resultType="Integer">
+		/* BuildingRegRepository.selectIoPassCountByEmpName (dmIoPassCountByEmpName) */
+		SELECT COUNT(*) AS TOTAL_COUNT
+			FROM (SELECT IO_EMP_ID, MAX(PASS_APPL_NO) AS PASS_APPL_NO
+				FROM (
+					SELECT A.IO_EMP_ID, A.PASS_APPL_NO,
+						   CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_STRT_DT ELSE IO_STRT_DT END AS STRT_DT,
+						   CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_END_DT  ELSE IO_END_DT  END AS END_DT
+					  FROM IO_PASS A, IO_EMP B
+					 WHERE A.STATUS IN ('A0091004', 'A0091005')
+					   AND A.ALTEMP_GBN = 'A0071001'
+					   AND A.IO_EMP_ID  = B.IO_EMP_ID
+					   AND B.EMP_NM LIKE '%'|| #{ioEmpNm} ||'%' 
+					<if test="not @org.springframework.util.StringUtils@isEmpty(delYn)">
+					   AND B.DEL_YN = #{delYn}
+					</if>
+	    	) T1
+	    	<![CDATA[
+		    WHERE T1.END_DT >= TO_CHAR(SYSDATE,'YYYYMMDD') 
+		    GROUP BY T1.IO_EMP_ID 
+		    ]]>
+	    ) T2
+	</select>
+
+	<select id="selectIoPassApplNoByEmpName" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectIoPassApplNoByEmpName (dmIoPassApplNoByEmpName) */
+		SELECT IO_EMP_ID, MAX(PASS_APPL_NO) AS PASS_APPL_NO
+	  	FROM (SELECT A.IO_EMP_ID, PASS_APPL_NO,
+				   CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_STRT_DT ELSE IO_STRT_DT END AS STRT_DT,
+				   CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_END_DT  ELSE IO_END_DT  END AS END_DT
+			  FROM IO_PASS A,
+			       IO_EMP B
+			 WHERE A.STATUS IN ('A0091004', 'A0091005')
+			   AND A.ALTEMP_GBN = 'A0071001'
+			   AND A.IO_EMP_ID = B.IO_EMP_ID
+	           AND B.EMP_NM LIKE '%'|| #{ioEmpNm} ||'%'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(delYn)">
+			   AND B.DEL_YN = #{delYn}
+			</if>
+		)
+		WHERE  END_DT >= TO_CHAR(SYSDATE,'YYYYMMDD')
+		GROUP BY IO_EMP_ID
+	</select>
+
+	<select id="selectPassIoEmpView" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassIoEmpView (dmPassIoEmpView) */
+		SELECT 
+	        A.IO_EMP_ID AS IO_EMP_ID, 
+	        A.EMP_NM AS IO_EMP_NM, 
+	        A.JW_NM AS IO_JW_NM, 
+	        RPAD(SUBSTR(A.HP_NO,1,7),12,'*') AS IO_HP_NO, 
+	        A.IO_COMP_ID AS IO_COMP_ID,
+	        A.JUMIN_NO AS IO_EMP_JUMIN_NO, 
+	        RPAD(SUBSTR(A.PASSPORT_NO,1,7), 9,'*') AS IO_EMP_PASSPORT_NO,
+	        A.ADDR AS IO_EMP_ADDR, 
+	        B.COMP_KO_NM AS COMP_KO_NM,
+	        B.COMP_EN_NM AS COMP_EN_NM,
+	        B.BOSS_NM AS BOSS_NM,
+	        B.TEL_NO AS COMP_TEL_NO,
+	        B.ADDR AS COMP_ADDR,
+	        B.ZIP1 AS COMP_ZIP1,
+	        B.ZIP2 AS COMP_ZIP2,
+	        A.NATION AS NATION,
+	        FN_GET_CODE('Z001', A.NATION, '') AS NATION_NM,
+	        A.CAR_KND AS CAR_KND,  
+	        A.CAR_NO AS CAR_NO,
+	        A.FILE_PHOTO AS FILE_PHOTO,
+	        '' AS FILE_INDV_FR,
+	        '' AS FILE_INDV_BK,
+	        A.DEL_YN DEL_YN,
+	        A.EMAIL_ADDR AS EMAIL_ADDR,
+	        NVL(A.SLEEP_YN, 'N') AS SLEEP_YN,
+            TO_CHAR(A.LOGIN_DTM + 365, 'YYYY-MM-DD') AS SLEEP_DTM
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND lower(A.IO_EMP_ID) = lower(#{ioEmpId})
+	</select>
+	
+	<select id="selectIoPassApplNoList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectIoPassApplNoList (dmIoPassApplNoList) */
+		<![CDATA[
+		SELECT  
+			A.IO_EMP_ID AS IO_EMP_ID, A.EMP_NM AS IO_EMP_NM, A.JW_NM AS IO_JW_NM, A.EMP_NM||' ' ||A.JW_NM AS IO_EMP_FULL_NM, 
+	        A.HP_NO AS IO_HP_NO, A.IO_COMP_ID AS IO_COMP_ID,
+	        CASE WHEN A.NATION = 'Z0011001' THEN A.JUMIN_NO
+	             ELSE A.PASSPORT_NO
+	         END AS IO_EMP_JUMIN_NO, 
+	        A.ADDR AS IO_EMP_ADDR, B.COMP_KO_NM AS COMP_KO_NM, B.COMP_EN_NM AS COMP_EN_NM, B.BOSS_NM AS BOSS_NM,
+	        B.TEL_NO AS COMP_TEL_NO, B.ADDR AS COMP_ADDR, B.ZIP1 AS COMP_ZIP1, B.ZIP2 AS COMP_ZIP2,
+	        FN_GET_CODE('Z001', A.NATION, '') AS NATION_NM,
+	        A.CAR_KND AS CAR_KND,  A.CAR_NO AS CAR_NO,  A.FILE_PHOTO AS FILE_PHOTO,
+	        '' AS FILE_INDV_FR,
+	        '' AS FILE_INDV_BK,
+	        C.PASS_APPL_NO AS PASS_APPL_NO,
+	        CASE WHEN TO_DATE(X.DENY_STRT_DT, 'YYYY-MM-DD') <= SYSDATE AND TO_DATE(X.DENY_END_DT, 'YYYY-MM-DD') >= SYSDATE THEN 'Y' ELSE 'N' END AS DENY_YN,
+	        X.DENY_STRT_DT || ' ~ ' || X.DENY_END_DT AS DENY_DT,
+	        A.DEL_YN,
+	        NVL(A.SLEEP_YN, 'N') AS SLEEP_YN,
+            TO_CHAR(A.LOGIN_DTM + 365, 'YYYY-MM-DD') AS SLEEP_DTM
+		 FROM IO_EMP A, IO_COMP B, 
+		      (SELECT IO_EMP_ID, MAX(PASS_APPL_NO) AS PASS_APPL_NO
+		         FROM (SELECT IO_EMP_ID, PASS_APPL_NO,
+		                  	  CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_STRT_DT ELSE IO_STRT_DT END AS STRT_DT,
+		                      CASE WHEN APPLY_GBN = 'A0061003' THEN EXTN_END_DT  ELSE IO_END_DT  END AS END_DT
+		                 FROM IO_PASS A
+		                WHERE A.STATUS IN ('A0091004', 'A0091005')
+		                  AND A.ALTEMP_GBN = 'A0071001'
+	                	  AND A.IO_EMP_ID IN ( SELECT IO_EMP_ID FROM IO_EMP WHERE EMP_NM LIKE '%'|| #{ioEmpNm} ||'%' )
+		        )
+		        WHERE  END_DT >= TO_CHAR(SYSDATE,'YYYY-MM-DD')
+		        GROUP BY IO_EMP_ID 
+		) C,
+		(
+			 SELECT	X.*	FROM (
+					SELECT 
+						 ROW_NUMBER() OVER ( PARTITION BY X.IO_EMP_ID ORDER BY X.DENY_NO DESC, X.IO_EMP_ID ASC ) AS ROW_NUM
+						,X.*
+					FROM  IO_EMP_DENY X
+					WHERE NVL(DEL_YN,'N') = 'N' 
+			 ) X 
+			 WHERE X.ROW_NUM = 1
+		) X
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		  AND A.IO_EMP_ID = X.IO_EMP_ID(+)
+		  AND A.IO_EMP_ID    = C.IO_EMP_ID
+		]]>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(delYn)">
+		  AND A.DEL_YN = #{delYn}
+		</if>
+	</select>
+	
+	<insert id="insertPassBldgMaster" parameterType="Map">
+		<selectKey keyProperty="passBldgApplNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_EMPCARD_BLDG_M.NEXTVAL AS passBldgApplNo FROM DUAL
+	    </selectKey>
+	    
+		/* BuildingRegRepository.insertPassBldgMaster (dmPassBldgMInsert) */
+		INSERT INTO IO_PASS_BLDG_M 
+		(
+		   PASS_BLDG_APPL_NO, 
+		   IO_EMP_ID,
+		   CARD_NO,
+		   COMP_ID,
+		   IO_COMP_ID,
+		   DEL_YN, 
+		   AC_IP, 
+		   CRT_BY, 
+		   CRT_DTM,
+		   PASS_APPL_NO
+		) 
+		VALUES 
+		( 
+			#{passBldgApplNo},
+		 	#{ioEmpId},
+		 	#{cardNo},
+		 	#{compId},
+		 	#{ioCompId},
+		 	'N',
+		 	#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{passApplNo}
+		)
+	</insert>
+	
+	<insert id="insertPassBldgDetail" parameterType="Map">
+		/* BuildingRegRepository.insertPassBldgDetail (dmPassBldgDInsert) */
+		INSERT INTO SECURITYADM.IO_PASS_BLDG_D 
+		(
+		   PASS_BLDG_APPL_NO,
+		   SEQ,
+		   BLDG_ID,
+		   FLR_ID,
+		   GATE_ID, 
+		   SPE_ZONE,
+		   DEL_YN, 
+		   AC_IP, 
+		   CRT_BY, 
+		   CRT_DTM,
+		   APPR_ID
+		) 
+		VALUES ( 
+			#{passBldgApplNo},
+		    #{seq},
+		   	#{bldgId},
+		   	#{floorId},
+		   	#{gateId}, 
+		   	#{speZone},
+		 	'N',
+		 	#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{apprId}
+		)
+	</insert>
+	
+	<update id="updatePassBldgMasterDocId" parameterType="Map">
+		/* BuildingRegRepository.updatePassBldgMasterDocId (dmPassBuildingUpdate) */
+		UPDATE SECURITYADM.IO_PASS_BLDG_M
+		SET    DOC_ID            = #{docId}
+		WHERE  PASS_BLDG_APPL_NO = #{passBldgApplNo}
+	</update>
+	
+	<select id="selectSpecialPassCompCodeList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectSpecialPassCompCodeList (dmSpecialPassCompCodeList) */
+		SELECT DISTINCT A.COMP_ID AS DETL_CD
+		     , B.COMP_NM          AS DETL_NM 
+		FROM IF_CARDKEY_GATE A, IF_CARDKEY_COMP B 
+		WHERE A.IO_EMP_SPE_ZONE <![CDATA[<>]]> 0
+		AND A.COMP_ID = B.COMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		AND A.APPR_EMP_ID = #{empId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		AND A.COMP_ID = DECODE(#{compId},'1101000001','A','1108000001','A','B')
+		</if>
+		AND A.USE_YN = 'Y'
+		ORDER BY A.COMP_ID
+	</select>
+	
+	<select id="selectSpecialPassBldgCodeList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectSpecialPassBldgCodeList (dmSpecialPassBldgCodeList) */
+		SELECT 
+			DISTINCT A.BLDG_ID AS DETL_CD
+		    , B.BLDG_NM          	AS DETL_NM
+		    , B.APPR_EMP_ID 		AS APPR_EMP_ID
+		FROM IF_CARDKEY_GATE A, IF_CARDKEY_BLDG B 
+		WHERE A.IO_EMP_SPE_ZONE <![CDATA[<>]]> 0
+		AND A.BLDG_ID = B.BLDG_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		AND A.APPR_EMP_ID = #{empId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+		AND A.COMP_ID = #{compId}
+		</if>
+		AND A.USE_YN = 'Y'
+		ORDER BY A.BLDG_ID
+	</select>
+	
+	<select id="selectSpecialPassGateCodeList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectSpecialPassBldgCodeList (dmSpecialPassGateCodeList) */
+		SELECT DISTINCT A.GATE_ID AS DETL_CD
+		     , A.GATE_NM          AS DETL_NM 
+		     , A.DESCRPT          AS GATE_NUM
+		     , A.APPR_EMP_ID 	AS APPR_EMP_ID
+		FROM IF_CARDKEY_GATE A
+		WHERE A.IO_EMP_SPE_ZONE <![CDATA[<>]]> 0
+		AND A.COMP_ID = #{compId}
+		AND A.BLDG_ID = #{bldgId}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empId)">
+		AND A.APPR_EMP_ID = #{empId}
+		</if>
+		AND A.USE_YN ='Y'
+		ORDER BY A.GATE_ID
+	</select>
+	
+	<select id="selectSpecialPassIoPassList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectSpecialPassIoPassList (dmSpecialPassIoPassList) */
+		SELECT 
+			  DISTINCT
+		       TO_CHAR(A.PASS_APPL_NO) AS PASS_APPL_NO
+		     , A.SMART_IDCARD AS IDCARD_ID
+		     , A.IO_EMP_ID
+		     , A.CARD_NO
+		     , A.HP_NO
+		     , A.EMAIL_ADDR
+             , CASE WHEN (SELECT COUNT(EMP_ID) FROM VW_CO_SPECIAL_ZONE_EXCEPT_LIST WHERE EMP_ID = A.IO_EMP_ID) > 0 THEN 'Y' ELSE 'N' END AS EXCEPT_YN
+		FROM VW_IO_PASS_MST2 A
+		INNER JOIN (
+            SELECT SMART_IDCARD, MAX(NVL(PASS_APPL_NO, 0)) AS PASS_APPL_NO 
+            FROM VW_IO_PASS_MST2
+            GROUP BY SMART_IDCARD
+        ) B
+        ON B.SMART_IDCARD = A.SMART_IDCARD
+        AND B.PASS_APPL_NO = NVL(A.PASS_APPL_NO, 0)
+		WHERE A.SMART_IDCARD IN
+		<foreach collection="idcardIds" item="idcardId" open="(" close=")" separator=",">
+			#{idcardId}
+		</foreach>
+		ORDER BY PASS_APPL_NO DESC
+	</select>
+	
+	<select id="selectSpecialPassExceptList" parameterType="Map" resultType="String">
+		/* BuildingRegRepository.selectSpecialPassExceptList (dmSpecialPassExceptList) */
+		SELECT 
+		    EMP_ID
+		FROM VW_CO_SPECIAL_ZONE_EXCEPT_LIST
+	</select>
+	
+	<insert id="insertSpecialPassIoEmpBldgCanc" parameterType="Map">
+		<selectKey keyProperty="ioEmpBldgCancSeq" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_IO_EMP_BLDG_CANC.NEXTVAL AS ioEmpBldgCancSeq FROM DUAL
+	    </selectKey>
+	    
+		/* BuildingRegRepository.insertEmpcardBldgMaster (dmSpecialPassIoEmpBldgCanc) */
+		INSERT INTO IO_EMP_BLDG_CANC 
+		(
+		  CANC_SEQ, COMP_ID, BLDG_ID, GATE_ID, COMP_NM, JW_NM, IDCARD_ID, EMP_NM, TEL_NO, IO_CNT, AC_IP, CRT_BY, CRT_DTM, MOD_BY, MOD_DTM, DEL_COMMENT, EMAIL_ADDR
+		) 
+		VALUES 
+		( 
+		  #{ioEmpBldgCancSeq}
+		, #{compId}
+		, #{bldgId}
+		, #{gateId}
+		, #{groupName}
+		, #{posName}
+		, #{idcardId}
+		, #{userName}
+		, #{hpNo}
+		, #{nCount}
+		, #{acIp}
+		, #{empId}
+		, SYSDATE
+		, #{empId}
+		, SYSDATE
+		, #{delComment}
+		, #{emailAddr}
+		)
+	</insert>
+	
+	<select id="selectPassReceiptMngChgHistList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassReceiptMngChgHistList (dmPassReceiptMngChgHistList) */
+		<![CDATA[
+		WITH T
+		     AS (SELECT ROW_NUMBER()
+	                    OVER (ORDER BY A.APPL_STAT ASC, A.PASS_APPL_NO DESC)
+	                    AS ROW_NUM
+	              , A.PASS_APPL_NO AS PASS_APPL_NO
+	              , A.IO_COMP_ID AS IO_COMP_ID
+	              , B.COMP_KO_NM AS IO_COMP_KO_NM
+	              , B.COMP_EN_NM AS IO_COMP_EN_NM
+	              , A.IO_EMP_ID AS IO_EMP_ID
+	              , C.EMP_NM AS IO_EMP_NM
+	              , A.APPLY_GBN AS APPLY_GBN
+	              , A.LOSO_GBN AS LOSO_GBN
+	              , A.ALTEMP_GBN AS ALTEMP_GBN
+	              , A.APPLY_DT AS APPLY_DT
+	              , A.STATUS AS STATUS
+	              , CASE
+	                    WHEN A.APPLY_GBN = 'A0061003'
+	                    THEN
+	                           SUBSTR(A.EXTN_STRT_DT, 1, 4)
+	                        || '-'
+	                        || SUBSTR(A.EXTN_STRT_DT, 5, 2)
+	                        || '-'
+	                        || SUBSTR(A.EXTN_STRT_DT, 7, 2)
+	                        || ' ~ '
+	                        || SUBSTR(A.EXTN_END_DT, 1, 4)
+	                        || '-'
+	                        || SUBSTR(A.EXTN_END_DT, 5, 2)
+	                        || '-'
+	                        || SUBSTR(A.EXTN_END_DT, 7, 2)
+	                    ELSE
+	                           SUBSTR(A.IO_STRT_DT, 1, 4)
+	                        || '-'
+	                        || SUBSTR(A.IO_STRT_DT, 5, 2)
+	                        || '-'
+	                        || SUBSTR(A.IO_STRT_DT, 7, 2)
+	                        || ' ~ '
+	                        || SUBSTR(A.IO_END_DT, 1, 4)
+	                        || '-'
+	                        || SUBSTR(A.IO_END_DT, 5, 2)
+	                        || '-'
+	                        || SUBSTR(A.IO_END_DT, 7, 2)
+	                END
+	                    AS ACCESS_PERIOD
+	              , A.DOC_ID AS DOC_ID
+	              , A.CRT_BY AS CRT_BY
+	              , A.APPL_STAT AS APPL_STAT
+	              , B.SUBCONT_YN AS SUBCONT_YN
+	              , A.CARD_NO
+	              , CASE
+	                    WHEN D.PASS_APPL_NO IS NOT NULL AND D.RESOLVE_DT IS NULL
+	                    THEN '대상'
+	                    WHEN D.PASS_APPL_NO IS NOT NULL AND D.RESOLVE_DT IS NOT NULL
+	                    THEN '비대상'
+	                    ELSE ''
+	                END AS REST_YN_NM
+	               , A.EMP_ID
+	           FROM IO_PASS A
+	                LEFT JOIN IO_PASS_REST_HIST D
+	                    ON D.PASS_APPL_NO = A.PASS_APPL_NO
+	              , IO_COMP B
+	              , IO_EMP C
+	          WHERE     A.IO_COMP_ID = B.IO_COMP_ID
+	                AND A.IO_EMP_ID = C.IO_EMP_ID
+	                AND A.CARD_NO = #{cardNo}
+		)
+		SELECT ROW_NUM
+		     , CARD_NO
+		     , PASS_APPL_NO
+		     , IO_COMP_ID
+		     , IO_COMP_KO_NM
+		     , IO_COMP_EN_NM
+		     , IO_EMP_ID
+		     , IO_EMP_NM
+		     , APPLY_GBN
+		     , FN_GET_CODE('A006', APPLY_GBN, 'DETL_CD') AS APPLY_GBN_NM
+		     , LOSO_GBN
+		     , FN_GET_CODE('A020', LOSO_GBN, 'DETL_CD') AS LOSO_GBN_NM
+		     , ALTEMP_GBN
+		     , FN_GET_CODE('A007', ALTEMP_GBN, 'DETL_CD') AS ALTEMP_GBN_NM
+		     ,    SUBSTR(APPLY_DT, 1, 4)
+		       || '-'
+		       || SUBSTR(APPLY_DT, 5, 2)
+		       || '-'
+		       || SUBSTR(APPLY_DT, 7, 2)
+		           AS APPLY_DT
+		     , STATUS
+		     , FN_GET_CODE('A009', STATUS, 'DETL_CD') AS STATUS_NM
+		     , ACCESS_PERIOD
+		     , DOC_ID
+		     , CRT_BY
+		     , FN_GET_IO_EMP_NM(CRT_BY) AS CRT_BY_NM
+		     , APPL_STAT
+		     , DECODE(FN_GET_IOPASS_EXTN(PASS_APPL_NO),'자동연장','자동연장', FN_GET_CODE_ETC3('Z033', APPL_STAT)) AS APPL_STAT_NM 
+		     , SUBCONT_YN
+		     , REST_YN_NM
+		     , FN_GET_EMP_NM(EMP_ID) AS EMP_NM
+		  FROM T
+		]]>
+	</select>
+	
+	<select id="selectEmpCardBldgRequestInfo" parameterType="Integer" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBldgRequestInfo (dmEmpCardBldgRequestInfo) */
+		SELECT
+			TO_CHAR(A.EMPCARD_BLDG_APPL_NO) AS EMPCARD_BLDG_APPL_NO,
+			A.DOC_ID AS DOC_ID,
+			A.CARD_NO AS CARD_NO,
+			A.EMP_ID AS EMP_ID,
+			A.COMP_ID AS COMP_ID,
+			A.EMP_ID AS IDCARD_ID 
+		FROM IO_EMPCARD_BLDG_M A
+		WHERE A.EMPCARD_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectEmpCardBldgRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBldgRequestList (dmEmpCardBldgRequestList) */
+		SELECT	
+			#{empId} AS EMP_ID,
+			#{cardNo} AS CARD_NO,
+			D.SEQ,
+			D.BLDG_ID,
+			D.FLR_ID,
+			D.GATE_ID,
+			D.SPE_ZONE,
+			#{empId} AS CRT_BY
+		FROM IO_EMPCARD_BLDG_D D,
+		     IO_EMPCARD_BLDG_M M,
+		     AP_DOC A,
+		     AP_APPR B
+		WHERE D.EMPCARD_BLDG_APPL_NO = M.EMPCARD_BLDG_APPL_NO
+		  AND M.DOC_ID = A.DOC_ID
+		  AND A.DOC_ID = B.DOC_ID
+		  AND B.EMP_ID = TRIM(D.APPR_ID)
+		  AND A.APPR_STAT = '20'
+		  AND A.APPR_RESULT = '1'
+		  AND B.APPR_RESULT = '1'
+		  AND D.EMPCARD_BLDG_APPL_NO = #{lid}
+		  
+		UNION ALL
+		
+	    SELECT	
+	    	#{empId} AS EMP_ID,
+			#{cardNo} AS CARD_NO,
+			D.SEQ,
+			D.BLDG_ID,
+			D.FLR_ID,
+			D.GATE_ID,
+			D.SPE_ZONE,
+			#{empId} AS CRT_BY
+		FROM IO_EMPCARD_BLDG_D D
+	    WHERE D.EMPCARD_BLDG_APPL_NO = #{lid}
+	      AND D.APPR_ID IS NULL
+			     	
+		UNION ALL 
+		
+		/* 자가 결재시 자가결재자에 해당하는 건물정보 가져오기 */
+	    SELECT  
+	    	#{empId}  AS EMP_ID,
+            #{cardNo} AS CARD_NO,
+            D.SEQ,
+            D.BLDG_ID,
+            D.FLR_ID,
+            D.GATE_ID,
+            D.SPE_ZONE,
+            #{empId}  AS CRT_BY
+	    FROM IO_EMPCARD_BLDG_D D,
+	         IO_EMPCARD_BLDG_M M,
+	         AP_DOC A,
+	         AP_APPR B
+	    WHERE D.EMPCARD_BLDG_APPL_NO = M.EMPCARD_BLDG_APPL_NO
+	      AND M.DOC_ID = A.DOC_ID
+	      AND A.DOC_ID = B.DOC_ID
+	      AND TRIM(D.APPR_ID) = TRIM(A.APPL_EMP_ID)
+	      AND A.APPR_STAT = '20'
+	      AND A.APPR_RESULT = '1'
+	      AND B.APPR_RESULT = '1'
+	      AND B.APPR_DEPT_GBN = '1' 
+	      AND D.EMPCARD_BLDG_APPL_NO = #{lid} 
+	</select>
+	
+	<select id="selectCoEmpBldgCount" parameterType="Map" resultType="Integer">
+		/* BuildingRegRepository.selectCoEmpBldgCount (CO_EMP_BLDG_COUNT) */
+		SELECT
+			COUNT(*) AS BLDG_COUNT
+		FROM CO_EMP_BLDG
+		WHERE EMP_ID = #{empId}
+		AND CARD_NO  = #{cardNo}
+		AND COMP_ID  = #{compId}
+		AND BLDG_ID  = #{bldgId}
+		AND FLR_ID   = #{flrId}
+		AND GATE_ID  = #{gateId}
+	</select>
+	
+	<insert id="insertCoEmpBldg" parameterType="Map">
+		/* BuildingRegRepository.insertCoEmpBldg (CO_EMP_BLDG_INSERT) */
+		INSERT INTO SECURITYADM.CO_EMP_BLDG 
+		(
+			EMP_ID, 
+			CARD_NO, 
+			SEQ,
+			COMP_ID,
+			BLDG_ID,
+			FLR_ID,
+			GATE_ID, 
+			AC_IP, 
+			SPE_ZONE,
+			CRT_BY, 
+			CRT_DTM
+		)  VALUES ( 
+			#{empId},
+			#{cardNo},
+			(SELECT NVL(MAX(SEQ),0)+1 AS SEQ FROM CO_EMP_BLDG WHERE EMP_ID = #{empId} AND CARD_NO = #{cardNo}),
+			#{compId},
+			#{bldgId},
+			#{flrId},
+			#{gateId},
+			#{acIp},
+			#{speZone},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+	
+	<select id="selectEmpCardBuildingRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectGetEmpCardBuildingRequestList (dmGetEmpCardBuildingRequestList) */
+		SELECT
+			BLDG_ID,
+			FLR_ID,
+			GATE_ID,
+			SPE_ZONE
+		FROM IO_EMPCARD_BLDG_D
+		WHERE EMPCARD_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+	</select>
+	
+	<select id="selectEmpInfoBuildingRequest" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpInfoBuildingRequest (dmGetEmpInfoBuildingRequest) */
+		SELECT
+			B.JUMIN_NO AS JUMIN_NO,
+			TO_CHAR(SYSDATE, 'YYYYMMDD hh24:MI:SS') AS IO_STRT_DT,
+			A.EMP_ID AS EMP_ID,
+			A.CARD_NO AS CARD_NO,
+			B.EMP_NM AS EMP_NM,
+			B.EMAIL AS EMAIL
+		FROM IO_EMPCARD_BLDG_M A, CO_EMP B
+		WHERE A.EMP_ID = B.EMP_ID
+		AND   A.EMPCARD_BLDG_APPL_NO = #{empcardBldgApplNo}
+	</select>
+	
+	<select id="selectPassBldgRequestInfo" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBldgRequestInfo (dmPassBldgRequestInfo) */
+		SELECT
+			DISTINCT
+			TO_CHAR(A.PASS_BLDG_APPL_NO) AS PASS_BLDG_APPL_NO,
+			A.PASS_APPL_NO AS PASS_APPL_NO,
+			A.DOC_ID AS DOC_ID,
+			A.CARD_NO AS CARD_NO,
+			B.IO_EMP_ID AS IO_EMP_ID,
+			A.CRT_BY AS EMP_ID,
+			A.COMP_ID, 
+			B.DEL_YN
+		FROM IO_PASS_BLDG_M A, IO_EMP B
+		WHERE 1 = 1 
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+		AND A.PASS_BLDG_APPL_NO = #{lid}
+	</select> 
+	
+	<select id="selectPassBldgRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBldgRequestList (dmPassBldgRequestList) */
+		SELECT	#{ioEmpId} AS IO_EMP_ID,
+				#{cardNo}  AS CARD_NO,
+				D.SEQ,
+				D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE,
+				#{empId}   AS CRT_BY,
+				M.COMP_ID
+		 FROM IO_PASS_BLDG_D D,
+		      IO_PASS_BLDG_M M,
+		      AP_DOC_PRE A,
+		      AP_APPR B
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = A.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND TRIM(D.APPR_ID) = B.EMP_ID
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1'
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '2'
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+		  
+		UNION ALL 
+		
+		/* 위임결재시 해당 건물 정보 리스트업 안됨 20150615  HSK*/
+		SELECT	#{ioEmpId} AS IO_EMP_ID,
+				#{cardNo}  AS CARD_NO,
+				D.SEQ,
+				D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE,
+				#{empId}   AS CRT_BY,
+				M.COMP_ID
+		FROM IO_PASS_BLDG_D D,
+		      IO_PASS_BLDG_M M,
+		      AP_DOC A,
+		      AP_APPR B
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = A.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND FN_GET_ENTRUST_TO_EMP_ID(TRIM(D.APPR_ID),TO_CHAR(M.CRT_DTM,'YYYY-MM-DD')) = TRIM(B.EMP_ID)
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1'
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '2'
+    	  AND D.PASS_BLDG_APPL_NO = #{lid}
+		  
+		UNION ALL 
+		
+		/* 자가 결재시 상신내역에 대하여, CRT_BY 와 APPR_ID 를 Join 하여 추가 구성함 */
+		SELECT	#{ioEmpId} AS IO_EMP_ID,
+				#{cardNo}  AS CARD_NO,
+				D.SEQ,
+				D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE,
+				#{empId}   AS CRT_BY,
+				M.COMP_ID
+		 FROM IO_PASS_BLDG_D D,
+		      IO_PASS_BLDG_M M,
+		      AP_DOC A,
+		      AP_APPR B
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = A.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND TRIM(D.APPR_ID) = B.CRT_BY
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1'
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '1'
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+			  
+		UNION ALL 
+		
+		/* 자가 결재시 상신내역에 대하여, CRT_BY 와 APPR_ID 를 Join 하여 추가 구성함 */
+		SELECT	#{ioEmpId} AS IO_EMP_ID,
+				#{cardNo}  AS CARD_NO,
+				D.SEQ,
+				D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE,
+				#{empId}   AS CRT_BY,
+				M.COMP_ID
+		 FROM IO_PASS_BLDG_D D,
+			  IO_PASS_BLDG_M M
+		WHERE 1=1
+		  AND M.PASS_BLDG_APPL_NO = D.PASS_BLDG_APPL_NO
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectIoEmpBldgCount" parameterType="Map" resultType="Integer">
+		/* BuildingRegRepository."selectIoEmpBldgCount" (IO_EMP_BLDG_COUNT) */
+			SELECT
+				COUNT(*) AS BLDG_COUNT
+			FROM IO_PASS_BLDG_M  A , IO_PASS_BLDG_D B
+			WHERE 1=1 
+			AND A.IO_EMP_ID = #{ioEmpId}
+			AND A.CARD_NO   = #{cardNo}
+			AND A.COMP_ID   = #{compId}
+			AND B.BLDG_ID   = #{bldgId}
+			AND B.FLR_ID    = #{flrId}
+			AND B.GATE_ID   = #{gateId}
+			AND A.PASS_BLDG_APPL_NO = #{passBldgApplNo}
+	</select>
+	
+	<insert id="insertIoEmpBldg" parameterType="Map">
+		/* BuildingRegRepository.insertIoEmpBldg (IO_EMP_BLDG_INSERT) */
+		INSERT INTO IO_EMP_BLDG 
+		(
+		   IO_EMP_ID, 
+		   CARD_NO, 
+		   SEQ,
+		   COMP_ID,
+		   BLDG_ID,
+		   FLR_ID,
+		   GATE_ID,
+		   SPE_ZONE, 
+		   AC_IP, 
+		   CRT_BY, 
+		   CRT_DTM
+		) 
+		VALUES ( 
+			#{ioEmpId},
+			#{cardNo},
+			(SELECT NVL(MAX(SEQ),0) + 1 AS SEQ FROM IO_EMP_BLDG WHERE IO_EMP_ID = #{ioEmpId} AND CARD_NO = #{cardNo}),
+			#{compId},
+			#{bldgId},
+			#{flrId},
+			#{gateId},
+			#{speZone},
+			#{acIp},
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+	
+	<select id="selectPassBuildingRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectGetPassBuildingRequestList (dmGetPassBuildingRequestList) */
+		SELECT	D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D,
+		     IO_PASS_BLDG_M M,
+		     AP_DOC A,
+		     AP_APPR B
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+             AND M.DOC_ID = B.DOC_ID
+             AND A.DOC_ID = B.DOC_ID
+             AND TRIM(D.APPR_ID) = B.EMP_ID  
+             AND A.APPR_STAT = '20'
+             AND A.APPR_RESULT = '1' 
+             AND B.APPR_RESULT = '1'
+             AND B.APPR_DEPT_GBN = '2'
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+			
+		UNION ALL 
+		 
+		/* 최종 승인시 결재위임발생하면 해당 건물 정보 획득함. 20150615  HSK */
+	 	SELECT	
+	 		D.BLDG_ID,
+			D.FLR_ID,
+			D.GATE_ID,
+			D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D,
+		     IO_PASS_BLDG_M M,
+		     AP_DOC A,
+		     AP_APPR B
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = B.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND FN_GET_ENTRUST_TO_EMP_ID(TRIM(D.APPR_ID),TO_CHAR(M.CRT_DTM,'YYYY-MM-DD')) = TRIM(B.EMP_ID)  
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1' 
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '2'
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+			
+		UNION ALL 
+		
+		/*  자가결재 정보 가져오기. 20150615  HSK */
+ 	    SELECT	D.BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D
+		WHERE 1 = 1
+          AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND D.SPE_ZONE = #{speZone}
+		</if>		  
+	</select>
+	
+	<select id="selectPassBuildingRequestIcList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBuildingRequestIcList (dmGetPassBuildingRequestList_IC) */
+		SELECT	TRIM(D.BLDG_ID) || '-' || D.FLR_ID AS BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D,
+		     IO_PASS_BLDG_M M,
+		     AP_DOC A,
+		     AP_APPR B   
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = B.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND TRIM(D.APPR_ID) = B.EMP_ID 
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1' 
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '2' 
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+		
+		UNION ALL 
+		
+		/* 최종 승인시 결재위임발생하면 해당 건물 정보 획득함. 20150615  HSK */
+		SELECT	TRIM(D.BLDG_ID) || '-' || D.FLR_ID AS BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D,
+		     IO_PASS_BLDG_M M,
+		     AP_DOC A,
+		     AP_APPR B   
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO
+          AND M.DOC_ID = B.DOC_ID
+          AND A.DOC_ID = B.DOC_ID
+          AND FN_GET_ENTRUST_TO_EMP_ID(TRIM(D.APPR_ID),TO_CHAR(M.CRT_DTM,'YYYY-MM-DD')) = TRIM(B.EMP_ID)
+          AND A.APPR_STAT = '20'
+          AND A.APPR_RESULT = '1' 
+          AND B.APPR_RESULT = '1'
+          AND B.APPR_DEPT_GBN = '2' 
+	  	  AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+		
+		UNION ALL 
+		
+		/*  자가결재 정보 가져오기. 20150615  HSK */
+ 	    SELECT	TRIM(D.BLDG_ID) || '-' || D.FLR_ID AS BLDG_ID,
+				D.FLR_ID,
+				D.GATE_ID,
+				D.SPE_ZONE
+		FROM IO_PASS_BLDG_D D,
+		     IO_PASS_BLDG_M M
+		WHERE D.PASS_BLDG_APPL_NO = M.PASS_BLDG_APPL_NO     
+		  AND D.PASS_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+		  AND SPE_ZONE = #{speZone}
+		</if>
+	</select>
+	
+	<select id="selectPassInfoBuildingRequest" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassInfoBuildingRequest (dmGetPassInfoBuildingRequest) */
+		SELECT
+	        DISTINCT
+	        C.JUMIN_NO AS JUMIN_NO,
+	        C.PASSPORT_NO AS PASSPORT_NO,
+	        C.IO_EMP_ID AS IO_EMP_ID,
+	        A.CARD_NO AS CARD_NO,
+	        C.EMP_NM AS EMP_NM,
+	        D.COMP_KO_NM AS IO_COMP_NM,
+	        A.IO_STRT_DT AS IO_STRT_DT,
+	        A.IO_END_DT AS IO_END_DT,
+	        A.IDCARD_ID              
+		FROM IO_PASS A, IO_PASS_BLDG_M B, IO_EMP C, IO_COMP D
+		WHERE A.CARD_NO = B.CARD_NO
+		AND A.IO_EMP_ID = B.IO_EMP_ID 
+		AND A.IO_EMP_ID = C.IO_EMP_ID
+		AND A.IO_COMP_ID = D.IO_COMP_ID
+		AND A.PASS_APPL_NO = B.PASS_APPL_NO
+		AND B.PASS_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectEmpCardEmpAllRequestInfo" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardEmpAllRequestInfo (dmEmpCardEmpAllRequestInfo) */
+		SELECT
+				TO_CHAR(A.EMPCARDALL_EMP_APPL_NO)  AS EMPCARDALL_EMP_APPL_NO,
+				TO_CHAR(A.EMPCARDALL_BLDG_APPL_NO) AS EMPCARDALL_BLDG_APPL_NO,
+				A.SEQ,
+				A.CARD_NO AS CARD_NO,
+				A.EMP_ID AS EMP_ID,
+				A.COMP_ID AS COMP_ID,
+				A.EMP_ID AS IDCARD_ID
+		FROM IO_EMPCARDALL_EMP_D A
+		WHERE A.EMPCARDALL_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectEmpCardBldgAllRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBldgAllRequestList (dmEmpCardBldgAllRequestList) */
+		SELECT			
+			A.SEQ,
+			A.BLDG_ID,
+			A.FLR_ID,
+			A.GATE_ID,
+			A.SPE_ZONE,
+			#{empId} AS CRT_BY
+		FROM IO_EMPCARDALL_BLDG_D A
+		WHERE A.EMPCARDALL_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectEmpCardBuildingAllRequestList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildingAllRequestList (dmGetEmpCardBuildingAllRequestList) */
+			SELECT
+				BLDG_ID,
+				FLR_ID,
+				GATE_ID,
+				SPE_ZONE
+			FROM IO_EMPCARDALL_BLDG_D
+			WHERE EMPCARDALL_BLDG_APPL_NO = #{lid}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(speZone)">
+			  AND SPE_ZONE = #{speZone}
+		</if>
+	</select>
+	
+	<select id="selectEmpInfoBuildingAllRequest" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpInfoBuildingAllRequest (dmGetEmpInfoBuildingAllRequest) */
+		SELECT
+			TO_CHAR(A.EMPCARDALL_EMP_APPL_NO)  AS EMPCARDALL_EMP_APPL_NO,
+       		TO_CHAR(A.EMPCARDALL_BLDG_APPL_NO) AS EMPCARDALL_BLDG_APPL_NO,
+			B.JUMIN_NO AS JUMIN_NO,
+			TO_CHAR(SYSDATE, 'YYYYMMDD hh24:MI:SS') AS IO_STRT_DT,
+			A.EMP_ID AS EMP_ID,
+			A.CARD_NO AS CARD_NO,
+			B.EMP_NM AS EMP_NM,
+			B.EMAIL AS EMAIL
+		FROM IO_EMPCARDALL_EMP_D A, CO_EMP B
+		WHERE A.EMP_ID = B.EMP_ID
+		AND   A.EMPCARDALL_BLDG_APPL_NO = #{lid}
+	</select>
+	
+	<select id="selectEmpCardBuildRegAdmList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectEmpCardBuildRegAdmList (dmEmpCardBuildRegAdmList) */
+		WITH T2 AS (
+			SELECT
+					ROW_NUMBER() OVER( ORDER BY A.EMPCARD_BLDG_APPL_NO DESC ) AS ROW_NUM,
+					A.EMPCARD_BLDG_APPL_NO 	AS EMPCARD_BLDG_APPL_NO,
+					A.DOC_ID  				AS DOC_ID,
+					A.CRT_DTM 				AS CRT_DTM,
+					B.APPR_STAT AS APPR_STAT,
+					B.APPR_RESULT AS APPR_RESULT,
+					B.APPR_DTM AS APPR_DTM,
+					A.EMP_ID AS EMP_ID,
+					C.COMP_ID AS COMP_ID,
+					C.DEPT_ID AS DEPT_ID,
+					D.SEQ,
+					FN_GET_IF_IDCARD_BLDG_NM(D.BLDG_ID) AS BLDG_NM,
+					D.FLR_ID,
+					FN_GET_IF_IDCARD_GATE_NM(D.GATE_ID) AS GATE_NM,
+					D.SPE_ZONE,
+					D.APPR_ID,
+					FN_GET_EMP_DEPT_JW_NM(D.APPR_ID) AS APPR_NM
+			FROM IO_EMPCARD_BLDG_M A, AP_DOC B, CO_EMP C, IO_EMPCARD_BLDG_D D
+			WHERE A.DOC_ID  = B.DOC_ID(+)
+				AND   A.EMP_ID  = C.EMP_ID
+				AND   A.DEL_YN  = 'N'
+				AND   A.EMPCARD_BLDG_APPL_NO = D.EMPCARD_BLDG_APPL_NO
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+				AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+				AND B.APPR_RESULT = #{apprResult}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+				AND C.COMP_ID = #{searchCompId}
+			</if>
+		)
+		SELECT
+				ROW_NUM,
+				EMPCARD_BLDG_APPL_NO,
+				DOC_ID,
+				TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,
+				APPR_STAT,
+				DECODE(APPR_STAT, '0', '대기', '10', '진행', '20', '완료', '') AS APPR_STAT_NM,
+				APPR_RESULT,
+				DECODE(APPR_RESULT, '0', '진행중', '1', '승인', '2', '부결', '') AS APPR_RESULT_NM,
+				CASE WHEN APPR_RESULT = '1' THEN TO_CHAR(APPR_DTM, 'YYYY-MM-DD') ELSE '' END AS APPR_DTM,
+				FN_GET_EMP_JW_NM(EMP_ID) AS EMP_NM,
+				fn_get_comp_nm(COMP_ID) AS COMP_NM,
+				FN_GET_DEPT_NM(DEPT_ID) AS DEPT_NM,
+				BLDG_NM,
+				FLR_ID,
+				GATE_NM,
+				SPE_ZONE,
+				APPR_NM
+		FROM T2
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+		  AND T2.ROW_NUM > (#{currentPage} - 1) * #{rowPerPage} AND T2.ROW_NUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectEmpCardBuildRegAdmCount" parameterType="Map" resultType="Integer">
+		/* BuildingRegRepository.selectEmpCardBuildRegAdmCount */
+		SELECT COUNT(*) AS CNT
+		FROM (
+			SELECT A.EMPCARD_BLDG_APPL_NO 
+			FROM IO_EMPCARD_BLDG_M A, AP_DOC B, CO_EMP C, IO_EMPCARD_BLDG_D D
+			WHERE A.DOC_ID  = B.DOC_ID(+)
+				AND   A.EMP_ID  = C.EMP_ID
+				AND   A.DEL_YN  = 'N'
+				AND   A.EMPCARD_BLDG_APPL_NO = D.EMPCARD_BLDG_APPL_NO
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+				AND A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+				AND B.APPR_RESULT = #{apprResult}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+				AND C.COMP_ID = #{searchCompId}
+			</if>
+		) T
+	</select>
+	
+	<select id="selectPassBuildRegAdmList" parameterType="Map" resultType="CamelHashMap">
+		/* BuildingRegRepository.selectPassBuildRegAdmList (dmBuildinigRegList) */
+		WITH T AS
+		(
+			SELECT
+			            ROW_NUMBER() OVER( ORDER BY A.PASS_BLDG_APPL_NO DESC ) AS ROW_NUM,
+			            A.PASS_BLDG_APPL_NO AS PASS_BLDG_APPL_NO,
+			            A.CARD_NO AS CARD_NO,
+			            E.IDCARD_ID AS IDCARD_ID,
+			            B.IO_COMP_ID AS IO_COMP_ID,
+			            D.COMP_KO_NM AS IO_COMP_NM,
+			            B.EMP_NM AS IO_EMP_NM,
+			            B.JW_NM AS IO_JW_NM,
+			            B.IO_EMP_ID AS IO_EMP_ID,
+			            C.APPL_EMP_ID AS APPL_EMP_ID,
+			            A.DOC_ID AS DOC_ID,
+			            C.APPR_STAT AS APPR_STAT,
+			            C.APPR_RESULT AS APPR_RESULT,
+	                	TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS APPLY_DT,
+	                	E.IO_STRT_DT AS IO_STRT_DT,
+	        			E.IO_END_DT AS IO_END_DT,
+	        			E.EXTN_STRT_DT AS EXTN_STRT_DT,
+	        			E.EXTN_END_DT AS EXTN_END_DT,
+	        			E.ALTEMP_GBN AS ALTEMP_GBN,
+	        			E.APPLY_GBN AS APPLY_GBN,
+	        			E.PASS_APPL_NO AS PASS_APPL_NO
+			FROM IO_PASS_BLDG_M A, IO_EMP B, AP_DOC C, IO_COMP D, IO_PASS E
+			WHERE A.IO_EMP_ID   = B.IO_EMP_ID
+			AND   A.IO_COMP_ID  = B.IO_COMP_ID
+			AND   A.DOC_ID      = C.DOC_ID(+)
+			AND   A.IO_COMP_ID  = D.IO_COMP_ID
+			AND   A.PASS_APPL_NO = E.PASS_APPL_NO
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND   A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND   A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+			AND   C.APPR_RESULT = #{apprResult}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+			AND   D.COMP_KO_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND   B.EMP_NM LIKE '%'|| #{ioEmpNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+			AND   E.APPLY_GBN(+) = #{applyGbn}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(altempGbn)">
+			AND   E.ALTEMP_GBN(+) = #{altempGbn}
+		</if>	
+		)
+		SELECT
+				ROW_NUM,
+				CARD_NO,
+				IDCARD_ID,
+				PASS_BLDG_APPL_NO,
+				IO_COMP_ID,
+				IO_COMP_NM,
+				IO_EMP_ID,
+				IO_COMP_NM,
+				IO_EMP_NM,
+				IO_JW_NM,
+				IO_STRT_DT,
+		        IO_END_DT,
+		        EXTN_STRT_DT,
+		        EXTN_END_DT, 
+		        CASE WHEN APPLY_GBN = 'A0061003'
+	                 THEN SUBSTR(EXTN_STRT_DT, 1, 4)||'-'||SUBSTR(EXTN_STRT_DT, 5, 2)||'-' ||SUBSTR(EXTN_STRT_DT, 7, 2)|| ' ~ '||
+	                      SUBSTR(EXTN_END_DT,  1, 4)||'-'||SUBSTR(EXTN_END_DT,  5, 2)||'-' ||SUBSTR(EXTN_END_DT,  7, 2)
+	                 ELSE SUBSTR(IO_STRT_DT,   1, 4)||'-'||SUBSTR(IO_STRT_DT,   5, 2)||'-' ||SUBSTR(IO_STRT_DT,   7, 2)|| ' ~ '||
+	                      SUBSTR(IO_END_DT,    1, 4)||'-'||SUBSTR(IO_END_DT,    5, 2)||'-' ||SUBSTR(IO_END_DT,    7, 2)  END AS ACCESS_PERIOD,
+				ALTEMP_GBN,
+				FN_GET_CODE('A007', ALTEMP_GBN, '') AS ALTEMP_GBN_NM,
+				APPLY_GBN,
+		        FN_GET_CODE('A006', APPLY_GBN, 'DETL_CD')  AS APPLY_GBN_NM,
+				APPL_EMP_ID,
+				FN_GET_EMP_JW_NM(APPL_EMP_ID) AS APPL_EMP_NM,
+				APPR_RESULT,
+		        DECODE(APPR_RESULT, '0', '검토중', '1', '승인', '2', '반려', '') AS APPR_RESULT_NM,
+		        APPLY_DT,
+		        DOC_ID,
+		        PASS_APPL_NO
+		FROM T
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+		  AND T.ROW_NUM > (#{currentPage} - 1) * #{rowPerPage} AND T.ROW_NUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+	
+	<select id="selectPassBuildRegAdmCount" parameterType="Map" resultType="Integer">
+		/* BuildingRegRepository.selectPassBuildRegAdmCount */
+		SELECT COUNT(*) AS CNT
+		FROM (
+			SELECT A.PASS_BLDG_APPL_NO 
+			FROM IO_PASS_BLDG_M A, IO_EMP B, AP_DOC C, IO_COMP D, IO_PASS E
+			WHERE A.IO_EMP_ID   = B.IO_EMP_ID
+			AND   A.IO_COMP_ID  = B.IO_COMP_ID
+			AND   A.DOC_ID      = C.DOC_ID(+)
+			AND   A.IO_COMP_ID  = D.IO_COMP_ID
+			AND   A.PASS_APPL_NO = E.PASS_APPL_NO
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+			AND   A.CRT_DTM <![CDATA[>=]]> TO_DATE(#{searchStartDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND   A.CRT_DTM <![CDATA[<=]]> TO_DATE(#{searchEndDate}, 'YYYY-MM-DD') + 1
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(apprResult)">
+			AND   C.APPR_RESULT = #{apprResult}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+			AND   D.COMP_KO_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND   B.EMP_NM LIKE '%'|| #{ioEmpNm} ||'%'
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(applyGbn)">
+			AND   E.APPLY_GBN(+) = #{applyGbn}
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(altempGbn)">
+			AND   E.ALTEMP_GBN(+) = #{altempGbn}
+		</if>	
+		) T
+	</select>
+	
+</mapper>

@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.BoardRepository">
+
+	
+	<select id="selectBoardList" parameterType="BoardSearchDTO" resultType="BoardDTO"><![CDATA[
+		/* boardRepository.selectBoardList (dmSecurityQnaSearch) */
+		SELECT A.BOARD_NO
+			,A.UP_BOARD_NO
+			,A.INOUT_GBN
+			,A.BOARD_GBN
+			,'' AS INOUT_NM_NONE
+		    ,FN_GET_CODE('Z037',A.INOUT_GBN,'ETC1') AS INOUT_NM
+			,CASE WHEN DEPTH > 0 THEN '└&nbsp;&nbsp;'||A.TITLE ELSE A.TITLE END AS TITLE
+			,A.CRT_BY
+			,FN_GET_EMP_NM(A.CRT_BY) AS CRT_NM
+			,A.READ_CNT
+			,A.FILE_PATH
+	        ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+	        ,FN_GET_DEPT_NM((SELECT B.DEPT_ID
+	                           FROM CO_EMP B
+	                          WHERE B.EMP_ID = A.EMP_ID)) AS DEPT_NM
+	        ,B.EMP_NM AS CRT_NM                  
+		 ]]>
+		 <if test='"SPOTFIRE".equals(boardGbn)'><![CDATA[
+	        , REPLACE(SUBSTR(FILE_PATH,1,INSTR(FILE_PATH,';',1,1) - 1),'\','/') AS FILES
+	        , SUBSTR(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1),1,LENGTH(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1)) -(LENGTH(FILE_PATH) - INSTR(FILE_PATH,';',1,2) + 1)) AS FILE_NAME_OLD
+	        , SUBSTR(FILE_PATH,INSTR(FILE_PATH,';',1,2) + 1) AS FILE_ID
+	        , SUBSTR(FILE_PATH,INSTR(FILE_PATH,';',1,2) + 1) AS FILE_ID_TITLE
+	     ]]></if>
+	     	, A.FILE_URL
+	        , A.FILE_NAME
+	        , A.CRT_BY
+			, A.TEMPLETE_USE_YN
+			, A.TEMPLETE_GBN
+			
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(sessionEmpId)">
+	        , (SELECT X.AUTH_ID FROM CO_EMP_AUTH X WHERE X.EMP_ID = #{sessionEmpId} AND X.AUTH_ID = '83') AS IS_SECU_TEAM
+		</if>
+	    FROM HP_BOARD A 
+	        ,CO_EMP B
+	    WHERE 1=1
+	    AND A.EMP_ID = B.EMP_ID(+)
+	    AND NVL(DEL_YN ,'N') = 'N'	    
+	    AND A.BOARD_GBN = #{boardGbn}
+	    <if test='!"REPORT".equals(boardGbn)'>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(usempId)">
+		      AND A.USEMP_ID LIKE '%'||(SELECT CASE WHEN COUNT(*) = 0 THEN #{usempId}
+		                                        ELSE ''
+		                                    END
+		                                 FROM CO_EMP_AUTH
+		                                WHERE AUTH_ID = 26
+		                                  AND EMP_ID = #{usempId})||'%'
+	
+			</if>	    
+		</if>	
+		<if test='"REPORT".equals(boardGbn)'>
+				AND ( A.USEMP_ID LIKE '%'||(SELECT CASE WHEN COUNT(*) = 0 
+														THEN #{encSessionEmpId}
+	                                                    ELSE ''
+			                                        END
+		                                      FROM CO_EMP_AUTH
+		                                     WHERE AUTH_ID = '83'
+		                                       AND EMP_ID = #{sessionEmpId})||'%' 
+		          OR  A.USEMP_ID LIKE '%'|| #{sessionEmpId} ||'%'
+		            )				
+ 		</if>			
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(inoutGbn)">
+	    	<choose>
+	    		<when test='"ININOUT".equals(inoutGbn)'>
+	    		AND A.INOUT_GBN IN ('IN', 'INOUT')
+	    		</when>
+	    		<otherwise>
+		    		<if test='!"ALL".equals(inoutGbn)'>
+						/* AND INOUT_GBN = 'INOUT_GBN' from 김정민 책임님 요청 20161020 일반구성원도 내부망, 내외부망 보이도록함 */
+						AND A.INOUT_GBN = #{inoutGbn}				
+					</if>
+	    		</otherwise>
+	    	</choose>
+		</if>	
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchTitle)">
+				AND A.TITLE LIKE '%'|| #{searchTitle} ||'%'
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+				AND B.EMP_NM LIKE '%'|| #{searchEmpNm} ||'%'
+		</if>		
+		
+
+		<if test="not @org.springframework.util.StringUtils@isEmpty(templeteGbn)">
+				AND A.TEMPLETE_GBN = #{templeteGbn}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(templeteUseYn)">
+				AND A.TEMPLETE_USE_YN = #{templeteUseYn}
+		</if>			 		
+		START WITH A.UP_BOARD_NO  = '0'
+	    CONNECT BY PRIOR A.BOARD_NO = A.UP_BOARD_NO    
+	    ORDER SIBLINGS BY  A.BOARD_NO DESC	
+	</select>	
+	
+	<select id="selectBoardView" parameterType="BoardSearchDTO" resultType="BoardDTO"><![CDATA[
+		/* boardRepository.selectBoardView (dmSecurityNoticeViewSearch) */
+		SELECT 
+				 BOARD_NO
+				,INOUT_GBN
+				,UP_BOARD_NO
+				,FN_GET_EMP_NM(A.CRT_BY) AS CRT_NM
+		        ,TO_CHAR(CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+		        ,TO_CHAR(CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') as CRT_DTM_TIME
+		        ,READ_CNT
+		        ,TITLE
+		        ,CONTENT
+	            ,FILE_PATH AS FILES
+		        , SUBSTR(FILE_PATH,1,INSTR(FILE_PATH,';',1,1) - 1) AS FILE_PATH		                
+		        , REPLACE(SUBSTR(FILE_PATH,1,INSTR(FILE_PATH,';',1,1) - 1),'\','/') AS FILE_PATH1					
+		        , SUBSTR(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1),1,LENGTH(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1)) -(LENGTH(FILE_PATH) - INSTR(FILE_PATH,';',1,2) + 1)) AS FILE_NAME_OLD
+		        , SUBSTR(FILE_PATH,INSTR(FILE_PATH,';',1,2) + 1) AS FILE_ID
+		        , (SELECT MAX(ROWNUM) FROM HP_BOARD HH WHERE HH.UP_BOARD_NO = A.BOARD_NO AND NVL(HH.DEL_YN,'N') = 'N') AS  B_CNT 
+		        , FILE_URL
+		        , FILE_NAME		        
+		        , CRT_BY	
+				, TEMPLETE_USE_YN
+				, TEMPLETE_GBN		        
+		        ]]><if test="not @org.springframework.util.StringUtils@isEmpty(usempId)"><![CDATA[
+		        , (SELECT CASE WHEN COUNT(*) = 0 THEN 'N'
+		                       ELSE 'Y'
+		                   END
+		             FROM CO_EMP_AUTH
+		            WHERE AUTH_ID = 26
+		              AND EMP_ID = #{usempId}) AS GRANT_YN 	
+		        ]]></if>    
+		        <if test="not @org.springframework.util.StringUtils@isEmpty(sessionEmpId)"><![CDATA[
+	        	, (SELECT X.AUTH_ID FROM CO_EMP_AUTH X WHERE X.EMP_ID = #{sessionEmpId} AND X.AUTH_ID = '83') AS IS_SECU_TEAM
+				 ]]></if><![CDATA[
+		          	        
+		    FROM
+				HP_BOARD A
+			WHERE BOARD_GBN=#{boardGbn}
+			AND BOARD_NO=#{boardNo}
+		    AND DEL_YN='N'
+	 ]]>
+	 </select>		
+	
+	<insert id="insertBoard"  parameterType="BoardDTO" >
+	/* boardRepository.insertBoard (dmSecurityQnaInsert) */
+	INSERT INTO HP_BOARD
+		( 
+			 BOARD_NO   
+			,INOUT_GBN  
+			,BOARD_GBN  
+			,EMP_ID     
+			,TITLE      
+			,CONTENT
+			,FILE_PATH  
+			,URL        
+			,UP_BOARD_NO
+			,DEPTH      
+			,READ_CNT
+		<if test="not @org.springframework.util.StringUtils@isEmpty(qnaGbn)">
+			,QNA_GBN 
+			,QNA_EMP  
+		</if>			
+			,DEL_YN     
+			,AC_IP   
+	        ,FILE_URL
+	        ,FILE_NAME				   
+			,CRT_BY     
+			,CRT_DTM    
+			,MOD_BY     
+			,MOD_DTM  	
+			,TEMPLETE_GBN						
+			,TEMPLETE_USE_YN
+			,USEMP_ID
+		)	
+		VALUES  
+		(
+			  SEQ_HP_BOARD.NEXTVAL
+		    , #{inoutGbn} /* 'IN' */	
+		    , #{boardGbn}	
+		    , #{crtBy}
+		    , #{title}	
+		    , #{content} 	
+		    , #{files}
+		    , #{url}
+		    , '0'
+		    , '0'
+		    , '0'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(qnaGbn)">
+			, #{qnaGbn}
+		    , #{qnaEmp} 
+		</if>			    
+		    , 'N'
+		    , #{acIp} 
+	        , #{fileUrl}
+	        , #{fileName}			    	
+		    , #{crtBy} 	
+		    , SYSDATE
+		    , #{crtBy} 	
+		    , SYSDATE		
+		    , #{templeteGbn} 	
+		    , #{templeteUseYn} 	 
+		 <if test='"REPORT".equals(boardGbn)'> 
+		 	, DECODE(#{boardGbn}, 'REPORT', #{encCrtBy}, NULL)
+		 </if>
+		 <if test='!"REPORT".equals(boardGbn)'>
+		 	, DECODE(#{boardGbn}, 'SPY', #{crtBy},'SECURITY',#{crtBy}, NULL)
+		 </if>			 		  
+		)
+	</insert>	
+	
+	<insert id="insertBoardUp"  parameterType="BoardDTO" >
+	/* boardRepository.insertBoardUp (dmSecurityQnaInsertUp) */
+	INSERT INTO HP_BOARD
+	( 
+		 BOARD_NO   
+		,INOUT_GBN  
+		,BOARD_GBN  
+		,EMP_ID     
+		,TITLE      
+		,CONTENT    
+		,FILE_PATH  
+		,URL        
+		,UP_BOARD_NO
+		,DEPTH      
+		,READ_CNT   
+		,DEL_YN     
+		,AC_IP      
+        , FILE_URL
+        , FILE_NAME			
+		,CRT_BY     
+		,CRT_DTM    
+		,MOD_BY     
+		,MOD_DTM    
+		,TEMPLETE_GBN						
+		,TEMPLETE_USE_YN		
+		,USEMP_ID
+	)	
+	VALUES  
+	(
+		  SEQ_HP_BOARD.NEXTVAL
+	    , #{inoutGbn} /* 'IN' */	
+	    , #{boardGbn}	
+	    , #{crtBy}
+	    , #{title}	
+	    , #{content} 	
+	    , #{files}
+	    , #{url}
+	    , #{upBoardNo}
+	    , (SELECT  NVL(MAX(DEPTH),0) + 1  FROM HP_BOARD WHERE UP_BOARD_NO = #{upBoardNo} AND NVL(DEL_YN,'N') = 'N') 
+	    , '0'
+	    , 'N'
+	    , #{acIp} 	
+        , #{fileUrl}
+        , #{fileName}		    
+	    , #{crtBy} 	
+	    , SYSDATE
+	    , #{crtBy} 
+	    , SYSDATE
+	    , #{templeteGbn} 	
+	    , #{templeteUseYn} 	
+		 <if test='"REPORT".equals(boardGbn)'> 
+			, (SELECT USEMP_ID FROM HP_BOARD WHERE INOUT_GBN = #{inoutGbn} AND BOARD_GBN = #{boardGbn} AND BOARD_NO = #{upBoardNo})
+		 </if>
+		 <if test='!"REPORT".equals(boardGbn)'>
+		 	<!-- , DECODE(#{boardGbn}, 'SPY', #{crtBy},'SECURITY',#{crtBy}, NULL) -->
+		 	, (SELECT USEMP_ID FROM HP_BOARD WHERE INOUT_GBN = #{inoutGbn} AND BOARD_GBN = #{boardGbn} AND BOARD_NO = #{upBoardNo})
+		 </if>	
+				    
+	)
+	</insert>	
+	
+	<select id="selectBoardListTop" parameterType="BoardSearchDTO" resultType="BoardDTO">
+		/* boardRepository.selectBoardListTop (dmSecurityQnaTopSearch) */
+		SELECT BOARD_NO, INOUT_GBN, BOARD_GBN, UP_BOARD_NO, DEPTH, TITLE
+			,FN_GET_EMP_NM(CRT_BY) AS CRT_NM	
+	        ,TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+	        ,FILE_PATH AS FILES
+        	, REPLACE(SUBSTR(FILE_PATH,1,INSTR(FILE_PATH,';',1,1) - 1),'\','/') AS FILE_PATH
+	        , SUBSTR(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1),1,LENGTH(SUBSTR(FILE_PATH, INSTR(FILE_PATH,';',1,1) +1)) -(LENGTH(FILE_PATH) - INSTR(FILE_PATH,';',1,2) + 1)) AS FILE_NAME_OLD
+	        , SUBSTR(FILE_PATH,INSTR(FILE_PATH,';',1,2) + 1) AS FILE_ID
+	        , CONTENT	       
+			, FILE_URL
+	        , FILE_NAME	
+			, TEMPLETE_GBN						
+			, TEMPLETE_USE_YN		        
+		FROM HP_BOARD
+		WHERE BOARD_NO = #{boardNo}
+		AND NVL(DEL_YN,'N') = 'N'
+		
+	</select>
+	
+	<update id="updateBoard" parameterType="BoardDTO"><![CDATA[
+		/* boardRepository.updateBoard (dmSecurityNoticeViewUpdate) */
+	   	  UPDATE HP_BOARD 
+	   	     SET MOD_BY  = #{crtBy}
+			   , MOD_DTM = SYSDATE
+			   , TITLE   = #{title}	
+			   , CONTENT = #{content}		  	
+	    	   , FILE_PATH = REPLACE(#{files},'/','\')
+	     	   , FILE_URL = #{fileUrl}
+		       , FILE_NAME = #{fileName}
+			   , TEMPLETE_USE_YN = #{templeteUseYn}		
+		 WHERE BOARD_GBN= #{boardGbn}
+		 AND DEL_YN ='N'
+		 AND BOARD_NO = #{boardNo}
+	]]>
+	</update>		
+	
+	<update id="updateBoardReadUp" parameterType="BoardDTO">
+	/* boardRepository.updateBoardReadUp (dmSecurityNoticeViewReadUp) */
+		UPDATE HP_BOARD
+		   SET READ_CNT = READ_CNT +1
+		 WHERE BOARD_NO = #{boardNo}
+	</update>	
+	
+	<delete id="deleteBoardView" parameterType="BoardDTO">
+		/* boardRepository.deleteBoardView (dmSecurityNoticeViewDelete) */
+		UPDATE HP_BOARD 
+		   SET DEL_YN='Y'
+		   	  ,MOD_BY = #{crtBy}
+		      ,MOD_DTM = SYSDATE
+		 WHERE BOARD_NO = #{boardNo}
+	</delete>				
+	
+	<select id="listBoardMailReceiver" resultType="CamelHashMap">			
+	/* boardRepository.listBoardMailReceiver (DU_SendMail_dmBoardMailReceiver) */
+	SELECT A.BOARD_NM,
+	       A.BOARD_SCHEMA,
+	       B.EMP_NM,
+	       B.EMP_ID,
+	       D.DEPT_NM,
+	       C.EMAIL
+	  FROM HP_BOARD_INFO A,
+	       HP_BOARD_MAIL_EMP B,
+	       CO_EMP C,
+	       CO_DEPT D
+	 WHERE A.BOARD_SEQ = B.BOARD_SEQ
+	   AND B.EMP_ID = C.EMP_ID
+	   AND C.DEPT_ID = D.DEPT_ID
+	   AND A.SEND_MAIL_YN = 'Y'
+	   AND C.HT_CD = 'C'
+	   AND B.USE_YN = 'Y'
+	   AND A.BOARD_SCHEMA = #{schemaNm}
+	</select>
+	
+	<select id="listQnaBoardMailReceiver" resultType="CamelHashMap">
+	/* boardRepository.listBoardMailReceiver (dmQnaBoardMailReceiver) */
+	SELECT B.EMP_ID,
+	       B.EMP_NM,
+	       B.EMAIL
+	  FROM CO_CODE_D A,
+	       CO_EMP B
+	 WHERE A.ETC1 = B.EMP_ID
+	   AND A.GRP_CD = 'C081'
+	   AND B.USE_YN = 'Y'
+	   AND A.USE_YN = 'Y'
+	   AND A.ETC2 = #{qnaEmp}
+	 UNION
+	SELECT EMP_ID,
+	       EMP_NM,
+	       EMAIL
+	  FROM CO_EMP
+	 WHERE DEPT_ID = (SELECT ETC3
+	          FROM CO_CODE_D
+	         WHERE GRP_CD = 'C081'
+	           AND DETL_CD = #{qnaEmp})
+	   AND JC_CD = 'KC'
+	   AND USE_YN = 'Y'
+	</select>	
+		
+	
+</mapper>
+
+

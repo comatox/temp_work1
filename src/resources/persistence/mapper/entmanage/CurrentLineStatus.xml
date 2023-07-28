@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.CurrentLineStatusRepository">
+
+	<select id="selectBuildingControlList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			GATE_ID,
+			GATE_NM,
+			COMP_ID,
+			UP_GATE_ID
+		FROM CO_BLDG
+		WHERE UP_GATE_ID = '0'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(controlArea) and controlArea.equals('R3')">
+	    	AND GATE_ID = '33'
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(controlArea) and controlArea.equals('R3E')">
+	    	AND GATE_ID = '5'
+	    </if>
+	    AND VSTR_AVAIL_YN = 'Y'
+	    AND NVL(DEL_YN, 'N') = 'N'
+	    AND CTRL_YN = 'Y'
+	    ORDER BY SORT_SEQ
+	</select>
+
+	<select id="selectAccessPersonsList" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			T1.GATE_ID,
+			T1.GATE_NM,
+			NVL(SUM(CASE WHEN T2.MAN_GBN = '1' THEN CNT END), 0) AS MAN_1,
+			NVL(SUM(CASE WHEN T2.MAN_GBN <![CDATA[ <> ]]> '1' THEN CNT END), 0) AS MAN_2,
+			NVL(SUM(CNT), 0) AS TOT
+		FROM (
+			SELECT
+				LEV,
+				GATE_ID,
+				GATE_NM,
+				SORT_SEQ
+			FROM (
+				SELECT
+					LEVEL AS LEV,
+					BLDG.*
+				FROM CO_BLDG BLDG
+				START WITH BLDG.GATE_ID = #{gateId}
+				CONNECT BY PRIOR BLDG.GATE_ID = BLDG.UP_GATE_ID
+				AND BLDG.VSTR_AVAIL_YN = 'Y'
+				AND NVL(BLDG.DEL_YN, 'N') = 'N'
+				ORDER SIBLINGS BY SORT_SEQ
+			)
+			WHERE LEV <![CDATA[ >= ]]> 3
+		) T1,
+		(
+			SELECT
+				MAN_GBN,
+				CTRL_GATE_ID,
+				COUNT(*) AS CNT
+			FROM IO_CTRL_AREA
+			WHERE NVL(DEL_YN,'N') = 'N'
+			AND CTRL_STAT = '1'
+			AND GATE_ID = #{gateId}
+			GROUP BY MAN_GBN, CTRL_GATE_ID
+		) T2
+		WHERE T1.GATE_ID = T2. CTRL_GATE_ID(+)
+		GROUP BY T1.GATE_ID, T1.GATE_NM, T1.SORT_SEQ
+		ORDER BY T1.SORT_SEQ
+	</select>
+
+	<select id="selectStaffCurrentList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				CT.TAG_ID,
+				CT.COMP_ID,
+				CT.DEPT_ID,
+				CT.JW_ID,
+				CT.EMP_ID,
+				CT.GATE_ID,
+				CT.CTRL_GATE_ID,
+				FN_GET_CONAME('COMP','',CT.COMP_ID) AS COMP_NM,
+				FN_GET_CONAME('DEPT',CT.DEPT_ID,CT.COMP_ID) AS DEPT_NM,
+				FN_GET_CONAME('JW',CT.JW_ID,CT.COMP_ID) AS JW_NM,
+				FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS GATE_NM,
+				T1.EMP_NM
+			FROM IO_CTRL_AREA CT,
+				(SELECT EMP_ID, EMP_NM FROM CO_EMP) T1
+			WHERE CT.EMP_ID = T1.EMP_ID
+			AND CT.MAN_GBN = '1'
+			AND NVL(CT.DEL_YN, 'N') ='N'
+			AND CT.CTRL_STAT = '1'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+				AND CT.GATE_ID = #{gateId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND UPPER(T1.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectStaffCurrentListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT,
+			(SELECT EMP_ID, EMP_NM FROM CO_EMP) T1
+		WHERE CT.EMP_ID = T1.EMP_ID
+		AND CT.MAN_GBN = '1'
+		AND NVL(CT.DEL_YN, 'N') ='N'
+		AND CT.CTRL_STAT = '1'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+			AND CT.GATE_ID = #{gateId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(T1.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectAlwaysCurrentList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS GATE_NM,
+				CT.TAG_ID,
+				CT.BLDG_CARD_NO,
+				RE.IO_COMP_NM,
+				RE.IO_EMP_NM,
+				CP.EMP_NM || ' (' || CT.GUIDE_EMP_ID || ')' AS GUIDE_EMP_NM
+			FROM IO_CTRL_AREA CT, CO_EMP CP,
+				(
+					SELECT
+						RE.CARD_NO,
+						MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM,
+						MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT,
+						MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT,
+						MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID,
+						MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM
+					FROM IO_REG_IO RE
+					WHERE NVL(RE.DEL_YN, 'N') = 'N'
+					GROUP BY RE.CARD_NO
+				) RE
+			WHERE CT.BLDG_CARD_NO = RE.CARD_NO
+			AND CT.GUIDE_EMP_ID = CP.EMP_ID
+			AND CT.MAN_GBN = '2'
+			AND NVL(CT.DEL_YN, 'N') ='N'
+			AND CT.CTRL_STAT = '1'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+				AND CT.GATE_ID = #{gateId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+				AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectAlwaysCurrentListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT, CO_EMP CP,
+			(
+				SELECT
+					RE.CARD_NO,
+					MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM,
+					MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT,
+					MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT,
+					MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID,
+					MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM
+				FROM IO_REG_IO RE
+				WHERE NVL(RE.DEL_YN, 'N') = 'N'
+				GROUP BY RE.CARD_NO
+			) RE
+		WHERE CT.BLDG_CARD_NO = RE.CARD_NO
+		AND CT.GUIDE_EMP_ID = CP.EMP_ID
+		AND CT.MAN_GBN = '2'
+		AND NVL(CT.DEL_YN, 'N') ='N'
+		AND CT.CTRL_STAT = '1'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+			AND CT.GATE_ID = #{gateId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectVisitorCurrentList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				CT.IO_CARD_NO,
+				CT.BLDG_CARD_NO,
+				CT.COMP_ID,
+				CT.DEPT_ID,
+				CT.JW_ID,
+				CT.EMP_ID AS IO_EMP_ID,
+				CT.GATE_ID,
+				CT.CTRL_GATE_ID,
+				CASE
+					WHEN VS.VIP_YN = 'Y' THEN VS.VIP_NM
+					ELSE T1.IO_EMP_NM
+				END AS IO_EMP_NM,
+				T1.IO_COMP_ID,
+				T1.COMP_KO_NM AS IO_COMP_NM,
+				CT.TAG_ID,
+				CT.VST_APPL_NO,
+				CT.RSRV_DT,
+				CT.VST_SEQ,
+				T2.EMP_NM AS EMP_NMS,
+				T2.EMP_NM || ' ' || FN_GET_CONAME('DEPT',VS.DEPT_ID,VS.COMP_ID) AS DEPT_NMS,
+				T3.EMP_NM AS EMP_NMG,
+				T3.EMP_NM || ' ' || FN_GET_CONAME('DEPT',T3.DEPT_ID,T3.COMP_ID) AS DEPT_NMG,
+				FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS  CTRL_GATE_NM
+			FROM IO_CTRL_AREA CT, IO_VST VS,
+				(
+					SELECT
+						A.IO_EMP_ID,
+						A.EMP_NM AS IO_EMP_NM,
+						B.COMP_KO_NM,
+						B.COMP_EN_NM,
+						A.IO_COMP_ID
+					FROM IO_EMP A, IO_COMP B
+					WHERE A.IO_COMP_ID = B.IO_COMP_ID
+                 ) T1,
+                 (
+                 	SELECT
+                 		EMP_ID,
+                 		EMP_NM,
+                 		COMP_ID,
+                 		DEPT_ID,
+                 		JW_ID
+                 	FROM CO_EMP
+                 ) T2,
+                 (
+                 	SELECT
+                 		EMP_ID,
+                 		EMP_NM,
+                 		COMP_ID,
+                 		DEPT_ID,
+                 		JW_ID
+                 	FROM CO_EMP
+                 ) T3
+			WHERE CT.EMP_ID = T1.IO_EMP_ID
+			AND CT.MAN_GBN = '3'
+			AND NVL(CT.DEL_YN,'N') ='N'
+			AND CT.CTRL_STAT = '1'
+			AND CT.VST_APPL_NO = VS.VST_APPL_NO
+			AND VS.EMP_ID = T2.EMP_ID
+			AND CT.GUIDE_EMP_ID = T3.EMP_ID
+			<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+				AND CT.GATE_ID = #{gateId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+				AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+				AND CASE
+						WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+						ELSE UPPER(T1.IO_EMP_NM)
+					END LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectVisitorCurrentListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT, IO_VST VS,
+			(
+				SELECT
+					A.IO_EMP_ID,
+					A.EMP_NM AS IO_EMP_NM,
+					B.COMP_KO_NM,
+					B.COMP_EN_NM,
+					A.IO_COMP_ID
+				FROM IO_EMP A, IO_COMP B
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+                ) T1,
+                (
+                	SELECT
+                		EMP_ID,
+                		EMP_NM,
+                		COMP_ID,
+                		DEPT_ID,
+                		JW_ID
+                	FROM CO_EMP
+                ) T2,
+                (
+                	SELECT
+                		EMP_ID,
+                		EMP_NM,
+                		COMP_ID,
+                		DEPT_ID,
+                		JW_ID
+                	FROM CO_EMP
+                ) T3
+		WHERE CT.EMP_ID = T1.IO_EMP_ID
+		AND CT.MAN_GBN = '3'
+		AND NVL(CT.DEL_YN,'N') ='N'
+		AND CT.CTRL_STAT = '1'
+		AND CT.VST_APPL_NO = VS.VST_APPL_NO
+		AND VS.EMP_ID = T2.EMP_ID
+		AND CT.GUIDE_EMP_ID = T3.EMP_ID
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+			AND CT.GATE_ID = #{gateId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			AND CASE
+					WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+					ELSE UPPER(T1.IO_EMP_NM)
+				END LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectAlwaysManageList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY IO.IO_REG_IO_NO DESC ) AS RNUM,
+				IO.IO_REG_IO_NO,
+				IO.CARD_NO,
+				IO.IO_EMP_NM,
+				IO.IO_COMP_NM,
+				SUBSTR(IO.IN_DT,1,4) || '-' || SUBSTR(IO.IN_DT,5,2) || '-' || SUBSTR(IO.IN_DT,7,2) AS IN_DT,
+				SUBSTR(IO.OUT_DT,1,4) || '-' || SUBSTR(IO.OUT_DT,5,2) || '-' || SUBSTR(IO.OUT_DT,7,2) AS OUT_DT,
+				IO.GATE_ID,
+				TO_CHAR(IO.CRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+				BG.GATE_NM,
+				CASE
+					WHEN CTRL_AREA_NO IS NULL THEN 'N'
+					ELSE 'Y'
+				END CHK_YN
+			FROM IO_REG_IO IO, CO_BLDG BG,
+				(
+					SELECT
+						CTRL_AREA_NO,
+						EMP_ID
+					FROM IO_CTRL_AREA
+					WHERE MAN_GBN = '2'
+					AND NVL(DEL_YN,'N') = 'N'
+					AND CTRL_STAT = '1'
+                ) T2
+			WHERE NVL(IO.DEL_YN,'N') ='N'
+			AND IO.GATE_ID = BG.GATE_ID
+			AND IO.CARD_NO = T2.EMP_ID(+)
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND IO.OUT_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+		    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+		    	AND IO.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+				AND UPPER(BG.GATE_NM) LIKE '%' || UPPER(#{gateNm}) || '%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+				AND UPPER(IO.CARD_NO) = UPPER(#{cardNo})
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+				AND UPPER(IO.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+				AND UPPER(IO.IO_COMP_NM) LIKE '%' || UPPER(#{ioCompNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectAlwaysManageListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_REG_IO IO, CO_BLDG BG,
+			(
+				SELECT
+					CTRL_AREA_NO,
+					EMP_ID
+				FROM IO_CTRL_AREA
+				WHERE MAN_GBN = '2'
+				AND NVL(DEL_YN,'N') = 'N'
+				AND CTRL_STAT = '1'
+               ) T2
+		WHERE NVL(IO.DEL_YN,'N') ='N'
+		AND IO.GATE_ID = BG.GATE_ID
+		AND IO.CARD_NO = T2.EMP_ID(+)
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND IO.OUT_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+	    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+	    	AND IO.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gateNm)">
+			AND UPPER(BG.GATE_NM) LIKE '%' || UPPER(#{gateNm}) || '%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(cardNo)">
+			AND UPPER(IO.CARD_NO) = UPPER(#{cardNo})
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(IO.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+			AND UPPER(IO.IO_COMP_NM) LIKE '%' || UPPER(#{ioCompNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectAlwaysManage" parameterType="Integer" resultType="CamelHashMap">
+		SELECT
+			RE.IO_REG_IO_NO,
+			RE.CARD_NO,
+			RE.IO_EMP_NM,
+			SUBSTR(RE.IN_DT,1,4) || '-' || SUBSTR(RE.IN_DT,5,2) || '-' || SUBSTR(RE.IN_DT,7,2) AS IN_DT,
+			SUBSTR(RE.OUT_DT,1,4) || '-' || SUBSTR(RE.OUT_DT,5,2) || '-' || SUBSTR(RE.OUT_DT,7,2) AS OUT_DT,
+			RE.GATE_ID,
+			BL.GATE_NM,
+			RE.IO_COMP_NM
+		FROM IO_REG_IO RE, CO_BLDG BL
+        WHERE RE.GATE_ID = BL.GATE_ID
+        AND RE.IO_REG_IO_NO = #{ioRegIoNo}
+	</select>
+
+	<insert id="insertAlwaysManage" parameterType="Map">
+		<selectKey keyProperty="ioRegIoNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_REG_IO.NEXTVAL AS IO_REG_IO_NO FROM DUAL
+	    </selectKey>
+
+		INSERT INTO IO_REG_IO (
+			IO_REG_IO_NO,
+			CARD_NO,
+			IO_EMP_NM,
+			IO_COMP_NM,
+			IN_DT,
+			OUT_DT,
+			GATE_ID,
+			DEL_YN,
+			AC_IP,
+			CRT_BY,
+			CRT_DTM,
+			MOD_BY,
+			MOD_DTM
+		) VALUES (
+			#{ioRegIoNo},
+			TRIM(#{cardNo}),
+			TRIM(#{ioEmpNm}),
+			TRIM(#{ioCompNm}),
+			REPLACE(#{inDt}, '-', ''),
+			REPLACE(#{outDt}, '-', ''),
+			'33',
+			'N',
+			#{acIp},
+			#{crtBy},
+			SYSDATE,
+			#{crtBy},
+			SYSDATE
+		)
+	</insert>
+
+	<update id="updateAlwaysManage" parameterType="Map">
+		UPDATE IO_REG_IO SET
+			IO_EMP_NM = TRIM(#{ioEmpNm}),
+			IO_COMP_NM = TRIM(#{ioCompNm}),
+			IN_DT = REPLACE(#{inDt}, '-', ''),
+			OUT_DT = REPLACE(#{outDt}, '-', ''),
+			GATE_ID = '33',
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE IO_REG_IO_NO = #{ioRegIoNo}
+	</update>
+
+	<update id="deleteAlwaysManage" parameterType="Map">
+		UPDATE IO_REG_IO SET
+			DEL_YN = 'Y',
+			MOD_BY = #{modBy},
+			MOD_DTM = SYSDATE
+		WHERE IO_REG_IO_NO = #{ioRegIoNo}
+	</update>
+
+	<select id="selectAlwaysManageCardNo" parameterType="String" resultType="String">
+		SELECT
+			CASE
+				WHEN MAX(ROWNUM) > 0 THEN 'Y'
+				ELSE 'N'
+			END AS CARD_YN
+		FROM IO_REG_IO
+		WHERE CARD_NO = #{cardNo}
+		AND NVL(DEL_YN,'N') = 'N'
+		AND OUT_DT >= TO_CHAR(SYSDATE,'YYYYMMDD')
+	</select>
+
+	<select id="selectItemsStatusList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY GD.CTRL_AREA_GODS_NO DESC ) AS RNUM,
+				GD.CTRL_AREA_GODS_NO,
+				TO_CHAR(GD.IN_DTM, 'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				GD.ETC,
+				GD.INOUTER_ID,
+				GD.GATE_ID,
+				GD.CTRL_GATE_ID,
+				GD.GODS_NM,
+				GD.QTY,
+				GD.MODEL_NM,
+				FN_GET_CO_BLDG(GD.CTRL_GATE_ID,'1') AS GATE_NM,
+				GD.EMP_NM,
+				GD.COMP_NM,
+				TO_CHAR(GD.OUT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS OUT_DTM
+			FROM IO_CTRL_AREA_GODS GD
+			WHERE NVL(GD.DEL_YN,'N') = 'N'
+			AND GD.CTRL_AREA = #{controlArea}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND GD.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND GD.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND UPPER(GD.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectItemsStatusListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA_GODS GD
+		WHERE NVL(GD.DEL_YN,'N') = 'N'
+		AND GD.CTRL_AREA = #{controlArea}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND GD.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND GD.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(GD.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectStaffStatusList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				TO_CHAR(CT.OUT_DTM,'YYYY-MM-DD HH24:MI:SS') AS OUT_DTM,
+				CT.COMP_ID,
+				CT.DEPT_ID,
+				CT.JW_ID,
+				CT.EMP_ID,
+				CT.GATE_ID,
+				CT.CTRL_GATE_ID,
+	            FN_GET_CONAME('COMP','',CT.COMP_ID) AS COMP_NM,
+	            FN_GET_CONAME('DEPT', CT.DEPT_ID, CT.COMP_ID) AS DEPT_NM,
+	            FN_GET_CONAME('JW', CT.JW_ID, CT.COMP_ID) AS JW_NM,
+	            FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS GATE_NM,
+	            T1.EMP_NM
+			FROM IO_CTRL_AREA CT,
+				( SELECT EMP_ID, EMP_NM FROM CO_EMP ) T1
+			WHERE CT.EMP_ID = T1.EMP_ID
+			AND CT.MAN_GBN = '1'
+			AND NVL(CT.DEL_YN,'N') ='N'
+			AND CT.CTRL_AREA = #{controlArea}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+				AND UPPER(T1.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectStaffStatusListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT,
+			( SELECT EMP_ID, EMP_NM FROM CO_EMP ) T1
+		WHERE CT.EMP_ID = T1.EMP_ID
+		AND CT.MAN_GBN = '1'
+		AND NVL(CT.DEL_YN,'N') ='N'
+		AND CT.CTRL_AREA = #{controlArea}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+			AND UPPER(T1.EMP_NM) LIKE '%' || UPPER(#{empNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectAlwaysStatusList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+				TO_CHAR(CT.OUT_DTM,'YYYY-MM-DD HH24:MI:SS') AS OUT_DTM,
+				FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS GATE_NM,
+				CT.BLDG_CARD_NO,
+				RE.IO_COMP_NM,
+				RE.IO_EMP_NM,
+				CP.EMP_NM || ' (' || CT.GUIDE_EMP_ID || ')' AS GUIDE_EMP_NM
+			FROM IO_CTRL_AREA CT, CO_EMP CP,
+			(
+				SELECT
+					RE.CARD_NO,
+                    MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM,
+                    MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT,
+                    MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT,
+                    MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID,
+                    MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM
+				FROM IO_REG_IO RE
+				WHERE NVL(RE.DEL_YN,'N') = 'N'
+				GROUP BY RE.CARD_NO
+			) RE
+			WHERE CT.BLDG_CARD_NO = RE.CARD_NO
+			AND CT.GUIDE_EMP_ID = CP.EMP_ID
+			AND CT.MAN_GBN = '2'
+			AND NVL(CT.DEL_YN,'N') ='N'
+			AND CT.CTRL_AREA = #{controlArea}
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+				AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectAlwaysStatusListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT, CO_EMP CP,
+		(
+			SELECT
+				RE.CARD_NO,
+                   MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM,
+                   MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT,
+                   MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT,
+                   MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID,
+                   MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM
+			FROM IO_REG_IO RE
+			WHERE NVL(RE.DEL_YN,'N') = 'N'
+			GROUP BY RE.CARD_NO
+		) RE
+		WHERE CT.BLDG_CARD_NO = RE.CARD_NO
+		AND CT.GUIDE_EMP_ID = CP.EMP_ID
+		AND CT.MAN_GBN = '2'
+		AND NVL(CT.DEL_YN,'N') ='N'
+		AND CT.CTRL_AREA = #{controlArea}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(RE.IO_EMP_NM) LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectVisitorStatusList" parameterType="Map" resultType="CamelHashMap">
+		WITH PAGE AS (
+			SELECT
+				ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS RNUM,
+				CT.CTRL_AREA_NO,
+				TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM,
+		 		TO_CHAR(CT.OUT_DTM,'YYYY-MM-DD HH24:MI:SS') AS OUT_DTM,
+				CT.IO_CARD_NO,
+				CT.BLDG_CARD_NO,
+                CT.COMP_ID,
+                CT.DEPT_ID,
+                CT.JW_ID,
+                CT.EMP_ID AS IO_EMP_ID,
+                CT.GATE_ID,
+                CT.CTRL_GATE_ID,
+                T1.IO_EMP_NM,
+                T1.IO_COMP_ID,
+                T1.COMP_KO_NM AS IO_COMP_NM,
+                CT.TAG_ID,
+                CT.VST_APPL_NO,
+                CT.RSRV_DT,
+                CT.VST_SEQ,
+                T2.EMP_NM AS EMP_NMS,
+                T2.EMP_NM || ' ' || FN_GET_CONAME('DEPT', VS.DEPT_ID, VS.COMP_ID) AS DEPT_NMS,
+                T3.EMP_NM AS EMP_NMG,
+                T3.EMP_NM || ' ' || FN_GET_CONAME('DEPT', T3.DEPT_ID, T3.COMP_ID) AS DEPT_NMG,
+                FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS CTRL_GATE_NM
+			FROM IO_CTRL_AREA CT, IO_VST VS,
+				(
+					SELECT
+						A.IO_EMP_ID,
+						A.EMP_NM AS IO_EMP_NM,
+						B.COMP_KO_NM,
+						B.COMP_EN_NM,
+						A.IO_COMP_ID
+					FROM IO_EMP A, IO_COMP B
+					WHERE A.IO_COMP_ID = B.IO_COMP_ID
+				) T1,
+				(
+					SELECT
+						EMP_ID,
+						EMP_NM,
+						COMP_ID,
+						DEPT_ID,
+						JW_ID
+					FROM CO_EMP
+				) T2,
+				(
+					SELECT
+						EMP_ID,
+						EMP_NM,
+						COMP_ID,
+						DEPT_ID,
+						JW_ID
+					FROM CO_EMP
+				) T3
+			WHERE CT.EMP_ID = T1.IO_EMP_ID
+			AND CT.MAN_GBN = '3'
+	        AND NVL(CT.DEL_YN,'N') ='N'
+	        AND CT.VST_APPL_NO = VS.VST_APPL_NO
+	        AND VS.EMP_ID = T2.EMP_ID
+	        AND CT.GUIDE_EMP_ID = T3.EMP_ID
+	        AND CT.CTRL_AREA = #{controlArea}
+	        <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+				AND
+					CASE
+						WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+						ELSE UPPER(T1.IO_EMP_NM)
+					END LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+			</if>
+		)
+
+		SELECT *
+		FROM PAGE
+		WHERE 1 = 1
+		<if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectVisitorStatusListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_CTRL_AREA CT, IO_VST VS,
+			(
+				SELECT
+					A.IO_EMP_ID,
+					A.EMP_NM AS IO_EMP_NM,
+					B.COMP_KO_NM,
+					B.COMP_EN_NM,
+					A.IO_COMP_ID
+				FROM IO_EMP A, IO_COMP B
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			) T1,
+			(
+				SELECT
+					EMP_ID,
+					EMP_NM,
+					COMP_ID,
+					DEPT_ID,
+					JW_ID
+				FROM CO_EMP
+			) T2,
+			(
+				SELECT
+					EMP_ID,
+					EMP_NM,
+					COMP_ID,
+					DEPT_ID,
+					JW_ID
+				FROM CO_EMP
+			) T3
+		WHERE CT.EMP_ID = T1.IO_EMP_ID
+		AND CT.MAN_GBN = '3'
+        AND NVL(CT.DEL_YN,'N') ='N'
+        AND CT.VST_APPL_NO = VS.VST_APPL_NO
+        AND VS.EMP_ID = T2.EMP_ID
+        AND CT.GUIDE_EMP_ID = T3.EMP_ID
+        AND CT.CTRL_AREA = #{controlArea}
+        <if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND CT.IN_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND CT.IN_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND
+				CASE
+					WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+					ELSE UPPER(T1.IO_EMP_NM)
+				END LIKE '%' || UPPER(#{ioEmpNm}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+	<select id="selectHazardousChemicalsVisitCo" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			TEL_NO1 AS HP_NO
+		FROM CO_EMP
+		WHERE EMP_ID = #{coEmpId}
+	</select>
+
+	<select id="selectHazardousChemicalsVisitPass" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.HP_NO,
+			B.MAIN_DESC AS VST_RSN
+		FROM IO_EMP A, IO_COMP B
+		WHERE A.IO_COMP_ID = B.IO_COMP_ID
+		AND A.DEL_YN = 'N'
+		AND A.IO_EMP_ID = (SELECT IO_EMP_ID FROM IO_PASS WHERE PASS_APPL_NO = (SELECT MAX(PASS_APPL_NO)FROM IO_PASS WHERE IDCARD_ID = #{idcardId}))
+	</select>
+
+	<select id="selectHazardousChemicalsVisitVst" parameterType="Map" resultType="CamelHashMap">
+		SELECT
+			A.IO_EMP_ID,
+			C.HP_NO,
+			A.VST_RSN
+		FROM IO_VST_MAN A,
+			IO_VST_MAN_GATE_IO B,
+			IO_EMP C
+		WHERE A.VST_APPL_NO = B.VST_APPL_NO
+		AND A.IO_EMP_ID = B.IO_EMP_ID
+		AND B.IO_EMP_ID = C.IO_EMP_ID
+		AND B.IO_CARDNO = #{idcardId}
+		AND B.VST_DT = REPLACE(#{vstDt}, '-')
+		AND C.EMP_NM = #{empNm}
+		<if test="not @org.springframework.util.StringUtils@isEmpty(juminNo)">
+			AND C.JUMIN_NO = #{juminNo}
+		</if>
+		GROUP BY A.IO_EMP_ID, C.HP_NO, A.VST_RSN
+	</select>
+
+	<select id="selectHazardousChemicalsTmpcarList" parameterType="Map" resultType="CamelHashMap">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY D.TMPCAR_APP_NO DESC, D.SEQ ASC) AS RNUM,
+				D.TMPCAR_APP_NO,
+				D.SEQ,
+				D.COMP_NM,
+				D.COMP_GBN,
+				FN_GET_CODE('A010', D.COMP_GBN, 'DETL_CD') AS COMP_GBN_NM,
+				D.DEPT_NM,
+				D.JW_NM,
+				D.EMP_ID,
+				D.EMP_NM,
+				D.HP_NO,
+				D.CAR_KND,
+				D.CAR_NO,
+				FN_GET_EMP_NM(a.EMP_ID) CO_EMP_NM,
+				A.GATE_ID,
+				FN_GET_VST_PARK_LOT_LIST(A.GATE_ID,A.SUM_VST_PLC_GATE,'NAME') AS GATE_NM,
+				( SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || '~' || SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2) ) AS IO_DT
+			FROM IO_TMPCAR_D D, IO_TMPCAR_M A, AP_DOC C
+			WHERE 1 = 1
+			AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+			AND A.DOC_ID = C.DOC_ID
+			AND A.APP_RSN IN ('Z0361005', 'Z0361006')
+			AND D.DEL_YN = 'N'
+			AND C.APPR_RESULT = '1'
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+		    	AND A.END_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+		    </if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+				AND A.STRT_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(coEmpNm)">
+				AND FN_GET_EMP_NM(A.EMP_ID) LIKE '%' || UPPER(#{coEmpNm}) || '%' ESCAPE '['
+			</if>
+			<if test="@org.springframework.util.StringUtils@isEmpty(compId) or compId.equals('')">
+				AND D.COMP_ID IN ( SELECT ETC4 FROM CO_CODE_D WHERE GRP_CD = 'A069' AND USE_YN = 'Y' )
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+				AND D.COMP_ID  = #{compId}
+			</if>
+			<if test="not @org.springframework.util.StringUtils@isEmpty(carNo)">
+				AND D.CAR_NO LIKE '%' || UPPER(#{carNo}) || '%' ESCAPE '['
+			</if>
+	    ) A
+	    WHERE 1 = 1
+	    <if test='not @org.springframework.util.StringUtils@isEmpty(pagingYn) and pagingYn.equals("Y")'>
+    	<![CDATA[
+			AND RNUM > (#{currentPage} - 1) * #{rowPerPage} AND RNUM <= #{currentPage} * #{rowPerPage}
+		]]>
+	    </if>
+	</select>
+
+	<select id="selectHazardousChemicalsTmpcarListCnt" parameterType="Map" resultType="Integer">
+		SELECT COUNT(*)
+		FROM IO_TMPCAR_D D, IO_TMPCAR_M A, AP_DOC C
+		WHERE 1 = 1
+		AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+		AND A.DOC_ID = C.DOC_ID
+		AND A.APP_RSN IN ('Z0361005', 'Z0361006')
+		AND D.DEL_YN = 'N'
+		AND C.APPR_RESULT = '1'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchStartDate)">
+	    	AND A.END_DT <![CDATA[ >= ]]> REPLACE(#{searchStartDate}, '-', '')
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDate)">
+			AND A.STRT_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDate}, '-', '')
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(coEmpNm)">
+			AND FN_GET_EMP_NM(A.EMP_ID) LIKE '%' || UPPER(#{coEmpNm}) || '%' ESCAPE '['
+		</if>
+		<if test="@org.springframework.util.StringUtils@isEmpty(compId) or compId.equals('')">
+			AND D.COMP_ID IN ( SELECT ETC4 FROM CO_CODE_D WHERE GRP_CD = 'A069' AND USE_YN = 'Y' )
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compId)">
+			AND D.COMP_ID  = #{compId}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(carNo)">
+			AND D.CAR_NO LIKE '%' || UPPER(#{carNo}) || '%' ESCAPE '['
+		</if>
+	</select>
+
+</mapper>

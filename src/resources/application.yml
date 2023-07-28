@@ -1,0 +1,226 @@
+## Application container configuration 
+server:
+  port: 8080
+  servlet:
+    context-path: /esecurity
+  forward-headers-strategy: framework
+
+## Spring boot configuration
+spring:
+  application:
+    name: esecurity
+  profiles:
+    include: message,error,actuator,version
+    active: default
+  messages:
+    basename: config/validation/messages, config/error/errors
+  datasource:
+    hikari:
+      pool-name: default-hikari-pool
+      driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+      jdbc-url: jdbc:log4jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=172.20.251.32)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=XE)))
+      username: securityadm
+      password: ENC(9ttb4iYMUnb2pEe/7sroag==)
+      minimum-idle: 2
+      maximum-pool-size: 10
+  mvc:
+    view:
+      prefix: /WEB-INF/views/
+      suffix: .jsp
+    static-path-pattern: /assets/**
+  servlet:
+    multipart:
+      file-size-threshold: 1MB
+      max-file-size: 100MB
+      max-request-size: 100MB
+  ## mail smtp setting
+  mail:
+    default-encoding: EUC-KR
+    host: exhub.skhynix.com
+  main:
+    allow-bean-definition-overriding: true
+  devtools:
+    restart:
+      enabled: false
+
+## management (disabled health check)
+management:
+  health:
+    db:
+      enabled: false
+    mail:
+      enabled: false
+
+## mybatis configuration
+mybatis:
+  type-aliases-package: com.skshieldus.esecurity.model
+  mapper-locations: persistence/mapper/**/*.xml
+  configuration:
+    cache-enabled: true
+    lazy-loading-enabled: true
+    multiple-result-sets-enabled: true
+    use-column-label: true
+    use-generated-keys: false
+    auto-mapping-behavior: partial
+    default-executor-type: simple
+    default-statement-timeout: 10
+    safe-row-bounds-enabled: false
+    map-underscore-to-camel-case: true
+    local-cache-scope: session
+    jdbc-type-for-null: 'NULL'
+    lazy-load-trigger-methods: equals, clone, hashCode, toString
+    call-setters-on-nulls: true
+
+## Logback configuration
+logging:
+  level:
+    jdbc.sqlonly: OFF
+    jdbc.sqltiming: INFO
+    jdbc.resultset: OFF
+    jdbc.audit: OFF
+    jdbc.resultsettable: OFF
+    jdbc.connection: OFF
+    com.zaxxer.hikari: warn
+    com.skshieldus.esecurity: debug
+
+
+## Swagger UI Configuration
+springdoc:
+  swagger-ui:
+    display-request-duration: true
+
+## interface datasource
+ifdb:
+  datasource:
+    esecuritysi:
+      jdbc-url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.156.81.91)(PORT=1521)))(CONNECT_DATA=(SID=GRIDDEV)))
+      username: m8securityadm
+      password: ENC(4t2EPGstV3eJcl+S70PE/Z0fmhb+nxYm)
+      driver-class-name: oracle.jdbc.OracleDriver
+      pool-name: entmanage-ifdb-esecuritysi-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    idcardvisit:
+      jdbc-url: jdbc:sqlserver://172.20.220.200:1433;databaseName=Hynix_AccessControl
+      username: SKHynix_security
+      password: ENC(+0RQEyQMXmlJJdhcP+5f5ZuUnqeIbbgCLYHTkieHl+g=)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-idcardvisit-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    idcard:
+      jdbc-url: jdbc:sqlserver://172.20.252.58:1433;databaseName=CIMS
+      username: IDCR_ITFC
+      password: ENC(Se4J7KmBCdzk/IZ6nakl6gbng/EuuJej)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-idcard-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    idcardsi:
+      jdbc-url: jdbc:sqlserver://172.20.252.58:1433;databaseName=CIMS
+      username: IDCR_ITFC2
+      password: ENC(gZ8DOHfRgsMqW36cmHVrtJzWOaf68qp+)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-idcardsi-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    cjvehiclecampus:
+      jdbc-url: jdbc:sqlserver://10.236.1.31:1433;databaseName=SK
+      username: AccountInner
+      password: ENC(DL4URPQxgfPTDC8v6Jpka1GZbVSc2Hwv)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-cjvehiclecampus-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    icvehiclehaengbok:
+      jdbc-url: jdbc:sqlserver://172.18.1.201:1433;databaseName=SK
+      username: AccountInner
+      password: ENC(DL4URPQxgfPTDC8v6Jpka1GZbVSc2Hwv)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-icvehiclehaengbok-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    icvstcargotham:
+      jdbc-url: jdbc:sqlserver://172.18.1.99:1433;databaseName=skhynix
+      username: InsertAccount_Inner
+      password: ENC(DL4URPQxgfPTDC8v6Jpka1GZbVSc2Hwv)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-icvstcargotham-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    inparking:
+      jdbc-url: jdbc:sqlserver://172.20.199.200:1433;databaseName=INParking
+      username: security_H
+      password: ENC(CWRLs7kqTlOJF+DkobI35g60tkSZPj3x)
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+      pool-name: entmanage-ifdb-inparking-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    calder:
+      jdbc-url: jdbc:mysql://10.211.11.44:3306/ALDER?characterEncoding=utf8
+      username: security
+      password: ENC(CWRLs7kqTlOJF+DkobI35g60tkSZPj3x)
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      pool-name: entmanage-ifdb-calder-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    ialder:
+      jdbc-url: jdbc:mysql://166.125.3.18:3306/ALDER?characterEncoding=utf8
+      username: security
+      password: ENC(CWRLs7kqTlOJF+DkobI35g60tkSZPj3x)
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      pool-name: entmanage-ifdb-ialder-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+    smarttag:
+      jdbc-url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.158.65.115)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=TAGDB)))
+      username: eshvisit
+      password: ENC(L+cVd2jVV6hQZCAvCdGqCKEHHF9vj0P5)
+      driver-class-name: oracle.jdbc.OracleDriver
+      pool-name: entmanage-ifdb-smartTag-pool
+      minimum-idle: 2
+      maximum-pool-size: 10
+
+## interface access info
+ifaccess:
+  iparking:
+    api: http://172.18.10.13:7080
+  idcard:
+    ftp:
+      ip: 172.20.252.59
+      port: 21
+      id: IDCR_ITFC
+      password: IDCR_ITFC
+  nac:
+    ic:
+      ip: 10.211.11.42
+    cj:
+      ip: 166.125.3.15
+    dev:
+      ip: 166.125.3.244
+  cube:
+    url: http://10.158.122.139:8888/legacy/richnotification
+  ssm:
+    url: http://ssmdev.skhynix.com:53446/kiosk/accessKiosk.do
+  kiosk:
+    url: http://172.20.220.186:80
+  cdn:
+    url: https://cdndev.skhynix.com
+    key: HHjsBfueB6UrKoODf7gfY9AKYFzOrSOX6N+OCh3K+x8=
+    token: BHAyq6Nk3V
+  nca-if:
+    url: http://ncadev.skhynix.com:9090
+    token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZWN1cml0eUFwaURldiIsImlhdCI6MTU5NTQwNjAyOCwiZXhwIjo0MTAyMzI2MDAwfQ.29b4KIXLqW9IwAgYO1X1TJDcYYf9QfmiPsajWytpGM0
+  welcome:
+    url: http://welcome.skhynix.com
+
+security:
+  extnet:
+    url: http://welcome.skhynix.com
+  insnet:
+    url: http://esecurity.skhynix.com
+
+###file directory
+file:
+  upload:
+    path: C:\uploadFile

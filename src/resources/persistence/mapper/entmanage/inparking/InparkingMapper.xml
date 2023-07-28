@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.inparking.InparkingRepository">
+
+	<insert id="insertDeliveryPassIoDeliveryCarInfoForInpec" parameterType="Map">
+		INSERT INTO VEHICLE_DATA (
+			ID,
+			VEHICLE_NUM,
+			VISIT_FLAG,
+			VEHICLE_KIND,
+			DRIVER_NAME,
+			COMPANY,
+			PHONE,
+			ENROLL_NAME,
+			ENROLL_POSITION,
+			ENROLL_PART,
+			PHONE_NUMBER,
+			VISIT_OBJECT,
+			VISIT_PLACE,
+			FLAG,
+			IN_TIME,
+			CHECKTIME
+		) VALUES (
+			(SELECT ISNULL(MAX(ID), 0) + 1 AS ID FROM VEHICLE_DATA),
+			SUBSTRING(REPLACE(#VEHICLE_NUM#, ' ' , ''),0,15),
+			#VISIT_FLAG#, /* VISIT_FLAG */
+			SUBSTRING(REPLACE(#VEHICLE_KIND#, ' ', ''),0,20),
+			SUBSTRING(REPLACE(#DRIVER_NAME#, ' ', ''),0,20),
+			SUBSTRING(REPLACE(#COMPANY#, ' ', ''),0,30),
+			SUBSTRING(#TELNO#,0,20),
+			SUBSTRING(#ENROLL_NAME#,0,20),
+			SUBSTRING(#ENROLL_POSITION#,0,20),
+			SUBSTRING(#ENROLL_PART#,0,20),
+			SUBSTRING(REPLACE(#PHONE_NUMBER#, ' ', ''),0,20),
+			SUBSTRING(#VISIT_OBJECT#,0,30),
+			SUBSTRING(#VISIT_PLACE#,0,10),
+			0, /* FLAG */
+			CONVERT(DATETIME, #IN_TIME# , 121),
+			GETDATE()
+		)
+	</insert>
+
+
+</mapper>

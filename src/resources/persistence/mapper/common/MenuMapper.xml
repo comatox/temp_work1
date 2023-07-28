@@ -1,0 +1,684 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.MenuRepository">
+
+	<select id="selectMyRecentMenu" parameterType="String" resultType="MenuDTO">
+		/* menuRepository.selectMyRecentMenu (dmInsNetMainMyMenu) */
+		<![CDATA[
+		SELECT AA.*, ROWNUM
+		FROM (
+			SELECT
+				  MENU_ID
+				, MENU_NM
+				, UP_MENU_ID
+				, URL
+			FROM (
+				SELECT A.MENU_ID, B.UP_MENU_ID, B.MENU_NM, B.URL, DENSE_RANK() OVER(ORDER BY TO_DATE(CONCAT(A.AC_DT, A.AC_TM), 'YYYYMMDDHH24MISS') DESC) RM
+				FROM (SELECT * FROM SY_AC_LOG WHERE UPPER(EMP_ID) = UPPER(#{empNo}) and AC_DT > to_char(sysdate-180,'yyyymmdd' )) A
+				, CO_MENU B
+				, (SELECT DISTINCT AA.MENU_ID
+					FROM CO_AUTH_MENU AA
+					, CO_EMP_AUTH BB
+					WHERE AA.AUTH_ID = BB.AUTH_ID
+					AND BB.UPPER(EMP_ID) = UPPER(#{empNo})) C
+				WHERE A.MENU_ID = B.MENU_ID
+				AND B.MENU_ID = C.MENU_ID
+				AND B.USE_YN = 'Y'
+				AND B.DISPLAY_YN = 'Y'
+				AND A.UPPER(EMP_ID) = UPPER(#{empNo})
+				AND B.DEPTH = 3)
+			GROUP BY MENU_ID,MENU_NM,UP_MENU_ID,URL
+			ORDER BY MIN(RM)
+		) AA
+		WHERE ROWNUM <= 18
+		]]>
+	</select>
+
+	<select id="selectMainApprAuthList" parameterType="String" resultType="MenuDTO">
+		/* menuRepository.selectMainApprAuthList (dmInsNetMainApprAuthList) */
+		<![CDATA[
+		SELECT
+			  SUBSTR(A.UP_MENU_ID,1,3) AS TOP_MENU_ID
+			, A.UP_MENU_ID
+			, A.MENU_ID
+			, B.SORT_SEQ
+			, A.MENU_NM
+			, DECODE(NVL(B.EMP_ID,'N'),'N', 'N', 'Y') AS MY_APPR
+			, FUNC_TAG5 AS MY_APPR_URL
+			, FUNC_TAG6 AS MY_APPR_NM
+			, A.URL
+		 FROM CO_MENU A,
+		      (SELECT MENU_ID,EMP_ID,SORT_SEQ FROM CO_MENU_APPR_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo})) B,
+		      (SELECT DISTINCT MENU_ID
+		         FROM CO_AUTH_MENU AM
+		        WHERE AM.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))) C
+		WHERE A.USE_TAG6 = 'Y'
+		  AND A.MENU_ID = B.MENU_ID(+)
+		  AND A.MENU_ID = C.MENU_ID
+		ORDER BY B.SORT_SEQ, A.MENU_ID
+		]]>
+	</select>
+
+	<select id="selectMenuSearchList" parameterType="MenuSearchDTO" resultType="MenuDTO">
+		/* menuRepository.selectMenuSearchList (dmMenuSearchList) */
+		SELECT *
+		  FROM (SELECT DISTINCT AA.MENU_ID
+			         , AA.MENU_LINK
+			         , AA.MENU_NM
+			         , AA.DEPTH
+			         , AA.URL
+			     FROM (SELECT MENU_ID
+				            , REPLACE(SUBSTR(SYS_CONNECT_BY_PATH(MENU_NM, ' > '), 3 ),' eSecurity > ','') AS MENU_LINK
+				            , MENU_NM
+				            , DEPTH
+				            , KEYWORD
+				            , URL
+				         FROM CO_MENU
+				        WHERE USE_YN = 'Y'
+				          AND DISPLAY_YN = 'Y'
+				        START WITH MENU_ID = 'P'
+				      CONNECT BY PRIOR MENU_ID = UP_MENU_ID
+				        ORDER SIBLINGS BY MENU_NM ASC) AA
+				    , (SELECT *
+				         FROM CO_EMP_AUTH 
+				        WHERE UPPER(EMP_ID) = UPPER(#{empNo}) )BB
+				    , CO_AUTH_MENU CC
+			    WHERE AA.MENU_ID NOT IN ('P')
+			      AND BB.AUTH_ID = CC.AUTH_ID
+				  AND CC.MENU_ID = AA.MENU_ID
+				  AND (UPPER(AA.MENU_NM) LIKE UPPER('%'||#{keyword}||'%') OR UPPER(AA.KEYWORD) LIKE UPPER('%'||#{keyword}||'%'))
+				ORDER BY AA.MENU_ID ASC) TT
+		 WHERE TT.DEPTH = 3
+	 </select>
+
+	<select id="selectMenuList" parameterType="String" resultType="MenuDTO">
+		/* menuRepository.selectMenuList */
+		<![CDATA[
+		SELECT
+			*
+		FROM
+			(
+			SELECT
+				DISTINCT TB.*
+			FROM
+				(
+				SELECT
+					DISTINCT
+		            B.MENU_ID AS MENU_ID,
+					B.MENU_NM AS MENU_NM,
+					B.UP_MENU_ID AS UP_MENU_ID,
+					FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+					B.DEPTH AS DEPTH,
+					NVL(B.URL, '') AS URL,
+					CASE
+						WHEN DEPTH = 2
+		            THEN SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+ 1)
+						ELSE B.IMG_NM
+					END IMG_NM,
+					B.SORT_SEQ,
+					FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+					B.USE_YN
+				FROM
+					(
+					SELECT
+						DISTINCT ca.AUTH_ID AS AUTH_ID,
+						SUBSTR(cm.up_menu_id, 1, 3) AS menu_id
+					FROM
+						CO_AUTH_MENU ca,
+						CO_MENU cm
+					WHERE
+						ca.menu_id = cm.menu_id) A,
+					CO_MENU B
+				WHERE
+					A.MENU_ID = B.MENU_ID
+					AND A.AUTH_ID IN (
+					SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+					AND B.USE_YN = 'Y'
+					AND B.DEPTH = 1
+					AND NVL(B.DISPLAY_YN, 'Y') <> 'N'
+			UNION ALL
+				SELECT
+					B.MENU_ID AS MENU_ID,
+					B.MENU_NM AS MENU_NM,
+					B.UP_MENU_ID AS UP_MENU_ID,
+					FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+					B.DEPTH AS DEPTH,
+					NVL(B.URL, '') AS URL,
+					CASE
+						WHEN DEPTH = 2
+		            THEN SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+ 1)
+						ELSE B.IMG_NM
+					END IMG_NM,
+					B.SORT_SEQ,
+					FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+					B.USE_YN
+				FROM
+					(
+					SELECT
+						DISTINCT ca.AUTH_ID AS AUTH_ID,
+						cm.up_menu_id AS menu_id
+					FROM
+						CO_AUTH_MENU ca,
+						CO_MENU cm
+					WHERE
+						ca.menu_id = cm.menu_id) A,
+					CO_MENU B
+				WHERE
+					A.MENU_ID = B.MENU_ID
+					AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+					AND B.USE_YN = 'Y'
+					AND B.DEPTH = 2
+					AND NVL(B.DISPLAY_YN, 'Y') <> 'N'
+			UNION ALL
+				SELECT
+		            B.MENU_ID AS MENU_ID,
+					B.MENU_NM AS MENU_NM,
+					B.UP_MENU_ID AS UP_MENU_ID,
+					FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+					B.DEPTH AS DEPTH,
+					NVL(B.URL, '') AS URL,
+					CASE
+						WHEN DEPTH = 2
+		            THEN SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+ 1)
+						ELSE B.IMG_NM
+					END IMG_NM,
+					B.SORT_SEQ,
+					FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+					B.USE_YN
+				FROM
+					CO_AUTH_MENU A,
+					CO_MENU B
+				WHERE
+					A.MENU_ID = B.MENU_ID
+					AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+					AND B.USE_YN = 'Y'
+					AND B.DEPTH = 3
+					AND NVL(B.DISPLAY_YN, 'Y') <> 'N'
+			UNION ALL
+				SELECT
+		            B.MENU_ID AS MENU_ID,
+					B.MENU_NM AS MENU_NM,
+					B.UP_MENU_ID AS UP_MENU_ID,
+					FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+					B.DEPTH AS DEPTH,
+					NVL(B.URL, '') AS URL,
+					CASE
+						WHEN DEPTH = 2
+		            THEN SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+ 1)
+						ELSE B.IMG_NM
+					END IMG_NM,
+					B.SORT_SEQ,
+					FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+					B.USE_YN
+				FROM
+					CO_AUTH_MENU A,
+					CO_MENU B
+				WHERE
+					A.MENU_ID = B.MENU_ID
+					AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+					AND B.USE_YN = 'Y'
+					AND B.DEPTH = 4
+					AND NVL(B.DISPLAY_YN, 'Y') <> 'N'
+		        ) TB
+			)
+		WHERE
+			1 = 1
+		START WITH
+			DEPTH = '1'
+		CONNECT BY
+			PRIOR MENU_ID = UP_MENU_ID
+		    ORDER SIBLINGS BY SORT_SEQ ASC
+		]]>
+	</select>
+	
+	<select id="selectApprStatList" parameterType="String" resultType="MenuApprStatDTO">
+		/* menuRepository.selectApprStatList */
+		SELECT
+			(   SELECT COUNT(*) AS REQUEST_COUNT                 
+				FROM AP_DOC A, AP_APPR B, AP_APPR_PORTAL C, CO_EMP D                 
+				WHERE A.DOC_ID = B.DOC_ID    
+				AND A.AP_SEQ = B.AP_SEQ    
+				AND A.DOC_ID = C.DOC_ID                
+				AND A.EMP_ID = D.EMP_ID                
+				AND A.APPL_UPPER(EMP_ID) = UPPER(#{empNo})     
+				AND A.APPR_RESULT = '0'     
+				AND C.APSEQ = '0'
+				AND A.DEL_YN = 'N'
+			) AS REQUEST_COUNT,
+			(   SELECT COUNT(*) AS RECEIVE_VST
+				FROM IO_VST A
+				WHERE A.INOUT_GBN = 'Z0321002'
+				AND A.APPL_STAT = 'Z0331001'
+				AND (A.DEL_YN = 'N' or A.DEL_YN is null)
+				AND (SELECT COUNT(VM.IO_EMP_ID) 
+				       FROM IO_VST_MAN VM, IO_EMP EMP, IO_COMP COMP 
+				      WHERE VM.IO_EMP_ID = EMP.IO_EMP_ID
+				      AND EMP.IO_COMP_ID = COMP.IO_COMP_ID
+				      AND VM.VST_APPL_NO = A.VST_APPL_NO) > 0      
+				AND A.UPPER(EMP_ID) = UPPER(#{empNo})
+			) AS RECEIVE_VST,
+			(   SELECT COUNT(*) AS RECEIVE_TMP
+				FROM IO_PASS A, IO_COMP B, IO_EMP C
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+				AND A.IO_EMP_ID = C.IO_EMP_ID
+				AND A.UPPER(EMP_ID) = UPPER(#{empNo})
+				AND A.ALTEMP_GBN = 'A0071002'
+				AND A.APPL_STAT = 'Z0331001'
+			) AS RECEIVE_TMP,
+			(   SELECT COUNT(*) AS RECEIVE_REG
+				FROM IO_PASS A, IO_COMP B, IO_EMP C
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+				AND A.IO_EMP_ID = C.IO_EMP_ID
+				AND A.UPPER(EMP_ID) = UPPER(#{empNo})
+				AND A.ALTEMP_GBN = 'A0071001'
+				AND A.APPL_STAT = 'Z0331001'
+			) AS RECEIVE_REG,
+			(   SELECT COUNT(*) as RECEIVE_COMP
+				FROM IO_COMP
+				WHERE 1=1
+			    AND APPR_YN = 'Z0331001'
+			    AND NVL(DEL_YN, 'N') = 'N'
+			    AND UPPER(EMP_ID) = UPPER(#{empNo})
+		    ) AS RECEIVE_COMP,
+			(   SELECT COUNT(*) AS VISIT_CERTI_COUNT
+				FROM IO_EMP_CO_CERTI IEC,
+					 IO_EMP IE,
+					 IO_COMP IC
+				WHERE UPPER(IEC.IO_EMP_ID) = UPPER(IE.IO_EMP_ID)
+				AND IE.IO_COMP_ID = IC.IO_COMP_ID(+)  
+				AND UPPER(IEC.EMP_ID) = UPPER(#{empNo})   
+				AND IEC.CERTI_YN = 'N'  
+			) AS VISIT_CERTI_COUNT,
+			(   SELECT COUNT(1) AS EXCPT_COUNT 
+				FROM IO_PASS_EXCPT A, IO_COMP B, IO_EMP C
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+				AND A.IO_EMP_ID = C.IO_EMP_ID
+				AND UPPER(A.EMP_ID) = UPPER(#{empNo})   
+				AND A.APPL_STAT = 'Z0331001' 
+				AND NVL(A.S_L_GBN, 'S') = 'S'
+			 ) AS EXCPT_COUNT,
+			(   SELECT COUNT(1) AS STOP_COUNT 
+				FROM IO_PASS_EXPR_CANCEL A,
+					 IO_COMP B,
+					 IO_EMP C
+				WHERE A.IO_COMP_ID = B.IO_COMP_ID
+			    AND A.IO_EMP_ID = C.IO_EMP_ID 
+				AND UPPER(A.EMP_ID) = UPPER(#{empNo})
+				AND A.APPL_STAT = 'Z0331001'
+			 ) AS STOP_COUNT,
+			(   SELECT COUNT(1) AS DOMOVE_COUNT FROM IO_EMP_COM_MOVE A, IO_EMP B, CO_EMP C
+				WHERE A.IO_EMP_ID = B.IO_EMP_ID
+				AND A.EMP_ID = C.EMP_ID
+				AND UPPER(A.EMP_ID) = UPPER(#{empNo}) 
+				AND A.APPL_STAT = 'Z0331001'
+			) AS DOMOVE_COUNT,
+			(   SELECT COUNT(1) AS ADMIN_COUNT FROM IO_ADMIN_APPL  A
+				WHERE UPPER(A.EMP_ID) = UPPER(#{empNo}) 
+				AND A.APPR_STAT = 'Z0331001'
+				AND NVL(A.DEL_YN, 'N') = 'N'
+			) AS ADMIN_COUNT,
+			(   SELECT COUNT(1) AS PIC_COUNT FROM SV_PIC A
+				WHERE NVL(A.DEL_YN, 'N') = 'N'
+				AND  (A.APPL_STAT = 'Z0331001' OR A.APPL_STAT IS NULL)
+				AND  UPPER(A.EMP_ID) = UPPER(#{empNo})
+			) AS PIC_COUNT,
+			(   SELECT COUNT(1) AS IOINOUT_COUNT
+				FROM (
+					SELECT INOUT_APPL_NO FROM IO_INOUTWRITE A
+					WHERE UPPER(A.EMP_ID) = UPPER(#{empNo})
+					AND A.APPL_STAT = 'Z0331001'
+					AND A.INOUT_STAT != 'D'
+				
+					UNION ALL
+						
+					SELECT IW.INOUT_APPL_NO
+					FROM  IO_INOUTWRITE IW
+					RIGHT OUTER JOIN IO_INOUT_HISTORY IH
+					ON IW.INOUT_APPL_NO = IH.INOUT_APPL_NO
+					WHERE IW.INOUT_STAT != 'D' 
+				      AND IW.EMP_ID = UPPER(#{empNo})
+				      AND IH.APPL_STAT = 'Z0331001'
+				) T
+			) AS IOINOUT_COUNT
+		FROM DUAL
+	</select>
+
+	<delete id="deleteMainApprAuth" parameterType="String">
+		/* menuRepository.deleteMainApprAuth (dmInsNetMainApprAuthDel) */
+		DELETE CO_MENU_APPR_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo})
+	</delete>
+	
+	<insert id="insertMainApprAuth" parameterType="MenuDTO">
+		/* menuRepository.insertMainApprAuth (dmInsNetMainApprAuthIns) */
+		INSERT INTO CO_MENU_APPR_AUTH
+		(
+			 EMP_ID
+			,MENU_ID
+			,CRT_BY
+			,CRT_DTM
+			,SORT_SEQ
+		) values (
+			 #{empNo}
+			,#{menuId}
+			,#{empNo}
+			,SYSDATE
+			,#{sortSeq}
+		)
+	</insert>
+	
+	<select id="selectHeaderSearchMenuList" parameterType="MenuSearchDTO" resultType="MenuDTO">
+		SELECT * FROM (
+			SELECT 
+				Z.*
+				,CASE LENGTH(ID) 
+					 WHEN 3 THEN ID
+					 WHEN 5 THEN SUBSTR(PARENTID,1,3) ||','|| ID
+					 WHEN 6 THEN SUBSTR(PARENTID,1,3) ||','|| SUBSTR(PARENTID,1,4) --내부물류 반출입 작업, 정문담당(지입자재) 예외처리
+					 WHEN 7 THEN SUBSTR(PARENTID,1,3) ||','|| SUBSTR(PARENTID,1,5) ||','|| ID
+					 WHEN 9 THEN SUBSTR(PARENTID,1,3) ||','|| SUBSTR(PARENTID,1,5) ||','|| ID
+				 ELSE '' END AS PATH
+				,CASE DEPTH 
+					WHEN 3 THEN 'file'
+				 ELSE 'folder' END AS TYPE
+				,ROWNUM AS IDX
+			FROM (	
+				SELECT DISTINCT TB.* FROM
+				(    		
+					SELECT DISTINCT
+			            B.MENU_ID AS ID, 
+			            B.MENU_NM AS TEXT,
+			            B.UP_MENU_ID AS PARENTID,
+			            FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+			            B.DEPTH AS DEPTH, 
+			            NVL(B.URL, '') AS URL, 
+			            CASE 
+			            WHEN DEPTH = 2
+			            THEN  SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+1)
+			            ELSE B.IMG_NM
+			            END IMG_NM,
+			            B.SORT_SEQ,
+			            FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+			            B.USE_YN
+			        FROM (SELECT distinct ca.AUTH_ID as AUTH_ID, SUBSTR(cm.up_menu_id,1,3) as menu_id
+			                FROM CO_AUTH_MENU ca, CO_MENU cm
+			               WHERE ca.menu_id = cm.menu_id) A, CO_MENU B
+			        WHERE A.MENU_ID = B.MENU_ID
+			        AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+			        AND B.USE_YN = 'Y'
+			        AND B.DEPTH = 1
+			        AND NVL(B.DISPLAY_YN, 'Y') <![CDATA[<>]]> 'N'
+					UNION ALL
+			        SELECT DISTINCT
+			            B.MENU_ID AS ID, 
+			            B.MENU_NM AS TEXT,
+			            B.UP_MENU_ID AS PARENTID,
+			            FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+			            B.DEPTH AS DEPTH, 
+			            NVL(B.URL, '') AS URL, 
+			            CASE 
+			            WHEN DEPTH = 2
+			            THEN  SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+1)
+			            ELSE B.IMG_NM
+			            END IMG_NM,
+			            B.SORT_SEQ,
+			            FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+			            B.USE_YN
+			        FROM (SELECT distinct ca.AUTH_ID as AUTH_ID, cm.up_menu_id as menu_id
+			              FROM CO_AUTH_MENU ca, CO_MENU cm
+			              WHERE ca.menu_id = cm.menu_id) A, CO_MENU B
+			        WHERE A.MENU_ID = B.MENU_ID
+			        AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+			        AND B.USE_YN = 'Y'
+			        AND B.DEPTH = 2
+			        AND NVL(B.DISPLAY_YN, 'Y') <![CDATA[<>]]> 'N'
+			        UNION ALL
+			        SELECT 
+			            B.MENU_ID AS ID, 
+			            B.MENU_NM AS TEXT,
+			            B.UP_MENU_ID AS PARENTID,
+			            FN_GET_UP_MENU_NM (B.UP_MENU_ID) AS UP_MENU_NM,
+			            B.DEPTH AS DEPTH, 
+			            NVL(B.URL, '') AS URL, 
+			            CASE 
+			            WHEN DEPTH = 2
+			            THEN  SUBSTR(B.IMG_NM, INSTR(B.IMG_NM, ';')+1)
+			            ELSE B.IMG_NM
+			            END IMG_NM,
+			            B.SORT_SEQ,
+			            FN_GET_SUB_MENU_COUNT(B.MENU_ID, 'Y') AS SUB_MENU_COUNT,
+			            B.USE_YN
+			        FROM CO_AUTH_MENU A, CO_MENU B
+			        WHERE A.MENU_ID = B.MENU_ID
+			        AND A.AUTH_ID IN (SELECT AUTH_ID FROM CO_EMP_AUTH WHERE UPPER(EMP_ID) = UPPER(#{empNo}))
+			        AND B.USE_YN = 'Y'
+			        AND B.DEPTH = 3
+			        AND NVL(B.DISPLAY_YN, 'Y') <![CDATA[<>]]> 'N'    
+			        ) TB
+				) Z
+				WHERE 1 = 1
+				<if test="not @org.springframework.util.StringUtils@isEmpty(upMenuId)">
+			        AND PARENTID = #{upMenuId}  
+				</if>
+				START WITH DEPTH = '1'
+			    CONNECT BY PRIOR ID = PARENTID
+			    ORDER SIBLINGS BY SORT_SEQ ASC
+		    )
+		    WHERE PATH IS NOT NULL
+	</select>
+
+	<select id="selectMyMenuList" parameterType="MenuSearchDTO" resultType="CamelHashMap">
+		SELECT * 
+		  FROM
+		    (SELECT DISTINCT tb.*
+		       FROM (SELECT A.EMP_ID, A.MENU_ID, A.SORT_SEQ, A.UP_MENU_ID, A.FM_FLAG, A.FOLD_NM, A.DEPTH, 
+		                    DECODE(NVL(A.FM_FLAG,'N'),'N', B.MENU_NM, A.FOLD_NM) AS MENU_NM,
+		                    FN_GET_SUB_MYMENU_COUNT(A.MENU_ID) AS SUB_MENU_COUNT,
+		                    B.UP_MENU_ID AS REAL_UP_MENU_ID,
+		                    B.MENU_ID AS REAL_MENU_ID,
+		                    B.MENU_NM AS REAL_MENU_NM,
+		                    B.URL AS REAL_URL,           
+		                    B.DEPTH AS REAL_DEPTH
+		               FROM CO_MENU_MYMENU A, (SELECT UP_MENU_ID,MENU_ID, MENU_NM, URL, DEPTH FROM CO_MENU WHERE USE_YN='Y') B
+		              WHERE A.MENU_ID = B.MENU_ID(+)
+		                AND A.UPPER(EMP_ID) = UPPER(#{empNo})
+		             ) tb
+		     )
+		 WHERE 1 = 1
+		 START WITH DEPTH = '1' CONNECT BY
+		 PRIOR MENU_ID = UP_MENU_ID
+		 ORDER SIBLINGS BY SORT_SEQ ASC
+	</select>
+
+	<delete id="deleteMyMenuList" parameterType="hashMap">
+		DELETE CO_MENU_MYMENU WHERE EMP_ID = #{empId}
+	</delete>
+	
+	<insert id="insertMyMenuList" parameterType="hashMap">
+		INSERT INTO CO_MENU_MYMENU
+		    (
+		         EMP_ID
+		        ,MENU_ID		
+		        ,SORT_SEQ
+		        ,UP_MENU_ID
+		        ,FM_FLAG
+		        ,FOLD_NM
+		        ,DEPTH
+		        ,CRT_BY
+		        ,CRT_DTM
+		    ) VALUES (
+		         #{empId}
+		        ,#{menuId}
+		        ,#{sortSeq}
+		        ,#{upMenuId}
+		        ,#{fmFlag}
+		        ,#{foldNm}
+		        ,#{depth}
+		        ,#{empId}
+		        ,SYSDATE	
+		    )
+	</insert>
+
+	<select id="selectMenuManageList" parameterType="MenuSearchDTO" resultType="MenuDTO">
+		SELECT 
+			* 
+		FROM (
+				SELECT 
+					Z.*
+					,CASE LENGTH(MENU_ID) 
+		 				 WHEN 1 THEN MENU_ID
+						 WHEN 3 THEN SUBSTR(UP_MENU_ID,1,1) ||','|| MENU_ID
+						 WHEN 5 THEN SUBSTR(UP_MENU_ID,1,1) ||','|| SUBSTR(UP_MENU_ID,1,3) ||','|| MENU_ID
+						 WHEN 6 THEN SUBSTR(UP_MENU_ID,1,1) ||','|| SUBSTR(UP_MENU_ID,1,3) ||','|| SUBSTR(UP_MENU_ID,1,4) --내부물류 반출입 작업, 정문담당(지입자재) 예외처리
+						 WHEN 7 THEN SUBSTR(UP_MENU_ID,1,1) ||','|| SUBSTR(UP_MENU_ID,1,3) ||','|| SUBSTR(UP_MENU_ID,1,5) ||','|| MENU_ID
+						 WHEN 9 THEN SUBSTR(UP_MENU_ID,1,1) ||','|| SUBSTR(UP_MENU_ID,1,3) ||','|| SUBSTR(UP_MENU_ID,1,5) ||','|| MENU_ID
+					 ELSE '' END AS PATH
+					,CASE DEPTH 
+						WHEN 3 THEN 'file'
+					 ELSE 'folder' END AS TYPE
+				FROM (	
+					SELECT 
+				        MENU_ID, 
+				        MENU_NM, 
+				        UP_MENU_ID, 
+				        FN_GET_UP_MENU_NM(MENU_ID) AS UP_MENU_NM,
+				        DEPTH, 
+				        URL, 
+				        SORT_SEQ, 
+				        USE_YN, 
+				        AC_IP, 
+				        CRT_BY, 
+				        TO_CHAR(CRT_DTM, 'YYYY.MM.DD HH24:MI') AS CRT_DTM, 
+				        MOD_BY, 
+				        TO_CHAR(MOD_DTM, 'YYYY.MM.DD HH24:MI') AS MOD_DTM,
+				        FN_GET_SUB_MENU_COUNT(MENU_ID, '') AS SUB_MENU_COUNT,
+				        IMG_NM
+					FROM CO_MENU
+					START WITH MENU_ID = 'P'
+					/*START WITH DEPTH = '1'*/
+					CONNECT BY PRIOR MENU_ID = UP_MENU_ID
+					ORDER SIBLINGS BY SORT_SEQ ASC 
+			    ) Z
+		    )
+	</select>
+	
+	<select id="selectMenuManageDetail" parameterType="MenuSearchDTO" resultType="MenuDTO">
+		SELECT A.MENU_ID 
+		     , A.MENU_NM 
+		     , A.UP_MENU_ID 
+		     , FN_GET_UP_MENU_NM(A.MENU_ID) AS UP_MENU_NM
+		     , A.DEPTH
+		     , A.URL 
+		     , A.SORT_SEQ 
+		     , A.USE_YN 
+		     , A.AC_IP 
+		     , A.CRT_BY 
+		     , TO_CHAR(A.CRT_DTM, 'YYYY.MM.DD HH24:MI') AS CRT_DTM 
+		     , A.MOD_BY
+		     , TO_CHAR(A.MOD_DTM, 'YYYY.MM.DD HH24:MI') AS MOD_DTM
+		     , A.IMG_NM
+		     , A.DISPLAY_YN
+		  FROM CO_MENU A
+		 WHERE A.MENU_ID = #{menuId}
+	</select>
+	
+	<update id="upsertMenuManageDetail" parameterType="hashMap">
+		MERGE INTO CO_MENU T1
+		USING (
+		    SELECT
+		          #{menuId} AS MENU_ID
+		        , #{menuNm} AS MENU_NM
+		        , #{upMenuId} AS UP_MENU_ID
+		        , #{depth} AS DEPTH
+		        , #{url} AS URL
+		        , #{sortSeq} AS SORT_SEQ
+		        , #{useYn} AS USE_YN
+		        , #{acIp} AS AC_IP
+		        , #{sessionEmpId} AS SESSION_EMP_ID
+		        , SYSDATE AS CRT_DTM
+		        , #{imgNm} AS IMG_NM
+		        , #{displayYn} AS DISPLAY_YN
+		        , #{approvalYn} AS APPROVAL_YN
+		        , #{mainYn} AS MAIN_YN
+		        , #{favoritesImg} AS FAVORITES_IMG
+		        , #{manager} AS MANAGER_EMP_ID
+		        , #{menuDesc} AS MENU_DESC
+		        , #{iflowUrl} AS IFLOW_URL
+		        , #{keyword} AS KEYWORD
+		    FROM DUAL
+		) T2
+		ON (T1.MENU_ID = T2.MENU_ID)
+		WHEN MATCHED THEN
+		    UPDATE SET
+		       MENU_NM  	     = T2.MENU_NM
+		     , URL      	     = T2.URL
+		     , SORT_SEQ 	     = T2.SORT_SEQ
+		     , USE_YN   	     = T2.USE_YN
+		     , AC_IP    	     = T2.AC_IP
+		     , MOD_BY   	     = T2.SESSION_EMP_ID
+		     , MOD_DTM  	     = SYSDATE
+		     , IMG_NM		     = T2.IMG_NM
+		     , DISPLAY_YN	     = T2.DISPLAY_YN
+		     , APPROVAL_YN 	     = T2.APPROVAL_YN
+		     , MAIN_YN		     = T2.MAIN_YN
+		     , FAVORITES_IMG     = T2.FAVORITES_IMG  /* 즐겨찾기 이미지 */
+		     , MANAGER_EMP_ID	 = T2.MANAGER_EMP_ID /* 담당자*/    
+		     , IFLOW_URL	     = T2.IFLOW_URL      /* 지식블로그URL*/ 
+		     , MENU_DESC	     = T2.MENU_DESC	     /* 메뉴 설명*/	
+		     , KEYWORD		     = T2.KEYWORD
+		WHEN NOT MATCHED THEN
+		    INSERT
+		    ( MENU_ID
+		    , MENU_NM
+		    , UP_MENU_ID
+		    , DEPTH
+		    , URL
+		    , SORT_SEQ
+		    , USE_YN
+		    , AC_IP
+		    , CRT_BY
+		    , CRT_DTM
+		    , IMG_NM
+		    , DISPLAY_YN
+		    , APPROVAL_YN
+		    , MAIN_YN
+		    , FAVORITES_IMG
+		    , MANAGER_EMP_ID
+		    , MENU_DESC
+		    , IFLOW_URL
+		    , KEYWORD)
+		    VALUES
+		    ( T2.MENU_ID
+		    , T2.MENU_NM
+		    , T2.UP_MENU_ID
+		    , T2.DEPTH
+		    , T2.URL
+		    , T2.SORT_SEQ
+		    , T2.USE_YN
+		    , T2.AC_IP
+		    , T2.SESSION_EMP_ID
+		    , T2.CRT_DTM
+		    , T2.IMG_NM
+		    , T2.DISPLAY_YN
+		    , T2.APPROVAL_YN
+		    , T2.MAIN_YN
+		    , T2.FAVORITES_IMG
+		    , T2.MANAGER_EMP_ID
+		    , T2.MENU_DESC
+		    , T2.IFLOW_URL
+		    , T2.KEYWORD
+		    )
+    </update>
+
+	<select id="selectMenuManageNewCode" parameterType="MenuSearchDTO" resultType="MenuDTO">
+		SELECT NVL(MAX(SORT_SEQ), 0) + 1 AS SORT_SEQ,
+			/*UP_MENU_ID || LPAD(NVL(MAX(SUBSTR(MENU_ID, -2, 2)), 0)+1, 2, '0') AS MENU_ID*/
+					 UP_MENU_ID || CASE
+													 WHEN #{depth} = '2' THEN LPAD(NVL(MAX(SUBSTR(MENU_ID, -4, 4)), 0) + 1, 4,
+																												 '0')
+													 ELSE LPAD(NVL(MAX(SUBSTR(MENU_ID, -2, 2)), 0) + 1, 2, '0')
+						 END                     AS MENU_ID
+		FROM CO_MENU
+		WHERE UP_MENU_ID = #{upMenuId}
+		GROUP BY UP_MENU_ID		
+	</select>
+</mapper>

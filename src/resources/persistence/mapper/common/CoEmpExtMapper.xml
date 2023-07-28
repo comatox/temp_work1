@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CoEmpExtRepository">
+
+  <select id="selectCoEmpExtList" parameterType="Map" resultType="CoEmpDTO">
+    /* common: CoEmpExtRepository.selectCoEmpExtList */
+	WITH PAGE AS
+	(
+		SELECT ROW_NUMBER() OVER ( ORDER BY T1.COMP_ID, T1.DEPT_ID, T1.EMP_ID, T1.DIV_NM, DIV_CD DESC) AS ROW_NUM
+			,T1.*
+		FROM (
+			SELECT T1.*
+			FROM (
+				SELECT T1.*, T3.DEPT_NM
+				FROM (
+					SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, EMAIL, JW_ID, TEL_NO1, TEL_NO2, JOBLOCAT AS DIV_NM, JC_CD AS JC_ID, DIV_CD
+					,(SELECT ETC1 FROM CO_CODE_D WHERE GRP_CD = 'F005' AND ETC2 = COMP_ID) AS DEPT_PATH
+					, TEL_NO1 AS HP_NO
+					, (SELECT MAX(IDCARD_ID) AS IDCARD_ID
+				       FROM IO_EMPCARD Z
+				      WHERE Z.EMP_ID = EMP_ID
+				        AND Z.CRT_DTM = (SELECT MAX(Y.CRT_DTM)
+				                              FROM IO_EMPCARD Y
+				                             WHERE Y.EMP_ID = Z.EMP_ID
+				                               AND NVL(Y.DEL_YN, 'N') != 'Y'
+                                               AND Y.STATUS = 'A0091005'
+                                               AND Z.EMP_ID = X.EMP_ID
+                                         )
+                        ) AS IDCARD_ID
+				        FROM CO_EMP X
+				        WHERE EMP_ID > ' '
+				        AND USE_YN = 'Y'
+				        AND HT_CD IN ('C', 'H')
+				        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+				        AND EMP_ID = #{searchEmpId}
+				        </if>
+				        <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+				        AND UPPER(EMP_NM) LIKE '%'|| UPPER(#{searchEmpNm}) ||'%' ESCAPE '['
+				        </if>
+				        <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+				        AND COMP_ID = #{searchCompId}
+				        </if>
+				        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptId)">
+				        AND DEPT_ID = #{searchDeptId}
+				        </if>
+			    ) T1
+		    	,(SELECT DEPT_ID, DEPT_NM, COMP_ID
+		                FROM CO_DEPT
+		                WHERE DEPT_ID > ' '
+		                AND USE_YN = 'Y'
+		         ) T3
+		    	WHERE T1.DEPT_ID = T3.DEPT_ID(+)
+	        ) T1
+	        WHERE 1=1
+	        <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+	        AND UPPER(DEPT_NM) LIKE '%'|| UPPER(#{searchDeptNm}) ||'%' ESCAPE '['
+	        </if>
+        ) T1
+	)
+	SELECT
+	     ROW_NUM
+		  ,T1.EMP_ID
+			,T1.EMP_NM
+			,T1.COMP_ID
+			,FN_GET_CONAME('COMP', T1.COMP_ID, T1.COMP_ID) AS COMP_NM
+			,T1.DEPT_ID
+			,T1.DEPT_NM
+			,T1.DIV_NM
+			,T1.EMAIL
+			,T1.JW_ID
+			,FN_GET_CONAME('', T1.JW_ID, '') as JW_NM
+			,T1.JC_ID
+			,FN_GET_CONAME('JC', T1.JC_ID, '') AS JC_NM
+			,T1.TEL_NO1
+			,T1.TEL_NO2
+			,T1.HP_NO
+			,T1.IDCARD_ID
+	FROM PAGE T1
+	WHERE 1 = 1
+    <if test="pageSize != '-1'">
+	  AND T1.ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	  </if>
+  </select>
+  <select id="selectCoEmpExtListCnt" parameterType="Map" resultType="Integer">
+    /* common: CoEmpExtRepository.selectCoEmpExtListCnt */
+    WITH PAGE AS
+    (
+
+    SELECT ROWNUM AS ROWM
+    ,T1.*
+    FROM (
+    SELECT T1.*
+    FROM (
+    SELECT T1.*, T3.DEPT_NM
+    FROM (
+    SELECT EMP_ID, EMP_NM, COMP_ID, DEPT_ID, EMAIL, DIV_CD, JOBLOCAT AS DIV_NM
+    FROM CO_EMP
+    WHERE EMP_ID <![CDATA[ > ]]> ' '
+    AND USE_YN = 'Y'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpId)">
+      AND EMP_ID = #{searchEmpId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND UPPER(EMP_NM) LIKE '%'|| UPPER(#{searchEmpNm}) ||'%' ESCAPE '['
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptId)">
+      AND DEPT_ID = #{searchDeptId}
+    </if>
+    ) T1
+    ,(SELECT DEPT_ID, DEPT_NM, COMP_ID
+    FROM CO_DEPT
+    WHERE DEPT_ID <![CDATA[ > ]]> ' '
+    AND USE_YN = 'Y'
+    ) T3
+    WHERE T1.DEPT_ID = T3.DEPT_ID(+)
+    ) T1
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND UPPER(DEPT_NM) LIKE '%'|| UPPER(#{searchDeptNm}) ||'%' ESCAPE '['
+    </if>
+    ) T1
+    )
+    SELECT NVL(MAX(ROWM),0) AS TOT_CNT
+    FROM PAGE T1
+  </select>
+
+	<select id="searchZipCodeList" parameterType="Map" resultType="CamelHashMap">
+		/* common: CoEmpExtRepository.searchZipCodeList */
+		SELECT TB.* FROM (
+		SELECT ROW_NUMBER() OVER(ORDER BY ZIP_CODE,DONG,BUNJI ASC) as ROW_NUM, T.* FROM (
+		SELECT
+		SEQ
+		,ZIP_CODE
+		,SUBSTR(ZIP_CODE, 0, INSTR(ZIP_CODE, '-')-1) as ZIP1
+		,SUBSTR(ZIP_CODE, INSTR(ZIP_CODE, '-')+1) as ZIP2
+		,SIDO
+		,GUGUN
+		,DONG
+		,BUNJI
+		,SIDO || ' ' || GUGUN || ' ' || DONG AS ADDR
+		FROM ZIP_CODE
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(sido)">
+			AND SIDO_CODE = #{sido}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gugun)">
+			AND GUGUN_CODE = #{gugun}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(dong)">
+			AND UPPER(DONG) LIKE '%' || UPPER(#{dong}) || '%'
+		</if>
+		) T
+		) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="searchZipCodeListCnt" parameterType="Map" resultType="Integer">
+		/* common: CoEmpExtRepository.searchZipCodeListCnt */
+		SELECT NVL(MAX(ROW_NUM),0) AS TOT_CNT FROM (
+		SELECT ROW_NUMBER() OVER(ORDER BY ZIP_CODE ASC) as ROW_NUM, T.* FROM (
+		SELECT
+		SEQ
+		,ZIP_CODE
+		,SUBSTR(ZIP_CODE, INSTR(ZIP_CODE, '-')-1) as ZIP1
+		,SUBSTR(ZIP_CODE, INSTR(ZIP_CODE, '-')+1) as ZIP2
+		,SIDO
+		,GUGUN
+		,DONG
+		,BUNJI
+		,SIDO || ' ' || GUGUN || ' ' || DONG AS ADDR
+		FROM ZIP_CODE
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(sido)">
+			AND SIDO_CODE = #{sido}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gugun)">
+			AND GUGUN_CODE = #{gugun}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(dong)">
+			AND UPPER(DONG) LIKE '%' || UPPER(#{dong}) || '%'
+		</if>
+		) T
+		) TB
+	</select>
+
+	<select id="searchRoadZipCodeList" parameterType="Map" resultType="CamelHashMap">
+		/* common: CoEmpExtRepository.searchRoadZipCodeList */
+		SELECT TB.* FROM (
+		SELECT ROW_NUMBER() OVER(ORDER BY ZIP_CODE ,DONG ASC) as ROW_NUM, T.* FROM (
+		SELECT
+		ZIP_CODE
+		,SUBSTR(ZIP_CODE, 0, INSTR(ZIP_CODE, '-')-1) as ZIP1
+		,SUBSTR(ZIP_CODE, INSTR(ZIP_CODE, '-')+1) as ZIP2
+		,SIDO
+		,GUGUN
+		,ROAD as DONG
+		,DONG as BUNJI
+		,SIDO || ' ' || GUGUN || ' ' || ROAD || ' ' || DONG AS ADDR
+		FROM ZIP_CODE_ROAD
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(sido)">
+			AND SIDO_CODE = #{sido}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gugun)">
+			AND GUGUN_CODE = #{gugun}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(dong)">
+			AND UPPER(ROAD) LIKE '%' || UPPER(#{dong}) || '%'
+		</if>
+		) T
+		) TB
+		WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+	</select>
+
+	<select id="searchRoadZipCodeListCnt" parameterType="Map" resultType="Integer">
+		/* common: CoEmpExtRepository.searchRoadZipCodeListCnt */
+		SELECT NVL(MAX(ROW_NUM),0) AS TOT_CNT FROM (
+		SELECT ROW_NUMBER() OVER(ORDER BY ZIP_CODE ASC) as ROW_NUM, T.* FROM (
+		SELECT
+		ZIP_CODE
+		,SUBSTR(ZIP_CODE, 0, INSTR(ZIP_CODE, '-')-1) as ZIP1
+		,SUBSTR(ZIP_CODE, INSTR(ZIP_CODE, '-')+1) as ZIP2
+		,SIDO
+		,GUGUN
+		,ROAD as DONG
+		,DONG as BUNJI
+		,SIDO || ' ' || GUGUN || ' ' || ROAD || ' ' || DONG AS ADDR
+		FROM ZIP_CODE_ROAD
+		WHERE 1=1
+		<if test="not @org.springframework.util.StringUtils@isEmpty(sido)">
+			AND SIDO_CODE = #{sido}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(gugun)">
+			AND GUGUN_CODE = #{gugun}
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(dong)">
+			AND UPPER(ROAD) LIKE '%' || UPPER(#{dong}) || '%'
+		</if>
+		) T
+		) TB
+	</select>
+</mapper>

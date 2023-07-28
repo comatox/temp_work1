@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.BuildingRepository">
+
+	<select id="selectCoBldg" parameterType="String" resultType="CoBldgDTO">
+		/* common: buildingRepository.selectCoBldg */
+		SELECT
+		    A.GATE_ID,
+		    A.COMP_ID,
+		    A.GATE_NM,
+		    A.GATE_CD,
+		    A.UP_GATE_ID,
+		    A.GATE_KND,
+		    A.VSTR_AVAIL_YN,
+		    A.CLEAN_EDU_YN,
+		    A.CTRL_YN,
+		    A.SAFE_EDU_YN,
+		    A.SORT_SEQ,
+		    A.DEPTH,
+		    A.APPR_EMP_ID,
+		    A.DEL_YN,
+		    A.TRG_FLAG,
+		    A.TAGIDKND,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM,
+		    A.GATE_EN_NM
+		FROM CO_BLDG A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GATE_ID = #{gateId}
+	</select>
+
+	<select id="selectCoBldgList" parameterType="CoBldgDTO" resultType="CoBldgDTO">
+		/* common: buildingRepository.selectCoBldgList */
+		SELECT
+		    A.GATE_ID,
+		    A.COMP_ID,
+		    A.GATE_NM,
+		    A.GATE_CD,
+		    A.UP_GATE_ID,
+		    A.GATE_KND,
+		    A.VSTR_AVAIL_YN,
+		    A.CLEAN_EDU_YN,
+		    A.CTRL_YN,
+		    A.SAFE_EDU_YN,
+		    A.SORT_SEQ,
+		    A.DEPTH,
+		    A.APPR_EMP_ID,
+		    A.DEL_YN,
+		    A.TRG_FLAG,
+		    A.TAGIDKND,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM,
+		    A.GATE_EN_NM
+		FROM CO_BLDG A
+		WHERE A.DEL_YN = 'N'
+		  AND A.GATE_ID IN
+		  <foreach collection="list" item="gateId" open="(" close=")" separator=",">
+			#{gateId}
+		  </foreach>
+	</select>
+	
+	<select id="selectCoXempBldgOut" parameterType="String" resultType="CoXempBldgOutDTO">
+		/* common: buildingRepository.selectCoXempBldgOut */
+		
+		SELECT CO_XEMP_BUILDING_OUT_APPL_NO, GATE_ID, NVL(XEMP_NAME, GATE_NAME) AS GATE_NAME 
+		  FROM CO_XEMP_BUILDING_OUT 
+		 WHERE GATE_KND = '1' 
+		   AND DEL_YN   = 'N' 
+		   AND GATE_NAME NOT IN ('사내','사외')
+		   AND COMP_ID  = #{compId}
+	</select>
+</mapper>
+
+

@@ -1,0 +1,87 @@
+@charset "utf-8";
+@import url("/esecurity/assets/common/css/basic.css");
+@import url("/esecurity/assets/common/css/common.css");
+body{
+margin:0;
+padding:0;
+border:0;
+font-size:0.75em;
+line-height:1.8em; 
+letter-spacing:0em;
+color:#666666;
+scrollbar-3dlight-color:#ffffff; scrollbar-arrow-color:#666666; scrollbar-base-color:#ffffff; scrollbar-darkshadow-color:#d7d7d7; scrollbar-face-color:#f2f2f2; scrollbar-highlight-color:#f2f2f2;	scrollbar-shadow-color:#f2f2f2;	scrollbar-track-color:#f2f2f2;
+}
+
+html, body, .wrap{height:100%;}
+.wrap{position:relative;width:100%;}
+body > .wrap{height:auto;min-height:100%;}
+.footWrap{clear:both;position:relative;}
+.contentWrap:after{content:".";clear:both;display:block;height:0;visibility:hidden;}
+.contentWrap{position:relative;}
+.headerWrap{border:0px solid #000;}
+#header{position:relative;z-index:100; height:101px; background:url("/esecurity/assets/common/images/common/top_area_bg.png") repeat-x 0 top;}
+.header_area{width:1152px; margin:0 auto;}
+.contentWrap{width:850px; margin:40px auto 0 auto;position:relative;padding-bottom:20px;z-index:99;}
+#content_area{margin:0 auto;zoom:1; overflow:hidden;}
+#leftarea{float:left; width:199px; padding-bottom:30px;}
+#contentsArea{float:left;}
+#bottom{width:694px;position:relative;margin:0 auto;zoom:1;margin-top:60px}
+.footWrap{height:68px;margin-top:-69px;position:relative; z-index:100;  border-top:1px solid #E3E3E3;}
+#footer{clear:both;position:relative;height:68px;z-index:100; }
+#realContents{clear:both;padding-top:10px;}
+
+*+html body #quickArea{ float:right;  position:fixed; width:57px; text-align:center; margin:10px 0 0 26px; }
+#quickArea{margin:10px 0 0 1093px; position:fixed; _position:absolute; width:57px; text-align:center; background:#EAE3DF; border:1px solid #D6CAC3;}
+#quickArea dt{color:#fff; padding-top:0px; height:24px; font-size:1em; font-family:nanumBold}
+#quickArea .qu01{background:url("/esecurity/assets/common/images/common/qu_01.png") no-repeat; height:30px;}
+#quickArea .qu02{background:url("/esecurity/assets/common/images/common/qu_02.png") no-repeat; height:25px;}
+#quickArea dd{background:#FFFFFF; color:#AEA39B; padding-top:0px; font-size:1.2em; border:1px solid #D6CAC3; width:44px; margin:0 auto;}
+#quickArea dd.quick_txt01 a{color:#F46E15;}
+#quickArea dd.quick_txt01 a:hover{color:#F46E15; text-decoration:underline;}
+#quickArea dd.quick_txt02 a{color:#FBAF01;}
+#quickArea dd.quick_txt02 a:hover{color:#FBAF01; text-decoration:underline;}
+#quickArea ul {margin-top:10px;}
+#quickArea li{border-top:1px solid #FBF9F9; font-size:0px; line-height:1em;}
+.top_move{line-height:1em; font-size:0;}
+
+
+/* footer */
+.foot_area{width:1152px; margin:0px auto;padding-top:5px ;overflow:hidden;zoom:1;}
+.foot_area .footer_logo{width:196px; height:48px; float:left;text-indent:-9999px;overflow:hidden;background:url("/esecurity/assets/common/images/common/footer_logo.png") no-repeat center 0;}
+.foot_area .copyright{width:532px; height:48px; float:left; margin-left:28px; text-indent:-9999px;overflow:hidden;background:url("/esecurity/assets/common/images/common/copyright.png") no-repeat;}
+.foot_area .relation{float:right;overflow:hidden; margin:12px 78px 0 0;}
+.top_logo{float:left; width:128px; height:68px; margin-left:45px; overflow:hidden; }
+.top_mu{float:right; position:relative; margin-top:-38px; overflow:hidden;}
+.top_mu li{float:left;}
+.top_mu01{float:right; position:relative; margin-top:-57px; overflow:hidden; line-height:1.6em; text-align:right;}
+.top_mu01 li{display:inline;}
+.nav	{ position:relative; top:20px; width:850px; height:71px; text-align:left; margin-left:210px;}
+	*+html body .nav li {display:inline; height:22px; padding:18px 20px; background:url('/esecurity/assets/common/images/common/navi_bar.jpg') no-repeat right 15px;}
+	.nav li {display:inline-block; border:0px solid #000; height:22px; padding:18px 20px;  background:url('/esecurity/assets/common/images/common/navi_bar.jpg') no-repeat right center;}
+	.nav li.lineno {background:url('') no-repeat right center;}	
+	.nav li a	{ float:left; height:29px; overflow:hidden;}
+	.nav li div	{ display:none; position:absolute; left:0; top:52px; height:185px; }
+	.nav li ul	{ padding-top:0px; }
+	.nav li ul li	{ height:29px; margin:0; padding:0;  background:url('') no-repeat right center;}	
+	.nav li ul li.on ul	{ display:block; }
+	.nav li:last-child {background:url('') no-repeat right center;}
+/*LNB*/
+#security_gnb {width:199px; background:url('/esecurity/assets/common/images/common/left_area_bg.jpg') repeat-y 0 0;}
+#security_gnb .lnb {margin-top:0px; border-top:0px solid #CCCCCC; padding-bottom:60px; font-family:nanumBold; background:url('/esecurity/assets/common/images/common/left_area_bottom.jpg') no-repeat 0 bottom;}
+#security_gnb .lnb img {vertical-align:middle !important;}
+#security_gnb .lnb h2 {margin:0 auto; padding:0; width:156px;}
+#security_gnb .lnb h2 a { display:block; margin:0 auto;}
+#security_gnb .lnb ul {margin:0 auto; padding:10px 0; width:156px; display:none; border-bottom:1px solid #D7D9D8;}
+#security_gnb .lnb li.on ul {display:block;}
+#security_gnb .lnb li a {display:block;position:relative; font-size:0.9em;}
+#security_gnb .lnb li.deps1 a {padding:0px 0 0 15px; line-height:1.8em; background:url('/esecurity/assets/common/images/common/lnb_ico.gif') no-repeat 5px 6px}
+#security_gnb .lnb li.deps1 a:hover, #security_gnb .lnb li.deps1 a:focus,
+#security_gnb .lnb li.on a {background:url('/esecurity/assets/common/images/common/lnb_ico.gif') no-repeat 5px 6px #EFEEEE; color:#392110;}
+#security_gnb .lnb li.on a.sub, #security_gnb .lnb h2.on a.sub,
+#security_gnb .lnb li.deps1 a.sub:hover {background:url('/esecurity/assets/common/images/common/lnb_ico.gif') no-repeat 0 0;}
+#security_gnb .lnb li.deps1 ul {margin:0;padding:7px 0;border-bottom:1px solid #e5e2e1;}
+#security_gnb .lnb li.deps1 ul li {margin:0 0 1px;text-align:right;}
+#security_gnb .lnb li.deps1 ul li a {height:auto;padding:3px 12px 3px 0;background:none;}
+#security_gnb .lnb li.deps1 ul li a:hover {background:none;}
+.left_banner{clear:both; margin:0; padding:0; line-height:0em;}
+.left_banner li{clear:both;}

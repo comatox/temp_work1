@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CommonBoardRepository">
+
+	<select id="selectMainBoardListByBoardGbn" parameterType="String" resultType="BoardDTO">
+		/* boardRepository.selectMainBoardListByBoardGbn (dmInsNetBoardList) */
+		SELECT ROWNUM AS ROW_NUM, T1.*
+	    FROM (SELECT   BOARD_NO
+				     , UP_BOARD_NO
+				     , INOUT_GBN	
+				     , BOARD_GBN		
+				     , TITLE
+				     /*, CONTENT*/
+				     /*, FILE_PATH*/
+				     , CRT_BY			
+				     , READ_CNT
+		             , TO_CHAR(CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM
+		             <if test='"QNA".equals(boardGbn)'><![CDATA[/* 하이보안 : 1주 */
+	                 , (CASE WHEN CRT_DTM BETWEEN SYSDATE - 7 AND SYSDATE THEN 'NEW' ELSE '' END) AS ICON
+	                 ]]></if><![CDATA[
+		             ]]><if test='"NOTICE".equals(boardGbn)'><![CDATA[/* 공지사항 : 1달 */
+	                 , (CASE WHEN CRT_DTM BETWEEN ADD_MONTHS(SYSDATE, -1) AND SYSDATE THEN 'NEW' ELSE '' END) AS ICON
+	                 ]]></if><![CDATA[
+		             ]]><if test='"NEW".equals(boardGbn)'><![CDATA[/* Q&A게시판 : 1주 */
+	                 , (CASE WHEN CRT_DTM BETWEEN SYSDATE - 7 AND SYSDATE THEN 'NEW' ELSE '' END) AS ICON
+	                 ]]></if>                    
+		          FROM HP_BOARD
+		         WHERE NVL(DEL_YN ,'N') = 'N'
+			       AND INOUT_GBN IN ('IN', 'INOUT') 
+			       <if test='not "NEW".equals(boardGbn)'>
+			       AND BOARD_GBN = #{boardGbn}
+			       </if>
+			       <if test='"NEW".equals(boardGbn)'>
+			       AND BOARD_GBN IN ('GNR', 'SECU')
+			       </if>
+	        START WITH UP_BOARD_NO  = '0'
+	           CONNECT BY PRIOR BOARD_NO = UP_BOARD_NO    
+	            ORDER SIBLINGS BY  BOARD_NO DESC
+		) T1 
+		WHERE ROWNUM BETWEEN 1 AND 5
+	</select>
+	
+</mapper>
+
+

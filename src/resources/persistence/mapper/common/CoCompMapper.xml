@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.common.CoCompRepository">
+
+	<select id="selectCoCompList" parameterType="CoCompDTO" resultType="CoCompDTO">
+		/* inoutcommon: coCompRepository.selectCoCompList */
+		SELECT
+		    A.COMP_ID,
+		    A.COMP_NM,
+		    A.COMP_KND,
+		    A.COMP_AREA_KND,
+		    A.COMP_CD,
+		    A.LEGAL_NO,
+		    A.BOSS,
+		    A.TEL_NO,
+		    A.EMAIL,
+		    A.ZIP1,
+		    A.ZIP2,
+		    A.ADDR,
+		    A.ADMIN_LIST,
+		    A.ADMIN_EMAIL,
+		    A.UNIQUEKEY,
+		    A.DEL_YN,
+		    A.TRG_FLAG,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM
+		FROM CO_COMP A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+		  AND UPPER(A.COMP_NM) LIKE '%'||UPPER(#{compNm})||'%'				
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compKnd)">
+		  AND UPPER(A.COMP_KND) LIKE '%'||UPPER(#{compKnd})||'%'				
+		</if>
+		ORDER BY A.COMP_ID ASC
+	</select>
+	
+	<select id="selectCoCompListCnt" parameterType="CoCompDTO" resultType="Integer">
+		/* inoutcommon: coCompRepository.selectCoCompListCnt */
+		SELECT COUNT(*)
+		FROM CO_COMP A
+		WHERE A.DEL_YN = 'N'
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compNm)">
+		  AND UPPER(A.COMP_NM) LIKE '%'||UPPER(#{compNm})||'%'				
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(compKnd)">
+		  AND UPPER(A.COMP_KND) LIKE '%'||UPPER(#{compKnd})||'%'				
+		</if>
+	</select>
+	
+	<select id="selectCoComp" parameterType="String" resultType="CoCompDTO">
+		/* inoutcommon: coCompRepository.selectCoComp */
+		SELECT
+		    A.COMP_ID,
+		    A.COMP_NM,
+		    A.COMP_KND,
+		    A.COMP_AREA_KND,
+		    A.COMP_CD,
+		    A.LEGAL_NO,
+		    A.BOSS,
+		    A.TEL_NO,
+		    A.EMAIL,
+		    A.ZIP1,
+		    A.ZIP2,
+		    A.ADDR,
+		    A.ADMIN_LIST,
+		    A.ADMIN_EMAIL,
+		    A.UNIQUEKEY,
+		    A.DEL_YN,
+		    A.TRG_FLAG,
+		    A.AC_IP,
+		    A.CRT_BY,
+		    A.CRT_DTM,
+		    A.MOD_BY,
+		    A.MOD_DTM
+		FROM CO_COMP A
+		WHERE A.COMP_ID = #{compId}
+	</select>
+
+    
+</mapper>
+
+

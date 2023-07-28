@@ -1,0 +1,2216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.CarPassAdminRepository">
+
+  <select id="selectIoCarPassInOutSttsList" parameterType="hashMap" resultType="CamelHashMap">
+    SELECT T.* FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY DEPT_DIV_ID ASC) as ROW_NUM
+    ,SUM(TB.CAR_QTA) OVER() AS TOT_QTA
+    ,TB.*
+    FROM (
+    SELECT T1.DEPT_DIV_NM
+    ,T1.DEPT_DIV_ID
+    ,NVL(T2.USE_CNT, 0) AS USE_CNT /* 사용 */
+    ,NVL(T2.WAIT_CNT, 0) AS WAIT_CNT /* 승인대기 */
+    ,NVL(T3.VIP_USE_CNT, 0) AS VIP_USE_CNT /* VIP_사용 */
+    ,NVL(T3.VIP_WAIT_CNT, 0) AS VIP_WAIT_CNT /* VIP_승인대기 */
+    ,0 AS IMSI_CNT /* 임시저장 */
+    ,T1.CAR_QTA - NVL(T2.USE_CNT, 0) - NVL(T3.VIP_USE_CNT, 0) AS AVAIL_CNT /* 예약가능 ( 할당쿼터 - (사용) )
+    */
+    ,T1.CAR_QTA
+    /* ,SUM(T1.CAR_QTA) OVER() AS TOT_QTA */
+    ,T1.REGULAR_QTA
+    FROM IO_CARQUOTA T1,
+    (SELECT A.DEPT_ID
+    ,NVL(SUM(DECODE( C.APPR_STAT, '20', 1, 0)), 0) AS USE_CNT /* 완료 */
+    ,NVL(SUM(DECODE( C.APPR_STAT, '0', 1, '10', 1, 0)), 0) AS WAIT_CNT /* 승인대기 */
+    FROM (SELECT
+    IVM.VSTCAR_APPL_NO,
+    IVM.DOC_ID,
+    (SELECT DIV_CD||SUBSTR(COMP_ID,1,4) FROM CO_EMP WHERE EMP_ID = IVM.EMP_ID) AS
+    DEPT_DIV_ID,DEPT_ID
+    FROM IO_VSTCAR_M IVM
+    WHERE SUBSTR(IVM.VST_PLC, 1, 4) = 'A029'
+    ) A ,
+    IO_VSTCAR_D B ,
+    AP_DOC C
+    WHERE A.VSTCAR_APPL_NO = B.VSTCAR_APPL_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND C.APPR_RESULT <![CDATA[ <> ]]> '2' /* 부결아닌 상태 */
+    AND B.IO_DT = REPLACE( #{searchStrtDt} , '-', '')
+    GROUP BY A.DEPT_ID
+    ) T2,
+    (SELECT A.DEPT_ID,
+    NVL(SUM(DECODE( C.APPR_STAT, '20', 1, 0)), 0) AS VIP_USE_CNT /* 완료 */,
+    NVL(SUM(DECODE( C.APPR_STAT, '0', 1, '10', 1, 0)), 0) AS VIP_WAIT_CNT /* 승인대기 */
+    FROM (
+    SELECT A.VST_APPL_NO,
+    A.IO_EMP_ID,
+    A.COMP_ID,
+    A.DOC_ID,
+    (SELECT DIV_CD||SUBSTR(A.COMP_ID, 1, 4) FROM CO_EMP WHERE EMP_ID = A.EMP_ID) AS DEPT_DIV_ID,
+    (SELECT IO_COMP_ID FROM IO_EMP WHERE IO_EMP_ID = A.IO_EMP_ID) AS IO_COMP_NM,A.DEPT_ID,
+    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+    FROM IO_VST A,
+    IO_VIP_CAR_INFO B,
+    IO_VST_MAN C
+    WHERE A.VST_APPL_NO=B.VST_APPL_NO
+    AND A.VST_APPL_NO=C.VST_APPL_NO
+    AND B.VST_APPL_NO=C.VST_APPL_NO
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND A.VIP_YN='Y'
+    AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[ >= ]]> REPLACE( #{searchStrtDt} , '-', '')
+    AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[ <= ]]> REPLACE( #{searchStrtDt} , '-', '')
+    AND CASE WHEN A.INOUT_GBN = 'Z0321001' THEN 'Y'
+    WHEN A.INOUT_GBN = 'Z0321002' AND APPL_STAT IS NOT NULL THEN 'Y'
+    ELSE 'N'
+    END ='Y'
+    AND B.CAR_NO IS NOT NULL
+    AND C.VST_COMP_ID = '1101000001'
+    ) A,
+    AP_DOC C
+    WHERE A.DOC_ID = C.DOC_ID
+    AND C.APPR_RESULT <![CDATA[ <> ]]> '2'
+    GROUP BY A.DEPT_ID
+    ) T3
+    WHERE T1.DEPT_ID = T2.DEPT_ID(+)
+    AND T1.DEPT_ID = T3.DEPT_ID(+)
+    AND T1.DEPT_ID IS NOT NULL
+    AND NVL(T1.DEL_YN, 'Y') != 'Y'
+
+    UNION ALL
+
+    SELECT T1.DEPT_DIV_NM
+    ,T1.DEPT_DIV_ID
+    ,NVL(T2.USE_CNT, 0) AS USE_CNT /* 사용 */
+    ,NVL(T2.WAIT_CNT, 0) AS WAIT_CNT /* 승인대기 */
+    ,NVL(T3.VIP_USE_CNT, 0) AS VIP_USE_CNT /* VIP_사용 */
+    ,NVL(T3.VIP_WAIT_CNT, 0) AS VIP_WAIT_CNT /* VIP_승인대기 */
+    ,0 AS IMSI_CNT /* 임시저장 */
+    ,T1.CAR_QTA - NVL(T2.USE_CNT, 0) - NVL(T3.VIP_USE_CNT, 0) AS AVAIL_CNT /* 예약가능 ( 할당쿼터 - (사용) )
+    */
+    ,T1.CAR_QTA
+    /* ,SUM(T1.CAR_QTA) OVER() AS TOT_QTA */
+    ,T1.REGULAR_QTA
+    FROM IO_CARQUOTA T1,
+    (SELECT A.DEPT_DIV_ID
+    ,NVL(SUM(DECODE( C.APPR_STAT, '20', 1, 0)), 0) AS USE_CNT /* 완료 */
+    ,NVL(SUM(DECODE( C.APPR_STAT, '0', 1, '10', 1, 0)), 0) AS WAIT_CNT /* 승인대기 */
+    FROM (SELECT
+    IVM.VSTCAR_APPL_NO,
+    IVM.DOC_ID,
+    (SELECT DIV_CD||SUBSTR(COMP_ID,1,4) FROM CO_EMP WHERE EMP_ID = IVM.EMP_ID) AS DEPT_DIV_ID
+    FROM IO_VSTCAR_M IVM
+    WHERE SUBSTR(IVM.VST_PLC, 1, 4) = 'A029'
+    AND IVM.DEPT_ID NOT IN (SELECT DEPT_ID FROM IO_CARQUOTA IC WHERE IC.DEPT_ID IS NOT NULL)
+    ) A ,
+    IO_VSTCAR_D B ,
+    AP_DOC C
+    WHERE A.VSTCAR_APPL_NO = B.VSTCAR_APPL_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND C.APPR_RESULT <![CDATA[ <> ]]> '2' /* 부결아닌 상태 */
+    AND B.IO_DT = REPLACE( #{searchStrtDt} , '-', '')
+    GROUP BY A.DEPT_DIV_ID
+    ) T2,
+    (SELECT A.DEPT_DIV_ID ,
+    NVL(SUM(DECODE( C.APPR_STAT, '20', 1, 0)), 0) AS VIP_USE_CNT /* 완료 */,
+    NVL(SUM(DECODE( C.APPR_STAT, '0', 1, '10', 1, 0)), 0) AS VIP_WAIT_CNT /* 승인대기 */
+    FROM (
+    SELECT A.VST_APPL_NO,
+    A.IO_EMP_ID,
+    A.COMP_ID,
+    A.DOC_ID,
+    (SELECT DIV_CD||SUBSTR(A.COMP_ID, 1, 4) FROM CO_EMP WHERE EMP_ID = A.EMP_ID) AS DEPT_DIV_ID,
+    (SELECT IO_COMP_ID FROM IO_EMP WHERE IO_EMP_ID = A.IO_EMP_ID) AS IO_COMP_NM,
+    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+    FROM IO_VST A,
+    IO_VIP_CAR_INFO B,
+    IO_VST_MAN C
+    WHERE A.VST_APPL_NO=B.VST_APPL_NO
+    AND A.VST_APPL_NO=C.VST_APPL_NO
+    AND B.VST_APPL_NO=C.VST_APPL_NO
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND A.VIP_YN='Y'
+    AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[ >= ]]> REPLACE( #{searchStrtDt} , '-', '')
+    AND TO_CHAR(A.CRT_DTM, 'YYYYMMDD') <![CDATA[ <= ]]> REPLACE( #{searchStrtDt} , '-', '')
+    AND A.DEPT_ID NOT IN (SELECT DEPT_ID FROM IO_CARQUOTA IC WHERE IC.DEPT_ID IS NOT NULL)
+    AND CASE WHEN A.INOUT_GBN = 'Z0321001' THEN 'Y'
+    WHEN A.INOUT_GBN = 'Z0321002' AND APPL_STAT IS NOT NULL THEN 'Y'
+    ELSE 'N'
+    END ='Y'
+    AND B.CAR_NO IS NOT NULL
+    AND C.VST_COMP_ID = '1101000001'
+    ) A,
+    AP_DOC C
+    WHERE A.DOC_ID = C.DOC_ID
+    AND C.APPR_RESULT <![CDATA[ <> ]]> '2'
+    GROUP BY A.DEPT_DIV_ID
+    ) T3
+    WHERE T1.DEPT_DIV_ID = T2.DEPT_DIV_ID(+)
+    AND T1.DEPT_ID IS NULL
+    AND T1.DEPT_DIV_ID = T3.DEPT_DIV_ID(+)
+    AND NVL(T1.DEL_YN, 'Y') != 'Y'
+
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND DEPT_DIV_NM like '%' || #{searchDeptNm} || '%'
+    </if>
+    )T
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectIoCarPassInOutSttsListCnt" parameterType="hashMap" resultType="Integer">
+    SELECT NVL(MAX(ROW_NUM),0) as TOT_CNT FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY DEPT_DIV_ID ASC) as ROW_NUM
+    ,TB.*
+    FROM (
+    SELECT T1.DEPT_DIV_NM
+    ,T1.DEPT_DIV_ID
+    ,NVL(T2.USE_CNT, 0) AS USE_CNT
+    ,NVL(T2.WAIT_CNT, 0) AS WAIT_CNT
+    ,0 AS IMSI_CNT
+    ,T1.CAR_QTA - NVL(T2.USE_CNT, 0) AS AVAIL_CNT
+    ,T1.CAR_QTA
+    ,SUM(T1.CAR_QTA) OVER() AS TOT_QTA
+    ,T1.REGULAR_QTA
+    FROM IO_CARQUOTA T1,
+    (SELECT D.DEPT_DIV_CD AS DEPT_DIV_ID
+    ,NVL(SUM(DECODE( C.APPR_STAT, '20', 1, 0)), 0) AS USE_CNT
+    ,NVL(SUM(DECODE( C.APPR_STAT, '0', 1, '10', 1, 0)), 0) AS WAIT_CNT
+    FROM IO_VSTCAR_M A ,
+    IO_VSTCAR_D B ,
+    AP_DOC C ,
+    CO_DEPT D
+    WHERE A.VSTCAR_APPL_NO = B.VSTCAR_APPL_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND A.COMP_ID = '1101000001' /* 이천 사업장 */
+    AND A.DEPT_ID = D.DEPT_ID
+    AND C.APPR_RESULT <![CDATA[ <> ]]> '2'
+    AND B.IO_DT= REPLACE(#{searchStrtDt}, '-', '')
+    GROUP BY D.DEPT_DIV_CD ) T2
+    WHERE T1.DEPT_DIV_ID = T2.DEPT_DIV_ID(+)
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND T1.DEPT_DIV_NM like '%' || #{searchDeptNm} || '%'
+    </if>
+    AND NVL(T1.DEL_YN, 'Y') != 'Y'
+    ) TB
+    )T
+  </select>
+
+  <select id="selectIoIcCarQuotaList" parameterType="hashMap" resultType="CamelHashMap">
+    SELECT
+    A.COMP_NM
+    ,A.DEPT_DIV_ID
+    ,A.DEPT_DIV_NM
+    ,A.CAR_QTA || ' / ' || TOTAL as QTA_TOTAL
+    ,A.TODAY_CNT||' / '||A.TODAY_VIP_CNT || ' / ' ||( TO_NUMBER(CAR_QTA) -
+    (TO_NUMBER(TODAY_CNT)+TO_NUMBER(A.TODAY_VIP_CNT))) as REMAIN_CNT
+    ,A.REGULAR_QTA
+    FROM (
+    SELECT ROW_NUMBER() OVER( ORDER BY DEPT_DIV_ID ASC ) AS ROW_NUM,
+    TB.*
+    FROM (
+    SELECT DISTINCT
+    IC.COMP_ID
+    ,IC.DEPT_DIV_ID
+    ,IC.DEPT_DIV_NM
+    ,IC.CAR_QTA
+    ,NVL(IC.REGULAR_QTA,0) as REGULAR_QTA
+    ,(SELECT MAX(CC.DETL_NM) FROM CO_CODE_D CC WHERE GRP_CD ='F006' AND IC.COMP_ID = CC.ETC1) AS
+    COMP_NM
+    ,IC.DEL_YN
+    , CASE WHEN IC.DEPT_ID IS NULL THEN
+    (SELECT COUNT(*)
+    FROM IO_VSTCAR_M IVM
+    ,IO_VSTCAR_D IVD
+    ,AP_DOC AD
+    WHERE 1=1
+    AND IVM.VSTCAR_APPL_NO = IVD.VSTCAR_APPL_NO
+    AND AD.DOC_ID = IVM.DOC_ID
+    AND IVD.CAR_NO is not null
+    AND TO_CHAR(SYSDATE, 'YYYYMMDD') = IVD.IO_DT
+    AND AD.APPR_STAT = '20'
+    AND AD.APPR_RESULT = '1'
+    AND SUBSTR(IC.DEPT_DIV_ID,-4) = SUBSTR(IVM.COMP_ID,1,4)
+    AND IVM.DEPT_ID NOT IN (SELECT ICC.DEPT_ID FROM IO_CARQUOTA ICC WHERE DEPT_ID IS NOT NULL)
+    AND SUBSTR(IVM.VST_PLC, 1, 4) = 'A029'
+    ) ELSE
+    (SELECT COUNT(*)
+    FROM IO_VSTCAR_M IVM
+    ,IO_VSTCAR_D IVD
+    ,AP_DOC AD
+    WHERE 1=1
+    AND IVM.VSTCAR_APPL_NO = IVD.VSTCAR_APPL_NO
+    AND AD.DOC_ID = IVM.DOC_ID
+    AND IVD.CAR_NO is not null
+    AND TO_CHAR(SYSDATE, 'YYYYMMDD') = IVD.IO_DT
+    AND AD.APPR_STAT = '20'
+    AND AD.APPR_RESULT = '1'
+    AND IVM.DEPT_ID = IC.DEPT_ID
+    AND SUBSTR(IVM.VST_PLC, 1, 4) = 'A029')
+    END AS TODAY_CNT
+    , CASE WHEN IC.DEPT_ID IS NULL THEN
+    (select count(*)
+    from ( SELECT A.DEPT_DIV_ID , A.DEPT_ID ,COMP_ID
+    FROM (SELECT A.DEPT_ID,
+    A.COMP_ID,
+    (SELECT DIV_CD||SUBSTR(A.COMP_ID, 1, 4) FROM CO_EMP WHERE EMP_ID = A.EMP_ID
+    ) AS DEPT_DIV_ID
+    FROM IO_VST A,
+    IO_VIP_CAR_INFO B,
+    IO_VST_MAN C,
+    AP_DOC D
+    WHERE A.VST_APPL_NO=B.VST_APPL_NO
+    AND D.APPR_RESULT <![CDATA[ <> ]]> '2'
+    AND A.VST_APPL_NO=C.VST_APPL_NO
+    AND B.VST_APPL_NO=C.VST_APPL_NO
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND A.VIP_YN='Y'
+    AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN VST_STRT_DT AND VST_END_DT
+    AND
+    CASE
+    WHEN A.INOUT_GBN = 'Z0321001' THEN 'Y'
+    WHEN A.INOUT_GBN = 'Z0321002'
+    AND APPL_STAT IS NOT NULL THEN 'Y'
+    ELSE 'N'
+    END ='Y'
+    AND B.CAR_NO IS NOT NULL
+    AND C.VST_COMP_ID = '1101000001'
+    AND A.DOC_ID = D.DOC_ID
+    AND D.APPR_STAT = '20'
+    ) A
+    ) AA
+    WHERE AA.DEPT_DIV_ID = IC.DEPT_DIV_ID
+    AND AA.DEPT_ID NOT IN (SELECT ICC.DEPT_ID FROM IO_CARQUOTA ICC WHERE DEPT_ID IS NOT NULL )
+    ) ELSE
+    (select count(*)
+    from ( SELECT A.DEPT_DIV_ID , A.DEPT_ID ,COMP_ID
+    FROM (SELECT A.DEPT_ID,
+    A.COMP_ID,
+    (SELECT DIV_CD||SUBSTR(A.COMP_ID, 1, 4) FROM CO_EMP WHERE EMP_ID = A.EMP_ID
+    ) AS DEPT_DIV_ID
+    FROM IO_VST A,
+    IO_VIP_CAR_INFO B,
+    IO_VST_MAN C,
+    AP_DOC D
+    WHERE A.VST_APPL_NO=B.VST_APPL_NO
+    AND D.APPR_RESULT <![CDATA[ <> ]]> '2'
+    AND A.VST_APPL_NO=C.VST_APPL_NO
+    AND B.VST_APPL_NO=C.VST_APPL_NO
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND A.VIP_YN='Y'
+    AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN VST_STRT_DT AND VST_END_DT
+    AND
+    CASE
+    WHEN A.INOUT_GBN = 'Z0321001' THEN 'Y'
+    WHEN A.INOUT_GBN = 'Z0321002'
+    AND APPL_STAT IS NOT NULL THEN 'Y'
+    ELSE 'N'
+    END ='Y'
+    AND B.CAR_NO IS NOT NULL
+    AND C.VST_COMP_ID = '1101000001'
+    AND A.DOC_ID = D.DOC_ID
+    AND D.APPR_STAT = '20'
+    ) A
+    ) AA
+    WHERE AA.DEPT_ID = IC.DEPT_ID
+    )
+    END AS TODAY_VIP_CNT
+    ,(SELECT SUM(CAR_QTA) FROM IO_CARQUOTA WHERE COMP_ID = IC.COMP_ID AND DEL_YN = 'N') as TOTAL
+    FROM
+    IO_CARQUOTA IC
+    WHERE 1=1
+    AND NVL(IC.DEL_YN, 'Y') != 'Y'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptDivId)">
+      AND IC.DEPT_DIV_ID = #{searchDeptDivId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND IC.DEPT_DIV_NM like '%' || #{searchDeptNm} || '%'
+    </if>
+    ) TB
+    ) A
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectIoIcCarQuotaListCnt" parameterType="hashMap" resultType="Integer">
+    /* sysmanage: carPassAdminRepository.selectIoIcCarQuotaListCnt */
+    SELECT NVL(MAX(ROW_NUM),0) as TOT_CNT
+    FROM (
+    SELECT ROW_NUMBER() OVER( ORDER BY DEPT_DIV_ID ASC ) AS ROW_NUM,
+    TB.*
+    FROM (
+    SELECT DISTINCT
+    IC.COMP_ID
+    ,IC.DEPT_DIV_ID
+    ,IC.DEPT_DIV_NM
+    ,IC.CAR_QTA
+    ,IC.REGULAR_QTA
+    ,(SELECT CC.COMP_NM FROM CO_COMP CC WHERE IC.COMP_ID = CC.COMP_ID) AS COMP_NM
+    ,IC.DEL_YN
+    ,(SELECT
+    COUNT(*)
+    FROM
+    IO_VSTCAR_M IVM
+    ,IO_VSTCAR_D IVD
+    ,AP_DOC AD
+    WHERE 1=1
+    AND IVM.VSTCAR_APPL_NO = IVD.VSTCAR_APPL_NO
+    AND AD.DOC_ID = IVM.DOC_ID
+    AND IVM.VIP_YN != 'Y'
+    AND TO_CHAR(SYSDATE, 'YYYYMMDD') = IVD.IO_DT
+    AND AD.APPR_STAT = '20'
+    AND AD.APPR_RESULT = '1'
+    AND SUBSTR(IVM.DEPT_ID, 1,2) = IC.DEPT_DIV_ID
+    AND IC.COMP_ID = IVM.COMP_ID
+
+    ) AS TODAY_CNT
+    ,(SELECT SUM(CAR_QTA) FROM IO_CARQUOTA WHERE COMP_ID = IC.COMP_ID AND DEL_YN = 'N') as TOTAL
+    FROM
+    IO_CARQUOTA IC
+
+    WHERE 1=1
+
+    AND NVL(IC.DEL_YN, 'Y') != 'Y'
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptDivId)">
+      AND IC.DEPT_DIV_ID = #{searchDeptDivId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDeptNm)">
+      AND IC.DEPT_DIV_NM like '%' || #{searchDeptNm} || '%'
+    </if>
+    ) TB
+    ) A
+  </select>
+
+  <select id="selectIoCarQuota" parameterType="hashMap" resultType="CamelHashMap">
+    SELECT FN_GET_COMP_NM(COMP_ID) as COMP_NM
+         , DEPT_DIV_ID
+         , DEPT_DIV_NM
+         , CAR_QTA
+         , REGULAR_QTA
+    FROM IO_CARQUOTA
+    WHERE DEPT_DIV_ID = #{deptDivId}
+  </select>
+
+  <update id="updateIoCarQuota" parameterType="hashMap">
+    UPDATE
+      IO_CARQUOTA
+    SET CAR_QTA     = ROUND(TO_NUMBER(#{carQta}))
+      , REGULAR_QTA = #{regularQta}
+      , MOD_BY      = #{modBy}
+      , AC_IP       = #{acIp}
+      , MOD_DTM     = SYSDATE
+      , DEPT_DIV_NM = #{deptDivNm}
+    WHERE DEPT_DIV_ID = #{deptDivId}
+  </update>
+
+  <update id="updateIoCarQuotaDelYn" parameterType="hashMap">
+    UPDATE
+      IO_CARQUOTA
+    SET DEL_YN  = 'Y'
+      , MOD_BY  = #{modBy}
+      , MOD_DTM = SYSDATE
+    WHERE
+      /* 이천 고정 */
+      /* COMP_ID = '1101000001' */
+      DEPT_DIV_ID = #{deptDivId}
+  </update>
+
+  <select id="selectIoCarPassProgressList" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: carPassAdminRepository.selectIoCarPassProgressList */
+    SELECT
+    T.*
+    FROM (
+    SELECT ROW_NUMBER() OVER(ORDER BY GUBUN_NO, IO_DT, SEQ DESC) as row_num
+    ,TB.*
+    FROM (
+    SELECT '방문객' as GUBUN
+    ,'1' as GUBUN_NO
+    ,IVD.IO_EMP_ID
+    ,IVD.VSTCAR_APPL_NO as SEQ
+    ,IVD.CAR_NO
+    ,SUBSTR(IVD.IO_DT, 1,4) || '-' || SUBSTR(IVD.IO_DT, 5,2) || '-' || SUBSTR(IVD.IO_DT, 7,2) as
+    IO_DT
+    ,FN_GET_VST_PLC_NAME_LIST(IVM.VST_PLC) AS VST_PLC_NM
+    ,IVM.VST_OBJ
+    ,FN_GET_CODE('A013', IVM.VST_OBJ, 'DETL_CD') VST_OBJ_NM
+    ,TO_CHAR(IVD.IN_DTM,'YYYY-MM-DD HH24:MI:SS') IN_DTM
+    ,TO_CHAR(IVD.OUT_DTM,'YYYY-MM-DD HH24:MI:SS') OUT_DTM
+    ,AD.APPR_RESULT
+    ,CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    END as APPR_RESULT_NM,
+    CASE
+    WHEN COMP_GBN = 'A0101001' THEN (select emp_nm from co_emp where emp_id = IVD.IO_EMP_ID)
+    WHEN COMP_GBN = 'A0101002' or COMP_GBN is null or COMP_GBN = '' THEN (select emp_nm from io_emp
+    where io_emp_id = IVD.IO_EMP_ID)
+    END AS EMP_NM ,
+    CASE
+    WHEN COMP_GBN = 'A0101001' THEN FN_GET_COMP_NM((select comp_id from co_emp where emp_id =
+    IVD.IO_EMP_ID))
+    WHEN COMP_GBN = 'A0101002' or COMP_GBN is null or COMP_GBN = '' THEN
+    FN_GET_IO_COMP_KO_NM((select io_comp_id from io_emp where io_emp_id = IVD.IO_EMP_ID))
+    END AS C_NM ,
+    TO_CHAR(TO_DATE(IVM.IO_STRT_DT, 'YYYY-MM-DD'),'YYYY-MM-DD')||'~'||TO_CHAR(TO_DATE(IVM.IO_END_DT,
+    'YYYY-MM-DD'),'YYYY-MM-DD') AS PERIOD,
+    IVM.DOC_ID,
+    FN_GET_COMP_NM(IVM.COMP_ID) AS COMP_NM
+    FROM IO_VSTCAR_D IVD,IO_VSTCAR_M IVM,AP_DOC AD, IO_COMP A
+    WHERE 1=1
+    AND IVD.VSTCAR_APPL_NO = IVM.VSTCAR_APPL_NO
+    AND IVM.DOC_ID = AD.DOC_ID
+    AND NVL(IVM.DEL_YN, 'N') = 'N'
+    AND IVD.IO_COMP_ID = A.IO_COMP_ID
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IVM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND SUBSTR(IVM.VST_PLC,1,4) = #{searchDivCd}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND A.COMP_KO_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0411001'
+        </if>
+      </if>
+    </if>
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (CASE
+      WHEN COMP_GBN = 'A0101001' THEN (select emp_nm from co_emp where emp_id = IVD.IO_EMP_ID)
+      WHEN COMP_GBN = 'A0101002' or COMP_GBN is null or COMP_GBN = '' THEN (select emp_nm from
+      io_emp where io_emp_id = IVD.IO_EMP_ID)
+      END ) LIKE '%'||#{searchEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">AND
+      IVD.IO_DT <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">AND
+      IVD.IO_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      CAR_NO like '%' || #{searchCarNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchVstObj)">AND
+      VST_OBJ = #{searchVstObj}
+    </if>
+    ) T
+    <if test="@org.springframework.util.StringUtils@isEmpty(excelYn)">
+      WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+      #{pageSize}) + #{pageSize}
+    </if>
+  </select>
+
+  <select id="selectIoCarPassProgressListCnt" parameterType="map" resultType="Integer">
+    /* sysmanage: carPassAdminRepository.selectIoCarPassProgressListCnt */
+    SELECT NVL(COUNT(*),0) AS tot_cnt
+    FROM (
+    SELECT IVD.CAR_NO, IVM.VST_OBJ
+    FROM IO_VSTCAR_D IVD,IO_VSTCAR_M IVM,AP_DOC AD, IO_COMP A
+    WHERE 1=1
+    AND IVD.VSTCAR_APPL_NO = IVM.VSTCAR_APPL_NO
+    AND IVM.DOC_ID = AD.DOC_ID
+    AND NVL(IVM.DEL_YN, 'N') = 'N'
+    AND IVD.IO_COMP_ID = A.IO_COMP_ID
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IVM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND SUBSTR(IVM.VST_PLC,1,4) = #{searchDivCd}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND A.COMP_KO_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0411001'
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (CASE
+      WHEN COMP_GBN = 'A0101001' THEN (select emp_nm from co_emp where emp_id = IVD.IO_EMP_ID)
+      WHEN COMP_GBN = 'A0101002' or COMP_GBN is null or COMP_GBN = '' THEN (select emp_nm from
+      io_emp where io_emp_id = IVD.IO_EMP_ID)
+      END ) LIKE '%'||#{searchEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">AND
+      IVD.IO_DT <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">AND
+      IVD.IO_DT <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      CAR_NO like '%' || #{searchCarNo} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchVstObj)">AND
+      VST_OBJ = #{searchVstObj}
+    </if>
+  </select>
+
+  <update id="updateInOut" parameterType="hashMap">
+    UPDATE
+    IO_VSTCAR_D
+    SET
+    <if test="not @org.springframework.util.StringUtils@isEmpty(ioType)">
+      <if test='ioType.equals("IN")'>
+        /* 입문 */
+        IN_DTM = SYSDATE
+      </if>
+      <if test='ioType.equals("IC")'>
+        /* 입문취소 */
+        IN_DTM = ''
+      </if>
+      <if test='ioType.equals("OT")'>
+        /* 출문 */
+        OUT_DTM = SYSDATE
+      </if>
+      <if test='ioType.equals("OC")'>
+        /* 출문취소 */
+        OUT_DTM = ''
+      </if>
+    </if>
+    ,MOD_BY = #{modBy}
+    ,MOD_DTM = SYSDATE
+    WHERE
+    VSTCAR_APPL_NO = #{vstcarApplNo}
+    AND IO_EMP_ID = #{ioEmpId}
+    AND IO_DT = REPLACE(#{ioDt},'-','')
+  </update>
+
+  <select id="selectAllCarPassList" parameterType="hashMap" resultType="CamelHashMap">
+    SELECT * FROM (
+    SELECT ROW_NUMBER() OVER(ORDER BY GUBUN_CODE ASC) AS ROW_NUM
+    ,A.*
+    FROM(
+    SELECT
+    TB.*
+    ,CASE
+    WHEN APPR_STAT = '0' THEN '대기'
+    WHEN APPR_STAT = '10' THEN '진행'
+    WHEN APPR_STAT = '20' THEN '완료'
+    ELSE '임시보관'
+    END as APPR_STAT_NM
+    ,CASE
+    WHEN APPR_RESULT = '0' THEN '검토중'
+    WHEN APPR_RESULT = '1' THEN '승인'
+    WHEN APPR_RESULT = '2' THEN '부결'
+    WHEN APPR_RESULT = '3' THEN '장기미결'
+    ELSE '임시보관'
+    END as APPR_RESULT_NM
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY GUBUN_CODE ASC) AS ROW_NUMT
+    ,T.*
+    ,FN_GET_EMP_DEPT_JW_NM(T.EMP_ID) as EMP_JW_NM
+    ,FN_GET_EMP_NM(T.EMP_ID) as EMP_NM
+    FROM
+    (
+    SELECT
+    TBA1.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM1
+    ,T1.*
+    FROM
+    (
+    SELECT DISTINCT '방문객' as GUBUN,
+    1 as GUBUN_CODE,
+    IVM.VSTCAR_APPL_NO as UNI_KEY,
+    SUBSTR(IVM.IO_STRT_DT, 1,4) || '-' || SUBSTR(IVM.IO_STRT_DT , 5,2) || '-' ||
+    SUBSTR(IVM.IO_STRT_DT, 7,2) as STRT_DT,
+    SUBSTR(IVM.IO_END_DT, 1,4) || '-' || SUBSTR(IVM.IO_END_DT , 5,2) || '-' || SUBSTR(IVM.IO_END_DT,
+    7,2) as END_DT,
+    IVM.EMP_ID,
+    TO_CHAR(IVM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM,
+    IVM.DOC_ID as DOC_ID,
+    AD.APPR_STAT,
+    AD.APPR_RESULT,
+    FN_GET_COMP_NM(IVM.COMP_ID) AS COMP_NM,
+    (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033', 'A041') AND DETL_CD =
+    IVM.VST_PLC) as GATE_NM,
+    IVM.COMP_ID,
+    IVM.VST_PLC AS GATE_ID
+    FROM IO_VSTCAR_M IVM,
+    AP_DOC AD,
+    IO_VSTCAR_D IVD
+    WHERE AD.DOC_ID = IVM.DOC_ID
+    AND IVM.VSTCAR_APPL_NO = IVD.VSTCAR_APPL_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IVM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(IVM.VST_PLC, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0411001'
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      IVM.VSTCAR_APPL_NO IN (SELECT B.VSTCAR_APPL_NO FROM IO_VSTCAR_D B WHERE IVM.VSTCAR_APPL_NO =
+      B.VSTCAR_APPL_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (((select emp_nm from io_emp where IO_EMP_ID = IVD.IO_EMP_ID) like '%'||#{searchEmpNm}||'%')
+      or ((select emp_nm from co_emp where EMP_ID = IVD.IO_EMP_ID) like '%'||#{searchEmpNm}||'%'))
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(IVM.IO_END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(IVM.IO_STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T1
+    )TBA1
+    WHERE 1=1
+    UNION ALL
+    SELECT
+    TBA4.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM4 ,
+    T4.*
+    FROM
+    (
+    SELECT DISTINCT '임시' as GUBUN,
+    4 as GUBUN_CODE,
+    ITM.TMPCAR_APP_NO as UNI_KEY,
+    SUBSTR(ITM.STRT_DT, 1,4) || '-' || SUBSTR(ITM.STRT_DT , 5,2) || '-' || SUBSTR(ITM.STRT_DT, 7,2)
+    as STRT_DT,
+    SUBSTR(ITM.END_DT, 1,4) || '-' || SUBSTR(ITM.END_DT , 5,2) || '-' || SUBSTR(ITM.END_DT, 7,2) as
+    END_DT,
+    ITM.EMP_ID,
+    TO_CHAR(ITM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM,
+    ITM.DOC_ID as DOC_ID,
+    AD.APPR_STAT,
+    AD.APPR_RESULT,
+    FN_GET_COMP_NM(ITM.COMP_ID) AS COMP_NM,
+    (
+    SELECT
+    DETL_NM
+    FROM
+    CO_CODE_D
+    WHERE
+    GRP_CD IN ('A028', 'A029', 'A033')
+    AND DETL_CD = ITM.GATE_ID) AS GATE_NM,
+    ITM.COMP_ID,
+    ITM.GATE_ID
+    FROM IO_TMPCAR_M ITM,
+    AP_DOC AD,
+    IO_TMPCAR_D ITD
+    WHERE AD.DOC_ID = ITM.DOC_ID
+    AND ITM.TMPCAR_APP_NO = ITD.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND ITM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(ITM.GATE_ID, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="searchCompNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+        AND ITD.COMP_NM LIKE '%'|| #{searchCompNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0411001'
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      ITM.TMPCAR_APP_NO IN (SELECT B.TMPCAR_APP_NO FROM IO_TMPCAR_D B WHERE ITM.TMPCAR_APP_NO =
+      B.TMPCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      ITD.EMP_NM LIKE '%'||#{searchEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(ITM.END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(ITM.STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T4
+    )TBA4
+    WHERE 1=1
+    /* 20170117 강동구 추가 상시출입차량 관리자조회 가능하도록 START */
+    UNION ALL
+    SELECT
+    TBA2.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM2
+    ,T2.*
+    FROM
+    (
+    SELECT
+    DISTINCT '상시' as GUBUN
+    , 2 as GUBUN_CODE
+    , IRM.REGCAR_APP_NO as UNI_KEY
+    , SUBSTR(IRM.STRT_DT, 1,4) || '-' || SUBSTR(IRM.STRT_DT , 5,2) || '-' || SUBSTR(IRM.STRT_DT,
+    7,2) as STRT_DT
+    , SUBSTR(IRM.END_DT, 1,4) || '-' || SUBSTR(IRM.END_DT , 5,2) || '-' || SUBSTR(IRM.END_DT, 7,2)
+    as END_DT
+    , IRM.EMP_ID
+    , TO_CHAR(IRM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    , IRM.DOC_ID as DOC_ID
+    , AD.APPR_STAT
+    , AD.APPR_RESULT
+    , FN_GET_COMP_NM(IRM.COMP_ID) AS COMP_NM
+    , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD =
+    IRM.IO_PLACE) as GATE_NM,
+    IRM.COMP_ID,
+    IRM.IO_PLACE AS GATE_ID
+    FROM
+    IO_REGUCAR_M IRM
+    , AP_DOC AD
+    , IO_REGUCAR_D IRD
+    WHERE 1=1
+    AND AD.DOC_ID = IRM.DOC_ID
+    AND IRM.REGCAR_APP_NO = IRD.REGCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IRM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(IRM.IO_PLACE, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      IRM.REGCAR_APP_NO IN (SELECT B.REGCAR_APP_NO FROM IO_REGUCAR_D B WHERE IRM.REGCAR_APP_NO =
+      B.REGCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (
+      ((select emp_nm from io_emp where IO_EMP_ID = IRD.EMP_ID) like '%'||#{searchEmpNm}||'%')
+      or
+      ((select emp_nm from co_emp where EMP_ID = IRD.EMP_ID) like '%'||#{searchEmpNm}||'%')
+      )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(IRM.END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(IRM.STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T2
+    )TBA2
+    WHERE 1=1
+    /* 20170117 강동구 추가 상시출입차량 관리자조회 가능하도록 END */
+    ) T
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGubunCode)">
+      AND GUBUN_CODE = #{searchGubunCode}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+      /* 진행상태 */
+      <if test='"10".equals(applStat)'>
+        /* 검토중 */
+        AND APPR_STAT = #{applStat}
+      </if>
+      <if test='"20".equals(applStat)'>
+        /* 처리완료 */
+        AND APPR_STAT = #{applStat}
+      </if>
+      <if test='"1".equals(applStat)'>
+        /* 승인 */
+        AND APPR_RESULT = #{applStat}
+      </if>
+      <if test='"2".equals(applStat)'>
+        /* 부결 */
+        AND APPR_RESULT = #{applStat}
+      </if>
+    </if>
+    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+      AND APPR_STAT = ''
+    </if>
+    ) A
+    )
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectAllCarPassListCnt" parameterType="map" resultType="Integer">
+    /* sysmanage: carPassAdminRepository.selectAllCarPassListCnt */
+    SELECT NVL(COUNT(*),0) AS tot_cnt
+    FROM (
+    SELECT Y.*,
+    ROW_NUMBER() OVER(ORDER BY GUBUN_CODE ASC, CRT_DTM DESC) AS ROW_NUM
+    FROM (
+    SELECT X.*,
+    FN_GET_EMP_DEPT_JW_NM(X.EMP_ID) AS EMP_JW_NM,
+    FN_GET_EMP_NM(X.EMP_ID) AS EMP_NM
+    FROM (
+    SELECT DISTINCT '방문객' AS GUBUN, 1 AS GUBUN_CODE, A.VSTCAR_APPL_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.IO_STRT_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT,
+    TO_CHAR(TO_DATE(A.IO_END_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM, A.DOC_ID, C.APPR_STAT, C.APPR_RESULT,
+    CASE WHEN C.APPR_RESULT = '0' THEN '검토중'
+    WHEN C.APPR_RESULT = '1' THEN '승인'
+    WHEN C.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_VSTCAR_M A, IO_VSTCAR_D B, AP_DOC C, IO_EMP D, IO_COMP E, CO_EMP F
+    WHERE 1=1
+    AND A.VSTCAR_APPL_NO = B.VSTCAR_APPL_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND B.IO_EMP_ID = D.IO_EMP_ID
+    AND B.IO_COMP_ID = E.IO_COMP_ID
+    AND A.EMP_ID = F.EMP_ID
+    AND C.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND B.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND D.EMP_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+									  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND A.IO_END_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt},'-','')
+      AND A.IO_STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.VST_COMP = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.VST_COMP IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND E.COMP_KO_NM LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND C.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND F.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    UNION ALL
+    SELECT DISTINCT '상시' AS GUBUN, 2 AS GUBUN_CODE,
+    A.REGCAR_APP_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.STRT_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT, TO_CHAR(TO_DATE(A.END_DT,
+    'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM, A.DOC_ID, C.APPR_STAT, C.APPR_RESULT,
+    CASE WHEN C.APPR_RESULT = '0' THEN '검토중'
+    WHEN C.APPR_RESULT = '1' THEN '승인'
+    WHEN C.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_REGUCAR_M A, IO_REGUCAR_D B, AP_DOC C, CO_EMP D, CO_DEPT E, CO_EMP F
+    WHERE A.REGCAR_APP_NO = B.REGCAR_APP_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND B.EMP_ID = D.EMP_ID
+    AND A.DEPT_ID = E.DEPT_ID
+    AND A.EMP_ID = F.EMP_ID
+    AND C.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND B.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND D.EMP_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+										  	  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND TO_CHAR(A.CRT_DTM,'YYYYMMDD') BETWEEN REPLACE(#{searchStrtDt},'-','') AND
+      REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.COMP_ID = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.COMP_ID IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND E.DEPT_NM LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND C.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND F.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    UNION ALL
+    SELECT DISTINCT '휴무일' AS GUBUN, 3 AS GUBUN_CODE, A.HOLICAR_APP_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.STRT_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT, TO_CHAR(TO_DATE(A.END_DT,
+    'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,A.DOC_ID, C.APPR_STAT, C.APPR_RESULT,
+    CASE WHEN C.APPR_RESULT = '0' THEN '검토중'
+    WHEN C.APPR_RESULT = '1' THEN '승인'
+    WHEN C.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_HOLICAR_M A, IO_HOLICAR_D B, AP_DOC C, CO_EMP D, CO_DEPT E, CO_EMP F
+    WHERE A.HOLICAR_APP_NO = B.HOLICAR_APP_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND B.EMP_ID = D.EMP_ID
+    AND A.DEPT_ID = E.DEPT_ID
+    AND A.EMP_ID = F.EMP_ID
+    AND C.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND B.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND D.EMP_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+										  	  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND A.END_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt},'-','')
+      AND A.STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.COMP_ID = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.COMP_ID IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND E.DEPT_NM LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND C.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND F.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    UNION ALL
+    SELECT DISTINCT '임시' AS GUBUN, 4 AS GUBUN_CODE, A.TMPCAR_APP_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.STRT_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT, TO_CHAR(TO_DATE(A.END_DT,
+    'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,A.DOC_ID, C.APPR_STAT, C.APPR_RESULT,
+    CASE WHEN C.APPR_RESULT = '0' THEN '검토중'
+    WHEN C.APPR_RESULT = '1' THEN '승인'
+    WHEN C.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_TMPCAR_M A, IO_TMPCAR_D B, AP_DOC C, CO_EMP D
+    WHERE A.TMPCAR_APP_NO = B.TMPCAR_APP_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND A.EMP_ID = D.EMP_ID
+    AND C.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND B.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND B.EMP_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+								 		  	  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND A.END_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt},'-','')
+      AND A.STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.COMP_ID = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.COMP_ID IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND B.COMP_NM LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND C.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND D.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    UNION ALL
+    SELECT DISTINCT '이천출장' AS GUBUN, 5 AS GUBUN_CODE, A.CARPASS_APP_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.IO_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT, TO_CHAR(TO_DATE(A.IO_DT,
+    'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,A.DOC_ID, C.APPR_STAT, C.APPR_RESULT,
+    CASE WHEN C.APPR_RESULT = '0' THEN '검토중'
+    WHEN C.APPR_RESULT = '1' THEN '승인'
+    WHEN C.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_BUSICAR_M A, IO_BUSICAR_D B, AP_DOC C, CO_EMP D, CO_DEPT E, CO_EMP F
+    WHERE A.CARPASS_APP_NO = B.CARPASS_APP_NO
+    AND A.DOC_ID = C.DOC_ID
+    AND B.EMP_ID = D.EMP_ID
+    AND A.DEPT_ID = E.DEPT_ID
+    AND A.EMP_ID = F.EMP_ID
+    AND C.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND B.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND D.EMP_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+								 		  	  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND A.IO_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt},'-','')
+      AND A.IO_DT <![CDATA[<=]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.COMP_ID = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.COMP_ID IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND E.DEPT_NM LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND C.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND F.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    UNION ALL
+    SELECT DISTINCT '납품차량' AS GUBUN, 6 AS GUBUN_CODE, A.DLVCAR_APP_NO AS UNI_KEY,
+    TO_CHAR(TO_DATE(A.STRT_DT, 'YYYYMMDD'),'YYYY-MM-DD') AS STRT_DT, TO_CHAR(TO_DATE(A.END_DT,
+    'YYYYMMDD'),'YYYY-MM-DD') AS END_DT,
+    A.EMP_ID, TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') AS CRT_DTM,A.DOC_ID, B.APPR_STAT, B.APPR_RESULT,
+    CASE WHEN B.APPR_RESULT = '0' THEN '검토중'
+    WHEN B.APPR_RESULT = '1' THEN '승인'
+    WHEN B.APPR_RESULT = '2' THEN '반려'
+    ELSE ''
+    END AS APPR_RESULT_NM
+    FROM IO_DELIVERYCAR_M A, AP_DOC B, CO_EMP C, CO_EMP D
+    WHERE A.DOC_ID = B.DOC_ID
+    AND A.EMP_ID = C.EMP_ID
+    AND A.EMP_ID = D.EMP_ID
+    AND B.APPR_RESULT IS NOT NULL
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.CAR_NO LIKE '%'||#{searchCarNo}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchIoEmpNm)">
+      AND A.DRIVER_NM LIKE '%'||#{searchIoEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and
+								 		  	  not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND A.END_DT <![CDATA[>=]]> REPLACE(#{searchStrtDt},'-','')
+      AND A.STRT_DT <![CDATA[<=]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      <if test='!searchCompId.equals("1108000001")'>
+        AND A.COMP_ID = #{searchCompId}
+      </if>
+      <if test='searchCompId.equals("1108000001")'>
+        AND A.COMP_ID IN ('1107000001', '1108000001')
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+      AND A.VISITOR_COMP LIKE '%'||UPPER(#{searchCompNm})||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchApplStat)">
+      AND B.APPR_RESULT = #{searchApplStat}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND D.EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    ) X
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGubunCode)">
+      AND X.GUBUN_CODE = #{searchGubunCode}
+    </if>
+    ) Y
+    ) Z
+  </select>
+
+  <select id="selectAllCarPassListExcel" parameterType="hashMap" resultType="CamelHashMap">
+    SELECT * FROM (
+    SELECT ROW_NUMBER() OVER(ORDER BY GUBUN_CODE ASC) AS ROW_NUM
+    ,A.*
+    FROM(
+    SELECT
+    TB.*
+    ,CASE
+    WHEN APPR_STAT = '0' THEN '대기'
+    WHEN APPR_STAT = '10' THEN '진행'
+    WHEN APPR_STAT = '20' THEN '완료'
+    ELSE '임시보관'
+    END as APPR_STAT_NM
+    ,CASE
+    WHEN APPR_RESULT = '0' THEN '검토중'
+    WHEN APPR_RESULT = '1' THEN '승인'
+    WHEN APPR_RESULT = '2' THEN '부결'
+    WHEN APPR_RESULT = '3' THEN '장기미결'
+    ELSE '임시보관'
+    END as APPR_RESULT_NM
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY GUBUN_CODE ASC) AS ROW_NUMT
+    ,T.*
+    ,FN_GET_EMP_DEPT_JW_NM(T.EMP_ID) as EMP_JW_NM
+    ,FN_GET_EMP_NM(T.EMP_ID) as EMP_NM
+    FROM
+    (
+    SELECT
+    TBA1.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM1
+    ,T1.*
+    FROM
+    (
+    SELECT DISTINCT '방문객' as GUBUN,
+    1 as GUBUN_CODE,
+    IVM.VSTCAR_APPL_NO as UNI_KEY,
+    SUBSTR(IVM.IO_STRT_DT, 1,4) || '-' || SUBSTR(IVM.IO_STRT_DT , 5,2) || '-' ||
+    SUBSTR(IVM.IO_STRT_DT, 7,2) as STRT_DT,
+    SUBSTR(IVM.IO_END_DT, 1,4) || '-' || SUBSTR(IVM.IO_END_DT , 5,2) || '-' || SUBSTR(IVM.IO_END_DT,
+    7,2) as END_DT,
+    IVM.EMP_ID,
+    TO_CHAR(IVM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM,
+    IVM.DOC_ID as DOC_ID,
+    AD.APPR_STAT,
+    AD.APPR_RESULT,
+    FN_GET_COMP_NM(IVM.COMP_ID) AS COMP_NM,
+    (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033', 'A041') AND DETL_CD =
+    IVM.VST_PLC) as GATE_NM,
+    CAR_KND,
+    CAR_NO,
+    VST_RSN AS RSN,
+    IVM.COMP_ID,
+    IVM.VST_PLC AS GATE_ID
+    FROM IO_VSTCAR_M IVM,
+    AP_DOC AD,
+    IO_VSTCAR_D IVD
+    WHERE AD.DOC_ID = IVM.DOC_ID
+    AND IVM.VSTCAR_APPL_NO = IVD.VSTCAR_APPL_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IVM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(IVM.VST_PLC, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND IVM.VST_PLC in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND IVM.VST_PLC = 'A0411001'
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      IVM.VSTCAR_APPL_NO IN (SELECT B.VSTCAR_APPL_NO FROM IO_VSTCAR_D B WHERE IVM.VSTCAR_APPL_NO =
+      B.VSTCAR_APPL_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (((select emp_nm from io_emp where IO_EMP_ID = IVD.IO_EMP_ID) like '%'||#{searchEmpNm}||'%')
+      or ((select emp_nm from co_emp where EMP_ID = IVD.IO_EMP_ID) like '%'||#{searchEmpNm}||'%'))
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(IVM.IO_END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(IVM.IO_STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T1
+    )TBA1
+    WHERE 1=1
+    UNION ALL
+    SELECT
+    TBA4.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM4 ,
+    T4.*
+    FROM
+    (
+    SELECT DISTINCT '임시' as GUBUN,
+    4 as GUBUN_CODE,
+    ITM.TMPCAR_APP_NO as UNI_KEY,
+    SUBSTR(ITM.STRT_DT, 1,4) || '-' || SUBSTR(ITM.STRT_DT , 5,2) || '-' || SUBSTR(ITM.STRT_DT, 7,2)
+    as STRT_DT,
+    SUBSTR(ITM.END_DT, 1,4) || '-' || SUBSTR(ITM.END_DT , 5,2) || '-' || SUBSTR(ITM.END_DT, 7,2) as
+    END_DT,
+    ITM.EMP_ID,
+    TO_CHAR(ITM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM,
+    ITM.DOC_ID as DOC_ID,
+    AD.APPR_STAT,
+    AD.APPR_RESULT,
+    FN_GET_COMP_NM(ITM.COMP_ID) AS COMP_NM,
+    (
+    SELECT
+    DETL_NM
+    FROM
+    CO_CODE_D
+    WHERE
+    GRP_CD IN ('A028', 'A029', 'A033')
+    AND DETL_CD = ITM.GATE_ID) AS GATE_NM,
+    CAR_KND,
+    CAR_NO,
+    APPL_OBJ AS RSN,
+    ITM.COMP_ID,
+    ITM.GATE_ID
+    FROM IO_TMPCAR_M ITM,
+    AP_DOC AD,
+    IO_TMPCAR_D ITD
+    WHERE AD.DOC_ID = ITM.DOC_ID
+    AND ITM.TMPCAR_APP_NO = ITD.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND ITM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(ITM.GATE_ID, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="searchCompNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompNm)">
+        AND ITD.COMP_NM LIKE '%'|| #{searchCompNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281008')
+        </if>
+        <if test='"A0281011".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281003','A0281008')
+        </if>
+        <if test='"A0281007".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281003')
+        </if>
+        <if test='"A0281012".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281008')
+        </if>
+        <if test='"A0281013".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281003','A0281008')
+        </if>
+        <if test='"A0281014".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0281015".equals(searchGateId)'>
+          AND ITM.GATE_ID in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+        <if test='"A0411001".equals(searchGateId)'>
+          AND ITM.GATE_ID = 'A0411001'
+        </if>
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      ITM.TMPCAR_APP_NO IN (SELECT B.TMPCAR_APP_NO FROM IO_TMPCAR_D B WHERE ITM.TMPCAR_APP_NO =
+      B.TMPCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      ITD.EMP_NM LIKE '%'||#{searchEmpNm}||'%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(ITM.END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(ITM.STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T4
+    )TBA4
+    WHERE 1=1
+    /* 20170117 강동구 추가 상시출입차량 관리자조회 가능하도록 START */
+    UNION ALL
+    SELECT
+    TBA2.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER (ORDER BY CRT_DTM DESC) as ROW_NUM2
+    ,T2.*
+    FROM
+    (
+    SELECT
+    DISTINCT '상시' as GUBUN
+    , 2 as GUBUN_CODE
+    , IRM.REGCAR_APP_NO as UNI_KEY
+    , SUBSTR(IRM.STRT_DT, 1,4) || '-' || SUBSTR(IRM.STRT_DT , 5,2) || '-' || SUBSTR(IRM.STRT_DT,
+    7,2) as STRT_DT
+    , SUBSTR(IRM.END_DT, 1,4) || '-' || SUBSTR(IRM.END_DT , 5,2) || '-' || SUBSTR(IRM.END_DT, 7,2)
+    as END_DT
+    , IRM.EMP_ID
+    , TO_CHAR(IRM.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    , IRM.DOC_ID as DOC_ID
+    , AD.APPR_STAT
+    , AD.APPR_RESULT
+    , FN_GET_COMP_NM(IRM.COMP_ID) AS COMP_NM
+    , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD =
+    IRM.IO_PLACE) as GATE_NM,
+    CAR_KND,
+    CAR_NO,
+    RMRK AS RSN,
+    IRM.COMP_ID,
+    IRM.IO_PLACE AS GATE_ID
+    FROM
+    IO_REGUCAR_M IRM
+    , AP_DOC AD
+    , IO_REGUCAR_D IRD
+    WHERE 1=1
+    AND AD.DOC_ID = IRM.DOC_ID
+    AND IRM.REGCAR_APP_NO = IRD.REGCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND IRM.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND DECODE(SUBSTR(IRM.IO_PLACE, 1, 4),'A029','YP','A041','S2','CP') = #{searchDivCd}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">AND
+      IRM.REGCAR_APP_NO IN (SELECT B.REGCAR_APP_NO FROM IO_REGUCAR_D B WHERE IRM.REGCAR_APP_NO =
+      B.REGCAR_APP_NO AND CAR_NO like '%' || #{searchCarNo} || '%' )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">AND
+      (
+      ((select emp_nm from io_emp where IO_EMP_ID = IRD.EMP_ID) like '%'||#{searchEmpNm}||'%')
+      or
+      ((select emp_nm from co_emp where EMP_ID = IRD.EMP_ID) like '%'||#{searchEmpNm}||'%')
+      )
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(IRM.END_DT,'-','') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt},'-','')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(IRM.STRT_DT,'-','') <![CDATA[ <= ]]> REPLACE(#{searchEndDt},'-','')
+    </if>
+    ) T2
+    )TBA2
+    WHERE 1=1
+    /* 20170117 강동구 추가 상시출입차량 관리자조회 가능하도록 END */
+    ) T
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGubunCode)">
+      AND GUBUN_CODE = #{searchGubunCode}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(applStat)">
+      /* 진행상태 */
+      <if test='"10".equals(applStat)'>
+        /* 검토중 */
+        AND APPR_STAT = #{applStat}
+      </if>
+      <if test='"20".equals(applStat)'>
+        /* 처리완료 */
+        AND APPR_STAT = #{applStat}
+      </if>
+      <if test='"1".equals(applStat)'>
+        /* 승인 */
+        AND APPR_RESULT = #{applStat}
+      </if>
+      <if test='"2".equals(applStat)'>
+        /* 부결 */
+        AND APPR_RESULT = #{applStat}
+      </if>
+    </if>
+    <if test="@org.springframework.util.StringUtils@isEmpty(applStat)">
+      AND APPR_STAT = ''
+    </if>
+    ) A
+    )
+  </select>
+
+  <select id="selectSafetyCarPassProgressList" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: carPassAdminRepository.selectSafetyCarPassProgressList */
+    SELECT T.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO asc) as ROW_NUM
+    ,TB.*
+    FROM
+    (
+    SELECT A.TMPCAR_APP_NO ,
+    A.DOC_ID ,
+    ( SUBSTR(A.STRT_DT, 1, 4) || '-' || SUBSTR(A.STRT_DT, 5, 2) || '-' || SUBSTR(A.STRT_DT, 7, 2) ||
+    '~' || SUBSTR(A.END_DT, 1, 4) || '-' || SUBSTR(A.END_DT, 5, 2) || '-' || SUBSTR(A.END_DT, 7, 2)
+    ) as IO_DT ,
+    FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM ,
+    A.EMP_ID ,
+    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+    AD.APPL_EMP_NM as EMP_NM,
+    TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM ,
+    FN_GET_CODE('Z036', A.APP_RSN, 'DETL_CD') as APP_NM ,
+    A.APPL_OBJ ,
+    A.APP_RSN ,
+    CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM,
+    Fn_get_emp_jw_nm(A.crt_by) AS EMP_JW_NM,
+    Nvl((SELECT tel_no2 FROM co_emp b WHERE b.emp_id = A.crt_by),
+    (SELECT tel_no1 FROM co_emp WHERE emp_id = A.crt_by)) AS TEL_NO
+    FROM
+    IO_TMPCAR_M A
+    ,AP_DOC AD
+    ,(SELECT DISTINCT TMPCAR_APP_NO, COMP_NM FROM IO_TMPCAR_D) D
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(appRsn)">
+      AND APP_RSN = #{appRsn}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND A.COMP_ID = #{searchCompId}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND D.COMP_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' ||
+      #{searchCarNo} || '%')
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    )T
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectSafetyCarPassProgressListCnt" parameterType="map" resultType="Integer">
+    /* sysmanage: carPassAdminRepository.safetyCarPassProgressListCnt */
+    SELECT NVL(MAX(ROW_NUM),0) as tot_cnt
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO asc) as ROW_NUM
+    ,TB.*
+    FROM
+    (
+    SELECT A.TMPCAR_APP_NO ,
+    A.DOC_ID ,
+    ( SUBSTR(A.STRT_DT, 1, 4) || '-' || SUBSTR(A.STRT_DT, 5, 2) || '-' || SUBSTR(A.STRT_DT, 7, 2) ||
+    '~' || SUBSTR(A.END_DT, 1, 4) || '-' || SUBSTR(A.END_DT, 5, 2) || '-' || SUBSTR(A.END_DT, 7, 2)
+    ) as IO_DT ,
+    FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM ,
+    A.EMP_ID ,
+    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+    AD.APPL_EMP_NM AS EMP_NM,
+    TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM ,
+    FN_GET_CODE('Z036', A.APP_RSN, 'DETL_CD') as APP_NM ,
+    A.APPL_OBJ ,
+    A.APP_RSN ,
+    CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+    FROM
+    IO_TMPCAR_M A
+    ,AP_DOC AD
+    ,(SELECT DISTINCT TMPCAR_APP_NO, COMP_NM FROM IO_TMPCAR_D) D
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(appRsn)">
+      AND APP_RSN = #{appRsn}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND A.COMP_ID = #{searchCompId}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND D.COMP_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') <![CDATA[ >= ]]> REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') <![CDATA[ <= ]]> REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' ||
+      #{searchCarNo} || '%')
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    )T
+  </select>
+
+  <select id="selectSafetyCarPassProgressListExcel" parameterType="map" resultType="CamelHashMap">
+  /* sysmanage: carPassAdminRepository.selectSafetyCarPassProgressListExcel */
+    SELECT DISTINCT
+    A.TMPCAR_APP_NO ,
+    A.DOC_ID ,
+    ( SUBSTR(A.STRT_DT, 1, 4) || '-' || SUBSTR(A.STRT_DT, 5, 2) || '-' || SUBSTR(A.STRT_DT, 7, 2) || '~' || SUBSTR(A.END_DT, 1, 4) || '-' || SUBSTR(A.END_DT, 5, 2) || '-' || SUBSTR(A.END_DT, 7, 2) ) as IO_DT ,
+    FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM,
+    FN_GET_EMP_NM(A.EMP_ID) as EMP_NM ,
+    FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM ,
+    TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM ,
+    CASE
+    WHEN FN_GET_CODE('Z036', A.APP_RSN, 'DETL_CD')  = '안전'THEN '안전작업차량 출입신청' END AS APP_NM,
+    A.APPL_OBJ ,
+    A.APPL_RSN,
+    A.APP_RSN ,
+    D.COMP_NM AS CAR_COMP_NM,
+    D.CAR_NO,
+    D.CAR_KND,
+    CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+
+    FROM IO_TMPCAR_M A , AP_DOC AD,IO_TMPCAR_D D
+
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(APP_RSN)">
+      AND APP_RSN = #{APP_RSN}
+
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(SEARCH_COMP_ID)">
+      AND A.COMP_ID = #{SEARCH_COMP_ID}</if>
+
+    <if test="IO_COMP_KO_NM != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(IO_COMP_KO_NM)">
+        AND D.COMP_NM LIKE '%'|| #{IO_COMP_KO_NM} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') &gt;= REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') &lt;= REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' || #{searchCarNo} || '%')
+    </if>
+  </select>
+
+  <select id="selectTmpcarPassProgressList" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: carPassAdminRepository.selectTmpcarPassProgressList */
+    SELECT T.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER(ORDER BY TB.CRT_DTM DESC) as ROW_NUM
+    ,TB.*
+    FROM
+    (
+    SELECT
+    A.TMPCAR_APP_NO
+    ,A.DOC_ID
+    ,(
+    SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || '~'
+    ||
+    SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)
+    ) as IO_DT
+    ,FN_GET_CODE('Z035',A.APPL_GBN,'DETL_CD') as APPL_NM
+    ,FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM
+    ,A.EMP_ID
+    ,FN_GET_EMP_NM(A.EMP_ID) as EMP_NM
+    ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    /* ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD =
+    A.GATE_ID) as GATE_NM */
+    ,FN_GET_GATE_ID_NAME_LIST(A.GATE_ID) AS GATE_NM
+    ,FN_GET_CODE('Z036',A.APP_RSN,'DETL_CD') as APP_NM
+    ,A.APPL_OBJ
+    ,CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+    ,FN_GET_COMP_NM(A.COMP_ID) AS COMP_NM
+    FROM
+    IO_TMPCAR_M A
+    , AP_DOC AD
+    , (SELECT DISTINCT TMPCAR_APP_NO, COMP_NM FROM IO_TMPCAR_D) D
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND A.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND SUBSTR(A.GATE_ID,1,4) = #{searchDivCd}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND D.COMP_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281001'
+        </if>
+
+        <if test='"A0281002".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281002'
+        </if>
+
+        <if test='"A0281003".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281003'
+        </if>
+
+        <if test='"A0281008".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281008'
+        </if>
+
+        <if test='"A0281004".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002')
+        </if>
+
+        <if test='"A0281005".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281003')
+        </if>
+
+        <if test='"A0281006".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281003')
+        </if>
+
+        <if test='"A0281009".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281008')
+        </if>
+
+        <if test='"A0281010".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281008')
+        </if>
+
+        <if test='"A0281011".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281003','A0281008')
+        </if>
+
+        <if test='"A0281007".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281003')
+        </if>
+
+        <if test='"A0281012".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281008')
+        </if>
+
+        <if test='"A0281013".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281003','A0281008')
+        </if>
+
+        <if test='"A0281014".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281003','A0281008')
+        </if>
+
+        <if test='"A0281015".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+      </if>
+    </if>
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') &gt;= REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') &lt;= REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' ||
+      #{searchCarNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      AND A.GATE_ID = #{searchGateId}
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    )T
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1 AND ( (#{pageIndex} - 1) *
+    #{pageSize}) + #{pageSize}
+  </select>
+
+  <select id="selectTmpcarPassProgressListCnt" parameterType="map" resultType="Integer">
+    /* sysmanage: carPassAdminRepository.selectTmpcarPassProgressListCnt */
+    SELECT NVL(MAX(ROW_NUM),0) as tot_cnt
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO asc) as ROW_NUM
+    ,TB.*
+    FROM
+    (
+    SELECT
+    A.TMPCAR_APP_NO
+    ,A.DOC_ID
+    ,(
+    SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || '~' ||
+    SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)
+    ) as IO_DT
+    ,FN_GET_CODE('Z035',A.APPL_GBN,'DETL_CD') as APPL_NM
+    ,FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM
+    ,A.EMP_ID
+    ,FN_GET_EMP_NM(A.EMP_ID) as EMP_NM
+    ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD = A.GATE_ID) as GATE_NM
+    ,FN_GET_CODE('Z036',A.APP_RSN,'DETL_CD') as APP_NM
+    ,A.APPL_OBJ
+    ,CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+    FROM
+    IO_TMPCAR_M A
+    ,AP_DOC AD
+    ,(SELECT DISTINCT TMPCAR_APP_NO, COMP_NM FROM IO_TMPCAR_D) D
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND A.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND SUBSTR(A.GATE_ID,1,4) = #{searchDivCd}
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND D.COMP_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      <if test='searchGateId != null and !"ALL".equals(searchGateId)'>
+        <if test='"A0281001".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281001'
+        </if>
+        <if test='"A0281002".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281002'
+        </if>
+        <if test='"A0281003".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281003'
+        </if>
+        <if test='"A0281008".equals(searchGateId)'>
+          AND A.GATE_ID = 'A0281008'
+        </if>
+        <if test='"A0281004".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002')
+        </if>
+        <if test='"A0281005".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281003')
+        </if>
+        <if test='"A0281006".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281003')
+        </if>
+        <if test='"A0281009".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281008')
+        </if>
+        <if test='"A0281010".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281008')
+        </if>
+
+        <if test='"A0281011".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281003','A0281008')
+        </if>
+
+        <if test='"A0281007".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281003')
+        </if>
+
+        <if test='"A0281012".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281008')
+        </if>
+
+        <if test='"A0281013".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281003','A0281008')
+        </if>
+
+        <if test='"A0281014".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281002','A0281003','A0281008')
+        </if>
+
+        <if test='"A0281015".equals(searchGateId)'>
+          AND A.GATE_ID in ('A0281001','A0281002','A0281003','A0281008')
+        </if>
+      </if>
+    </if>
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') &gt;= REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') &lt;= REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' || #{searchCarNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      AND A.GATE_ID = #{searchGateId}
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM LIKE '%' || #{searchEmpNm} || '%'
+    </if>
+    )T
+  </select>
+
+  <select id="selectTmpcarPassProgressListExcel" parameterType="hashMap" resultType="CamelHashMap">
+    /* sysmanage: carPassAdminRepository.selectTmpcarPassProgressListExcel */
+    SELECT T.*
+    FROM
+    (SELECT
+    ROW_NUMBER() OVER(ORDER BY TMPCAR_APP_NO asc) as ROW_NUM
+    ,TB.*
+    FROM
+    (
+    SELECT
+    A.TMPCAR_APP_NO
+    ,A.DOC_ID
+    ,(
+    SUBSTR(A.STRT_DT, 1,4) || '-' || SUBSTR(A.STRT_DT, 5,2) || '-' || SUBSTR(A.STRT_DT, 7,2) || '~' ||
+    SUBSTR(A.END_DT, 1,4) || '-' || SUBSTR(A.END_DT, 5,2) || '-' || SUBSTR(A.END_DT, 7,2)
+    ) as IO_DT
+    ,FN_GET_CODE('Z035',A.APPL_GBN,'DETL_CD') as APPL_NM
+    ,FN_GET_CONAME('DEPT', A.DEPT_ID, A.COMP_ID) as B_DEPT_NM
+    ,A.EMP_ID
+    ,FN_GET_EMP_NM(A.EMP_ID) as EMP_NM
+    ,FN_GET_EMP_NM(A.EMP_ID) as B_EMP_NM
+    ,TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD') as CRT_DTM
+    ,(SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD in ('A028', 'A029', 'A033') AND DETL_CD = A.GATE_ID) as GATE_NM
+    ,FN_GET_CODE('Z036',A.APP_RSN,'DETL_CD') as APP_NM
+    ,A.APPL_OBJ
+    ,CASE
+    WHEN AD.APPR_RESULT = '0' THEN '검토중'
+    WHEN AD.APPR_RESULT = '1' THEN '승인'
+    WHEN AD.APPR_RESULT = '2' THEN '부결'
+    WHEN AD.APPR_RESULT = '3' THEN '장기미결'
+    WHEN NVL(AD.APPR_RESULT , 'N') = 'N' THEN '임시보관'
+    END as APPR_RESULT_NM
+    ,D.CAR_KND as CAR_KND
+    ,D.CAR_NO as CAR_NO
+    ,D.COMP_NM as COMP_NM
+    ,D.JW_NM as JW_NM
+    , '' as APPR_COMMENT
+    FROM
+    IO_TMPCAR_M A
+    ,AP_DOC AD
+    , (SELECT DISTINCT TMPCAR_APP_NO, COMP_NM, CAR_KND, CAR_NO, JW_NM FROM IO_TMPCAR_D) D
+    WHERE 1=1
+    AND NVL(A.DEL_YN, 'N') = 'N'
+    AND AD.DOC_ID = A.DOC_ID
+    AND A.TMPCAR_APP_NO = D.TMPCAR_APP_NO
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCompId)">
+      AND A.COMP_ID = #{searchCompId}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchDivCd)">
+      AND SUBSTR(A.GATE_ID,1,4) = #{searchDivCd}
+    </if>
+
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt)">
+      AND REPLACE(A.END_DT, '-', '') &gt;= REPLACE(#{searchStrtDt}, '-', '')
+    </if>
+    <if test="ioCompKoNm != null">
+      <if test="not @org.springframework.util.StringUtils@isEmpty(ioCompKoNm)">
+        AND D.COMP_NM LIKE '%'|| #{ioCompKoNm} ||'%'
+      </if>
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+      AND REPLACE(A.STRT_DT, '-', '') &lt;= REPLACE(#{searchEndDt}, '-', '')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchCarNo)">
+      AND A.TMPCAR_APP_NO IN (SELECT TMPCAR_APP_NO FROM IO_TMPCAR_D WHERE CAR_NO like '%' || #{searchCarNo} || '%')
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchGateId)">
+      AND A.GATE_ID = #{searchGateId}
+    </if>
+    ) TB
+    WHERE 1=1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+      AND EMP_NM = '%' || #{searchEmpNm} || '%'
+    </if>
+    )T
+  </select>
+</mapper>

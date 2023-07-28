@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.secrtactvy.SecurityManageReportRepository">
+
+	<!-- 현장 보안운영 확인 등록 현황 조회 - securityReportList (ASIS : dmSecurityReportList) -->
+	<select id="securityReportList" parameterType="Map" resultType="CamelHashMap">
+		/* 현장 보안운영 확인 등록 현황 조회 - securityReportList */
+		SELECT T.*
+		  FROM (SELECT ROW_NUMBER() OVER(ORDER BY A.RPT_ID DESC) AS RN,
+		               A.STRT_RPT_NO,
+		               A.CHG_RPT_NO,
+		               A.MANUAL_NAME,
+		               A.EMP_ID,
+		               A.DEPT_ID,
+		               A.COMP_ID,
+		               fn_get_emp_nm(A.EMP_ID) AS EMP_NM,
+		               CASE
+		                 WHEN FINISH_KND = 0 THEN
+		                  '미완료'
+		                 ELSE
+		                  '완료'
+		               END AS FINISH_KND_NM,
+		               A.FINISH_KND,
+		               A.CPLT_DT,
+		               A.CRT_BY,
+		               TO_CHAR(A.CRT_DTM, 'YYYY-MM-DD HH24:MI:SS') AS CRT_DTM,
+		               A.MOD_BY,
+		               A.MOD_DTM
+		          FROM SC_EDU_STATUS_RPT_M A
+		         WHERE A.LAST_HST_YN = 'Y'
+		           AND A.DEL_YN = 'N'
+		           <if test="not @org.springframework.util.StringUtils@isEmpty(searchStrtDt) and not @org.springframework.util.StringUtils@isEmpty(searchEndDt)">
+		           <![CDATA[
+		             AND A.CPLT_DT BETWEEN REPLACE(#{searchStrtDt}, '-', '') AND REPLACE(#{searchEndDt}, '-', '')
+		           ]]>
+		           </if>
+		           <if test="not @org.springframework.util.StringUtils@isEmpty(searchFinishKnd)">
+		             AND A.FINISH_KND = #{searchFinishKnd}
+		           </if>
+		           <if test="not @org.springframework.util.StringUtils@isEmpty(searchManualNm)">
+		             AND A.MANUAL_NAME like '%' || #{searchManualNm} || '%'
+		           </if>
+		       ) T
+		       WHERE 1 = 1
+		       <if test="not @org.springframework.util.StringUtils@isEmpty(searchEmpNm)">
+		         AND T.EMP_NM like '%' || #{searchEmpNm} || '%'
+		       </if>
+	</select>
+	
+	<!-- 현장 보안운영 확인 등록 현황 상세 - securityReportView (ASIS : dmsecurityReportView) -->
+	<select id="securityReportView" parameterType="Map" resultType="CamelHashMap">
+		SELECT RPT_M.RPT_ID
+		     , RPT_M.STRT_RPT_NO
+		     , RPT_M.CHG_RPT_NO
+		     , RPT_M.EMP_ID
+		     , RPT_M.MANUAL_NAME
+		     /*, TO_CHAR(TO_DATE(RPT_M.CPLT_DT, 'YYYY-MM-DD'), 'YYYY-MM-DD') AS CPLT_DT*/
+		     , RPT_M.CPLT_DT
+		     , RPT_M.CHK_LST
+		     , RPT_M.IMPRV_RSLT
+		     , RPT_D.*
+		  FROM SC_EDU_STATUS_RPT_M RPT_M
+		     , (SELECT T.*
+		          FROM (SELECT BEF_EDU_NMR, BEF_EDU_DNM, BEF_EDU_PCT,
+		                       CUBE_EDU_NMR, CUBE_EDU_DNM, CUBE_EDU_PCT,
+		                       GTHR_EDU_NMR, GTHR_EDU_DNM, GTHR_EDU_PCT,
+		                       WEEK_1_RSLT, WEEK_2_RSLT,
+		                       EDU_COMP_ID, RPT_NO
+		                  FROM SC_EDU_STATUS_RPT_D WHERE RPT_NO = #{strtRptNo}) 
+		         PIVOT 
+		               (
+		                  SUM(BEF_EDU_NMR) AS BEF_EDU_NMR
+		                 ,SUM(BEF_EDU_DNM) AS BEF_EDU_DNM
+		                 ,SUM(BEF_EDU_PCT) AS BEF_EDU_PCT
+		                 ,SUM(CUBE_EDU_NMR) AS CUBE_EDU_NMR
+		                 ,SUM(CUBE_EDU_DNM) AS CUBE_EDU_DNM
+		                 ,SUM(CUBE_EDU_PCT) AS CUBE_EDU_PCT
+		                 ,SUM(GTHR_EDU_NMR) AS GTHR_EDU_NMR
+		                 ,SUM(GTHR_EDU_DNM) AS GTHR_EDU_DNM
+		                 ,SUM(GTHR_EDU_PCT) AS GTHR_EDU_PCT
+		                 ,MAX(WEEK_1_RSLT) AS WEEK_1_RSLT
+		                 ,MAX(WEEK_2_RSLT) AS WEEK_2_RSLT
+		                 FOR EDU_COMP_ID IN('1101000001' AS IC, '1102000001' AS CJ, '1108000001' AS BD)
+		               ) T ) RPT_D
+		 WHERE RPT_M.STRT_RPT_NO = #{strtRptNo}
+		   AND RPT_M.STRT_RPT_NO = RPT_D.RPT_NO
+		   AND RPT_M.STRT_RPT_NO = RPT_M.CHG_RPT_NO
+		   AND RPT_M.LAST_HST_YN = 'Y'
+		   AND RPT_M.DEL_YN = 'N'
+	</select>
+	
+	<!-- 현장 보안운영 RPT_ID Nextval - selectRptIdNextval (ASIS : dmSecurityReportSel_RPT_ID) -->
+	<select id="selectRptIdNextval" resultType="java.lang.String">
+		/* 현장 보안운영 RPT_ID Nextval - selectRptIdNextval */
+		SELECT SEQ_SC_EDU_STATUS_RPT_ID.nextval AS RPT_ID
+		  FROM DUAL
+	</select>
+	
+	<!-- 현장 보안운영 RPT_NO Nextval - selectRptNoNextval (ASIS : dmSecurityReportSel_RPT_NO) -->
+	<select id="selectRptNoNextval" resultType="java.lang.String">
+		/* 현장 보안운영 RPT_NO Nextval - selectRptIdNextval */
+		SELECT SEQ_SC_EDU_STATUS_RPT_NO.nextval AS RPT_NO 
+		  FROM DUAL
+	</select>
+	
+	<!-- 현장 보안운영 확인 등록 - insertSecurityReportMaster (ASIS : dmSecurityReportIns_M)  -->
+	<insert id="insertSecurityReportMaster" parameterType="Map">
+		/* 현장 보안운영 확인 등록 - insertSecurityReportMaster */
+		INSERT INTO SC_EDU_STATUS_RPT_M (
+		     RPT_ID
+			,STRT_RPT_NO
+			,CHG_RPT_NO
+			,EMP_ID
+			,DEPT_ID
+			,COMP_ID
+			,MANUAL_NAME
+			,CPLT_DT
+			,CHK_LST
+			,IMPRV_RSLT
+			,FINISH_KND
+			,LAST_HST_YN
+			,DEL_YN
+			,CRT_BY
+			,CRT_DTM
+		) VALUES (
+		     #{rptId}
+			,#{rptNo}
+			,#{rptNo}
+			,#{empId}
+			,#{deptId}
+			,#{compId}
+			,#{manualName}
+			,#{cpltDt}
+			,#{chkLst}
+			,#{imprvRslt}
+			,'0' /* finish_knd */
+			,'Y' /* last_hst_yn */
+			,'N' /* del_yn */
+			,#{empId}
+			,SYSDATE
+		) 	
+	</insert>
+	
+	<!-- 현장 보안운영 확인 상세 등록 - insertSecurityReportDetail (ASIS : dmSecurityReportIns_D)  -->
+	<insert id="insertSecurityReportDetail" parameterType="Map">
+		/* 현장 보안운영 확인 상세 등록 - insertSecurityReportDetail */
+		INSERT INTO SC_EDU_STATUS_RPT_D (
+			 RPT_NO
+			,EDU_COMP_ID
+			,BEF_EDU_NMR
+			,BEF_EDU_DNM
+			,BEF_EDU_PCT
+			,CUBE_EDU_NMR
+			,CUBE_EDU_DNM
+			,CUBE_EDU_PCT
+			,GTHR_EDU_NMR
+			,GTHR_EDU_DNM
+			,GTHR_EDU_PCT
+			,WEEK_1_RSLT
+			,WEEK_2_RSLT
+		) VALUES (
+			  #{rptNo}
+			, #{eduCompId}
+			, #{befEduNmr}
+			, #{befEduDnm}
+			, #{befEduPct}
+			, #{cubeEduNmr}
+			, #{cubeEduDnm}
+			, #{cubeEduPct}
+			, #{gthrEduNmr}
+			, #{gthrEduDnm}
+			, #{gthrEduPct}
+			, #{week1Rslt}
+			, #{week2Rslt}
+		)
+	</insert>
+	
+	<!-- 현장 보안운영 확인 Update - updateSecurityReportMaster (ASIS : dmSecurityReportUpt_M)  -->
+	<update id="updateSecurityReportMaster" parameterType="Map">
+		/* 현장 보안운영 확인 Update - updateSecurityReportMaster */
+		UPDATE SC_EDU_STATUS_RPT_M 
+		   SET CHG_RPT_NO = #{chgRptNo}
+			  ,LAST_HST_YN = 'N'
+			  ,DEL_YN = 'Y'
+			  ,MOD_BY = #{empId}
+			  ,MOD_DTM = SYSDATE
+		 WHERE STRT_RPT_NO = #{strtRptNo}
+	</update>
+	
+	<!-- 현장 보안운영 확인 Over Update - updateSecurityReportOverMaster (ASIS : dmSecurityReportOver_M)  -->
+	<update id="updateSecurityReportOverMaster" parameterType="Map">
+		/* 현장 보안운영 확인 Over Update - updateSecurityReportOverMaster */
+		UPDATE SC_EDU_STATUS_RPT_M 
+		   SET MANUAL_NAME = #{manualName}
+			 ,CPLT_DT = #{cpltDt}
+			 ,CHK_LST = #{chkLst}
+			 ,IMPRV_RSLT = #{imprvRslt}
+			 ,FINISH_KND = '1'
+			 ,MOD_BY = #{empId}
+			 ,MOD_DTM = SYSDATE
+		 WHERE STRT_RPT_NO = #{strtRptNo}
+	</update>
+	
+	<!-- 현장 보안운영 확인 상세 Update - updateSecurityReportDetail (ASIS : dmSecurityReportUpt_D)  -->
+	<update id="updateSecurityReportDetail" parameterType="Map">
+		/* 현장 보안운영 확인 상세 Update - updateSecurityReportDetail */
+		UPDATE SC_EDU_STATUS_RPT_D 
+		   SET RPT_NO = #{chgRptNo}
+			 , BEF_EDU_NMR  =  #{befEduNmr}
+			 , BEF_EDU_DNM  =  #{befEduDnm}
+			 , BEF_EDU_PCT  =  #{befEduPct}
+			 , CUBE_EDU_NMR =  #{cubeEduNmr}
+			 , CUBE_EDU_DNM =  #{cubeEduDnm}
+			 , CUBE_EDU_PCT =  #{cubeEduPct}
+			 , GTHR_EDU_NMR =  #{gthrEduNmr}
+			 , GTHR_EDU_DNM =  #{gthrEduDnm}
+			 , GTHR_EDU_PCT =  #{gthrEduPct}
+			 , WEEK_1_RSLT  =  #{week1Rslt}
+			 , WEEK_2_RSLT  =  #{week2Rslt}
+		 WHERE RPT_NO = #{strtRptNo}
+		   AND EDU_COMP_ID = #{eduCompId}
+	</update>
+	
+	<!-- 현장 보안운영 확인 상세 Over Update - updateSecurityReportOverDetail (ASIS : dmSecurityReportOver_D)  -->
+	<update id="updateSecurityReportOverDetail" parameterType="Map">
+		/* 현장 보안운영 확인 상세 Over Update - updateSecurityReportOverDetail */
+		UPDATE SC_EDU_STATUS_RPT_D 
+		   SET EDU_COMP_ID  =  #{eduCompId}
+			 , BEF_EDU_NMR  =  #{befEduNmr}
+			 , BEF_EDU_DNM  =  #{befEduDnm}
+			 , BEF_EDU_PCT  =  #{befEduPct}
+			 , CUBE_EDU_NMR =  #{cubeEduNmr}
+			 , CUBE_EDU_DNM =  #{cubeEduDnm}
+			 , CUBE_EDU_PCT =  #{cubeEduPct}
+			 , GTHR_EDU_NMR =  #{gthrEduNmr}
+			 , GTHR_EDU_DNM =  #{gthrEduDnm}
+			 , GTHR_EDU_PCT =  #{gthrEduPct}
+			 , WEEK_1_RSLT  =  #{week1Rslt}
+			 , WEEK_2_RSLT  =  #{week2Rslt}
+		 WHERE RPT_NO = #{strtRptNo}
+		   AND EDU_COMP_ID = #{eduCompId}
+	</update>
+	
+	<!-- 현장 보안운영 확인 메일 수신자 List - securityReportMailReceiver (ASIS : dmSecurityReportMailReceiver) -->
+	<select id="securityReportMailReceiver" parameterType="Map" resultType="CamelHashMap">
+		SELECT A.EMP_ID AS EMP_ID
+		     , A.EMAIL AS EMP_MAIL
+		     , A.EMP_NM AS EMP_NM
+		  FROM CO_EMP A, CO_EMP_AUTH B
+		 WHERE A.EMP_ID = B.EMP_ID
+		   AND A.HT_CD = 'C'
+		   AND A.USE_YN = 'Y'
+		   AND B.AUTH_ID = '93'
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</mapper>	

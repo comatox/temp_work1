@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.entmanage.AdmittedRepository">
+
+	<insert id="insertAdmittedReg" parameterType="Map">
+		<selectKey keyProperty="ctrlAreaNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_CTRL_AREA.NEXTVAL AS CTRL_AREA_NO FROM DUAL
+	    </selectKey>
+	    
+		/* AdmittedRepository.insertAdmittedReg (AdmittedReg) */
+		INSERT INTO IO_CTRL_AREA (
+			  CTRL_AREA_NO
+			, MAN_GBN
+			, IN_DT   
+			, IN_DTM
+			, OUT_DTM
+			, VST_APPL_NO
+			, RSRV_DT
+			, VST_SEQ
+			, COMP_ID
+			, DEPT_ID
+			, JW_ID
+			, EMP_ID
+			, BLDG_CARD_NO
+			, IO_CARD_NO
+			, TAG_ID
+			, CTRL_STAT
+			, GATE_ID
+			, CTRL_GATE_ID
+			, GUIDE_EMP_ID
+			, DEL_YN
+			, AC_IP
+			, CRT_DTM
+			, CRT_BY
+			, MOD_BY
+			, MOD_DTM
+			, CTRL_AREA
+		) VALUES ( 
+			 #{ctrlAreaNo},
+			 #{manGbn},
+			 TO_CHAR(SYSDATE,'YYYYMMDD'), 
+			 SYSDATE,
+			 #{outDtm},
+			 #{vstApplNo},
+			 #{rsrvDt},
+			 #{vstSeq},
+			 #{compId},
+			 #{deptId},
+			 #{jwId},
+			 #{empId},
+			 #{bldgCardNo},
+			 #{ioCardNo},
+			 #{tagId},
+			 #{ctrlStat},
+			 #{gateId},
+			 #{ctrlGateId},
+			 #{guideEmpId},
+			 'N',
+			 #{acIp},
+			 SYSDATE,
+			 #{crtBy},
+			 #{crtBy},
+			 SYSDATE,
+			 #{controlarea}
+		 )
+	</insert>
+	
+	<update id="updateVisitorAdmittedReg" parameterType="Map">
+		/* AdmittedRepository.updateVisitorAdmittedReg (dmVisitorAdmittedReg) */
+		UPDATE  IO_VST_MAN_GATE_IO A
+	    SET  A.IOKND = #{ctrlStat} 
+	      ,  A.IN_DT = SYSDATE
+	      ,  A.OUT_DT = NULL  
+	      ,  A.MOD_BY = #{crtBy} 	
+	      ,  A.MOD_DTM = SYSDATE 
+	    WHERE A.VST_APPL_NO = #{vstApplNo}	
+	      AND A.IO_EMP_ID = #{empId}	
+	      AND A.GATE_ID = #{ctrlGateId}	
+	      AND A.VST_DT = #{rsrvDt}	
+	      AND A.VST_SEQ = #{vstSeq}
+	</update>
+	
+	<select id="selectStaffAdmittedChk" parameterType="Map" resultType="String">
+		/* AdmittedRepository.selectStaffAdmittedChk (dmStaffAdmittedChk) */
+		SELECT CASE WHEN MAX(ROWNUM) > 0 THEN 'Y' ELSE 'N' END AS CTRL_YN
+		FROM IO_CTRL_AREA
+		WHERE EMP_ID = #{empId}
+		  AND NVL(DEL_YN,'N') = 'N'
+		  AND CTRL_STAT = '1'
+		  AND MAN_GBN = '1'
+		  AND CTRL_AREA = #{controlarea}
+	</select>
+	
+	<select id="selectBuildingControlUp" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectBuildingControlDownList (dmBuildingControl_Up) */
+		SELECT '1' AS LEV, GATE_ID, GATE_NM, COMP_ID, UP_GATE_ID
+        FROM CO_BLDG
+        WHERE 1 = 1
+      	  AND UP_GATE_ID = '0'
+      	<if test='"R3".equals(controlarea)'>
+          AND GATE_ID = '33'
+        </if>
+      	<if test='"R3E".equals(controlarea)'>
+      	  AND GATE_ID = '5'
+        </if>
+          AND VSTR_AVAIL_YN = 'Y'
+          AND NVL(DEL_YN,'N') = 'N'             
+          AND CTRL_YN = 'Y'
+     	ORDER BY SORT_SEQ
+	</select>
+	
+	<select id="selectBuildingControlDownList" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectBuildingControlDownList (dmBuildingControl_Down) */
+		SELECT LEV, GATE_ID, GATE_NM, COMP_ID, UP_GATE_ID
+        FROM (
+        	SELECT LEVEL AS LEV, BLDG.*
+            FROM CO_BLDG BLDG               
+                START WITH BLDG.GATE_ID = #{gateId}
+                CONNECT BY PRIOR BLDG.GATE_ID = BLDG.UP_GATE_ID
+                AND BLDG.VSTR_AVAIL_YN = 'Y'              
+                AND NVL(BLDG.DEL_YN,'N') = 'N'       
+                ORDER SIBLINGS BY SORT_SEQ        
+        )
+        WHERE 1 = 1
+        <if test='"5".equals(gateId)'>
+          AND GATE_ID = '127'
+        </if>
+        <if test='"2".equals(lev)'>
+          AND LEV = #{lev}
+        </if>
+        <if test="@org.springframework.util.StringUtils@isEmpty(lev)">
+		  AND LEV >= 2
+		</if>
+	</select>
+	
+	<update id="updateStaffCheckout" parameterType="Map">
+		/* AdmittedRepository.updateStaffCheckout (dmStaffCheckout_Pop) */
+		UPDATE IO_CTRL_AREA A 
+		   SET A.OUT_DTM = SYSDATE 
+	          ,A.CTRL_STAT = #{ctrlStat} 
+	          ,A.MOD_BY = #{crtBy} 	
+	          ,A.MOD_DTM = SYSDATE 	
+	 	WHERE UPPER(A.EMP_ID) = UPPER(#{empId})
+	 	  AND A.MAN_GBN = '1'
+	 	  AND NVL(A.DEL_YN,'N') = 'N'
+	 	  AND A.CTRL_STAT = '1'
+	 	  AND A.CTRL_AREA = #{controlarea}
+	</update>
+	
+	<select id="selectStaffCheckout" parameterType="Map" resultType="Integer">
+		/* AdmittedRepository.selectStaffCheckout (dmStaffCheckout_Pop_s) */
+		SELECT NVL(MAX(ROWNUM), 0) AS CTCNT
+		FROM IO_CTRL_AREA A
+		WHERE UPPER(a.EMP_ID) = UPPER(#{empId})
+	 	  AND A.MAN_GBN = '1'
+	 	  AND NVL(a.DEL_YN,'N') = 'N'
+	 	  AND A.CTRL_STAT = '1'
+	</select>
+	
+	<select id="selectAlwaysAdmittedChk" parameterType="Map" resultType="String">
+		/* AdmittedRepository.selectAlwaysAdmittedChk (dmAlwaysAdmittedChk) */
+		SELECT CASE WHEN MAX(ROWNUM) > 0 THEN 'Y' ELSE 'N' END AS CTRL_YN
+        FROM IO_CTRL_AREA
+        WHERE UPPER(BLDG_CARD_NO) = UPPER(#{cardNo})
+          AND NVL(DEL_YN,'N') = 'N'
+          AND CTRL_STAT = '1'
+          AND MAN_GBN = '2'
+          AND CTRL_AREA = #{controlarea}
+	</select>
+	
+	<select id="selectAlwaysAdmittedRegChk" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectAlwaysAdmittedRegChk (dmAlwaysAdmittedRegChk) */
+		SELECT  CARD_NO
+              , IO_EMP_NM
+              , SUBSTR(IN_DT,1,4)||'-'||SUBSTR(IN_DT,5,2)||'-'||SUBSTR(IN_DT,7,2) AS IN_DT
+              , SUBSTR(OUT_DT,1,4)||'-'||SUBSTR(OUT_DT,5,2)||'-'||SUBSTR(OUT_DT,7,2) AS OUT_DT
+              , GATE_ID
+              , IO_COMP_NM
+              , CASE WHEN SYSDATE BETWEEN TO_DATE(IN_DT, 'YYYYMMDD') AND TO_DATE(OUT_DT, 'YYYYMMDD') THEN 'Y' ELSE 'N' END  AS DT_VERF_YN
+	    FROM (  
+			SELECT  RE.CARD_NO 
+			      , MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM 
+		          , MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT
+		          , MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT
+		          , MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID 
+		          , MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM      
+		    FROM IO_REG_IO RE
+		        WHERE NVL(RE.DEL_YN,'N') = 'N'
+		        AND RE.CARD_NO = #{cardNo}
+		        GROUP BY RE.CARD_NO
+	    )  
+	</select>
+	
+	<select id="selectAlwaysCurrentLineList" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectAlwaysCurrentLineList (dmAlwaysCurrentLine_List) */
+		SELECT ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS ROW_NUM	
+		 	   ,CT.CTRL_AREA_NO, TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM
+	           ,FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS GATE_NM, CT.TAG_ID
+	           ,CT.BLDG_CARD_NO, RE.IO_COMP_NM, RE.IO_EMP_NM
+	           ,CP.EMP_NM||' ('||CT.GUIDE_EMP_ID||')' AS GUIDE_EMP_NM
+	    FROM IO_CTRL_AREA CT, CO_EMP CP,
+	    	 (
+              SELECT RE.CARD_NO 
+                    , MAX(RE.IO_EMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_EMP_NM 
+                    , MAX(RE.IN_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IN_DT
+                    , MAX(RE.OUT_DT) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS OUT_DT
+                    , MAX(RE.GATE_ID) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS GATE_ID 
+                    , MAX(RE.IO_COMP_NM) KEEP(DENSE_RANK FIRST ORDER BY RE.IO_REG_IO_NO DESC) AS IO_COMP_NM      
+              FROM IO_REG_IO RE
+                  WHERE NVL(RE.DEL_YN,'N') = 'N'           
+                  GROUP BY RE.CARD_NO                
+             ) RE
+        WHERE CT.BLDG_CARD_NO = RE.CARD_NO
+        AND CT.GUIDE_EMP_ID = CP.EMP_ID
+        AND CT.MAN_GBN = '2'
+        AND NVL(CT.DEL_YN,'N') ='N'
+        AND CT.CTRL_STAT = '1'   
+        <if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+			AND CT.GATE_ID = #{gateId}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND UPPER(RE.IO_EMP_NM) LIKE '%'||UPPER(#{ioEmpNm})||'%' ESCAPE '[' 
+        </if>
+	</select>
+	
+	<update id="updateCheckout" parameterType="Map">
+		/* AdmittedRepository.updateCheckout (dmCheckoutReg) */
+		UPDATE IO_CTRL_AREA A SET 
+	        A.OUT_DTM = SYSDATE  
+	     ,  A.CTRL_STAT = #{ctrlStat} 
+	     ,  A.MOD_BY = #{crtBy}  	
+	     ,  A.MOD_DTM = SYSDATE  	
+	 	WHERE A.CTRL_AREA_NO = #{ctrlAreaNo}
+	</update>
+	
+	<update id="updateVisitorCheckout" parameterType="Map">
+		/* AdmittedRepository.updateVisitorCheckout (dmVisitorCheckout) */
+		UPDATE  IO_VST_MAN_GATE_IO A
+		   SET  A.IOKND = #{ctrlStat}    	
+		     ,  A.OUT_DT = SYSDATE     
+		     ,  A.MOD_BY = #{crtBy}
+		     ,  A.MOD_DTM = SYSDATE 
+		 WHERE A.VST_APPL_NO = #{vstApplNo}	
+		   AND A.IO_EMP_ID = #{ioEmpId}	
+		   AND A.GATE_ID = #{ctrlGateId}	
+		   AND A.VST_DT = #{rsrvDt}	
+		   AND A.VST_SEQ = #{vstSeq}
+	</update>
+	
+	<select id="selectVisitorAdmittedList" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectVisitorAdmittedList (dmVisitorAdmitted_List) */
+    	SELECT  ROW_NUMBER() OVER ( ORDER BY IO.VST_APPL_NO DESC ) AS ROW_NUM,	    
+	            IO.VST_APPL_NO, IO.IO_EMP_ID, IO.GATE_ID AS CTRL_GATE_ID ,IO.VST_DT, IO.VST_SEQ, T1.IN_DT,
+	            IO.IO_CARDNO, '' AS BLDG_CARD_NO, '' AS TAG_ID, CASE WHEN VS.VIP_YN = 'Y' THEN VS.VIP_NM 
+	            													 ELSE EM.EMP_NM END AS IO_EMP_NM
+	            , EM.IO_COMP_ID,
+	            '' AS COMP_ID, '' AS DEPT_ID, '' AS JW_ID, '' AS EMP_ID, FN_GET_CO_BLDG(IO.GATE_ID,'4') AS GATE_ID,           
+	            CASE WHEN EM.NATION ='Z0011001' THEN FN_GET_IO_COMP_KO_NM(EM.IO_COMP_ID) ELSE FN_GET_IO_COMP_EN_NM(EM.IO_COMP_ID) END AS IO_COMP_NM,
+	             CO.EMP_NM AS EMP_NMS, FN_GET_DEPT_NM(CO.DEPT_ID) AS DEPT_NMS, VS.EMP_ID AS EMP_IDS,
+	             BG.GATE_NM AS CTRL_GATE_NM, CASE WHEN IO.GATE_ID = '51' OR IO.GATE_ID = '129' THEN 'Y' ELSE 'N' END TAG_YN
+	    FROM IO_VST_MAN_GATE_IO IO, CO_BLDG BG,
+	              IO_EMP EM, IO_VST VS, CO_EMP CO,
+	            (
+	            SELECT *
+	                FROM IO_VST_MAN_GATE_IO
+	                WHERE NVL(DEL_YN,'N') = 'N'
+	                AND VST_SEQ = '1'
+	                AND IOKND <![CDATA[<>]]> '0'
+	                AND IN_DT + 1 >= SYSDATE /* 24 hour */
+	            ) T1
+	    WHERE IO.GATE_ID = BG.GATE_ID
+	    AND IO.GATE_ID <![CDATA[<>]]> '0'
+	    AND BG.CTRL_YN = 'Y'
+	    AND BG.VSTR_AVAIL_YN = 'Y'
+	    AND IO.VST_APPL_NO = T1.VST_APPL_NO
+	    AND IO.IO_EMP_ID = T1.IO_EMP_ID    
+	    AND IO.VST_DT = T1.VST_DT   
+	    AND IO.IO_EMP_ID = EM.IO_EMP_ID
+	    AND IO.VST_APPL_NO = VS.VST_APPL_NO
+	    AND VS.EMP_ID = CO.EMP_ID
+	    AND NOT EXISTS
+	        (
+	            SELECT *
+	                FROM IO_CTRL_AREA  CT
+	                WHERE NVL(CT.DEL_YN,'N') = 'N'
+	                AND CT.CTRL_STAT = '1'
+	                AND CT.MAN_GBN = '3'
+	                AND CT.VST_APPL_NO = IO.VST_APPL_NO
+	                AND CT.EMP_ID = IO.IO_EMP_ID
+	                AND CT.RSRV_DT = IO.VST_DT
+	                AND CT.VST_SEQ = IO.VST_SEQ
+	                <if test='"R3".equals(controlarea)'>
+				    AND CT.CTRL_AREA = 'R3' 
+				    </if>
+				    <if test='"R3E".equals(controlarea)'>
+				    AND CT.CTRL_AREA = 'R3E'   
+				    </if>
+	        ) 
+	    <if test='"R3".equals(controlarea)'>
+	    	AND BG.UP_GATE_ID IN (#{gateId},'35')  
+	    </if>
+	    <if test='"R3E".equals(controlarea)'>
+	    	AND BG.UP_GATE_ID IN (#{gateId},'127')  
+	    </if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+			AND CASE WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+					 ELSE UPPER(EM.EMP_NM) END LIKE '%'||UPPER(#{ioEmpNm})||'%' ESCAPE '['
+		</if>
+		<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)">
+			AND CASE WHEN EM.NATION ='Z0011001' THEN UPPER(FN_GET_IO_COMP_KO_NM(EM.IO_COMP_ID)) ELSE UPPER(FN_GET_IO_COMP_EN_NM(EM.IO_COMP_ID)) END LIKE '%'||UPPER(#{ioCompNm})||'%' ESCAPE '['
+		</if>
+	</select>
+	
+	<select id="selectVisitorCurrentLineList" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectVisitorAdmittedList (dmVisitorCurrentLine_List) */
+		SELECT ROW_NUMBER() OVER ( ORDER BY CT.CTRL_AREA_NO DESC ) AS ROW_NUM	
+	 		  ,CT.CTRL_AREA_NO, TO_CHAR(CT.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM, CT.IO_CARD_NO, CT.BLDG_CARD_NO
+              ,CT.COMP_ID, CT.DEPT_ID, CT.JW_ID, CT.EMP_ID AS IO_EMP_ID, CT.GATE_ID, CT.CTRL_GATE_ID
+              ,CASE WHEN VS.VIP_YN = 'Y' THEN VS.VIP_NM ELSE T1.IO_EMP_NM END AS IO_EMP_NM, T1.IO_COMP_ID, T1.COMP_KO_NM AS IO_COMP_NM, CT.TAG_ID, CT.VST_APPL_NO
+              ,CT.RSRV_DT, CT.VST_SEQ, T2.EMP_NM AS EMP_NMS, FN_GET_CONAME('DEPT',VS.DEPT_ID,VS.COMP_ID) ||' '|| T2.EMP_NM AS DEPT_NMS
+              ,T3.EMP_NM AS EMP_NMG, FN_GET_CONAME('DEPT',T3.DEPT_ID,T3.COMP_ID) || ' ' || T3.EMP_NM AS DEPT_NMG
+              ,FN_GET_CO_BLDG(CT.CTRL_GATE_ID,'1') AS  CTRL_GATE_NM
+        FROM IO_CTRL_AREA CT, IO_VST VS,
+        ( SELECT A.IO_EMP_ID, A.EMP_NM AS IO_EMP_NM, B.COMP_KO_NM, B.COMP_EN_NM , A.IO_COMP_ID                               
+          FROM IO_EMP A, IO_COMP B
+          WHERE A.IO_COMP_ID = B.IO_COMP_ID
+        ) T1, CO_EMP T2, CO_EMP T3
+        WHERE CT.EMP_ID = T1.IO_EMP_ID
+          AND CT.MAN_GBN = '3'
+          AND NVL(CT.DEL_YN,'N') ='N'
+          AND CT.CTRL_STAT = '1'      
+          AND CT.VST_APPL_NO = VS.VST_APPL_NO
+          AND VS.EMP_ID = T2.EMP_ID
+          AND CT.GUIDE_EMP_ID = T3.EMP_ID   
+        <if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+		  AND CT.GATE_ID = #{gateId}
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)">
+		  AND CASE WHEN VS.VIP_YN = 'Y' THEN UPPER(VS.VIP_NM)
+				   ELSE UPPER(T1.IO_EMP_NM) END LIKE '%'||UPPER(#{ioEmpNm})||'%' ESCAPE '[' 
+        </if>
+	</select>
+	
+	<insert id="insertItemsImport" parameterType="Map">
+		<selectKey keyProperty="ctrlAreaGodsNo" resultType="Integer" order="BEFORE">
+	        SELECT SEQ_AREA_GODS.NEXTVAL AS CTRL_AREA_GODS_NO FROM DUAL
+	    </selectKey>
+	    
+		/* AdmittedRepository.insertItemsImport (dmItemsImportReg) */
+		INSERT INTO  IO_CTRL_AREA_GODS
+	        ( CTRL_AREA_GODS_NO 	
+	        , IN_DT 	
+	        , IN_DTM 	
+			, OUT_DTM 
+	        , INOUTER_ID 
+	        , EMP_NM
+	        , COMP_NM	
+	        , GATE_ID 	
+	        , CTRL_GATE_ID 	
+	        , GODS_NM 	
+	        , MODEL_NM 	
+	        , QTY 	
+	        , ETC 	
+	        , GODS_STAT 	
+	        , DEL_YN 	
+	        , AC_IP 	
+	        , CRT_DTM 	
+	        , CRT_BY 	
+	        , MOD_BY 	
+	        , MOD_DTM 
+	        , CTRL_AREA)	
+		VALUES  
+	        ( #{ctrlAreaGodsNo}	
+	        , TO_CHAR(SYSDATE,'YYYYMMDD')
+	        , SYSDATE
+	        , NULL
+	        , #{inouterId} 	
+	        , #{empNm}
+	        , #{compNm}
+	        , #{gateId} 	
+	        , #{ctrlGateId} 	
+	        , #{godsNm}
+	        , #{modelNm} 	
+	        , #{qty} 	
+	        , #{etc} 	
+	        , #{godsStat} 	
+	        , 'N'
+	        , #{acIp}	
+	        , SYSDATE	
+	        , #{crtBy} 	
+	        , #{crtBy} 	
+	        , SYSDATE
+	        , #{controlarea}
+	        )
+	</insert>
+	
+	<select id="selectItemsExportList" parameterType="Map" resultType="CamelHashMap">
+		/* AdmittedRepository.selectVisitorAdmittedList (dmItemsExport_List) */
+		SELECT ROW_NUMBER() OVER ( ORDER BY GD.CTRL_AREA_GODS_NO DESC ) AS ROW_NUM,
+			   GD.CTRL_AREA_GODS_NO, TO_CHAR(GD.IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS IN_DTM, GD.ETC,
+               GD.INOUTER_ID, GD.GATE_ID, GD.CTRL_GATE_ID, GD.GODS_NM, GD.QTY, GD.MODEL_NM,
+               FN_GET_CO_BLDG(GD.CTRL_GATE_ID,'1') AS GATE_NM,
+               GD.EMP_NM, GD.COMP_NM
+        FROM IO_CTRL_AREA_GODS GD
+        WHERE NVL(GD.DEL_YN,'N') = 'N'         
+          AND GD.GODS_STAT = '1' 
+          AND GD.CTRL_AREA = #{controlarea}
+        <if test="not @org.springframework.util.StringUtils@isEmpty(empNm)">
+		  AND UPPER(GD.EMP_NM) LIKE '%'||UPPER(#{empNm})||'%' ESCAPE '[' 
+        </if>
+        <if test="not @org.springframework.util.StringUtils@isEmpty(gateId)">
+		  AND GD.GATE_ID = #{gateId}
+        </if>
+	</select>
+	
+	<update id="updateItemsExport" parameterType="Map">
+		/* AdmittedRepository.updateItemsExport (dmItemsExport) */
+		UPDATE  IO_CTRL_AREA_GODS A SET  
+			A.OUT_DTM = SYSDATE
+	     ,  A.GODS_STAT = #{godsStat}  
+	     ,  A.MOD_BY = #{crtBy}
+	     ,  A.MOD_DTM = SYSDATE  	
+	 	WHERE A.CTRL_AREA_GODS_NO = #{ctrlAreaGodsNo}
+	</update>
+	
+</mapper>

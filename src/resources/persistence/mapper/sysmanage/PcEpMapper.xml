@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.skshieldus.esecurity.repository.sysmanage.PcEpRepository">
+	
+	<select id="selectPcEpList" parameterType="Map" resultType="CamelHashMap">
+		/* PcEpRepository.selectPcEpList (dmIoInoutPcEpList) */
+	WITH T AS
+        (
+        SELECT
+            COUNT(*) OVER() AS TOT_CNT
+          , ROW_NUMBER() OVER ( ORDER BY EPC.EP_CHK_IN_DTM DESC ) AS ROW_NUM
+          , PC.INOUT_PC_ID
+          , PC.INOUT_APPL_NO
+          , PC.USER_NM
+          , EPC.ITEM_SEQ
+          , EPC.EP_CHK_TYPE
+          , EPC.EP_CHK_STAT
+          , EPC.EP_CHK_IN_DTM
+          , IW.IO_EMP_NM
+          , IW.IO_COMP_NM
+        FROM IO_INOUTPCLIST PC
+            ,IO_INOUTPC_EP_CHK EPC 
+            ,IO_INOUTWRITE IW 
+            
+        WHERE PC.INOUT_APPL_NO =IW.INOUT_APPL_NO
+          AND PC.INOUT_APPL_NO =EPC.INOUT_APPL_NO
+          AND PC.ITEM_SEQ = EPC.ITEM_SEQ
+          
+        <if test="not @org.springframework.util.StringUtils@isEmpty(reqStDt)">
+        	<if test="not @org.springframework.util.StringUtils@isEmpty(reqEndDt)"> 
+        		AND TO_CHAR(EPC.EP_CHK_IN_DTM, 'YYYYMMDD') BETWEEN #{reqStDt} AND #{reqEndDt}
+			</if>
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(ioEmpNm)"> 
+       		AND IW.IO_EMP_NM LIKE '%' || #{ioEmpNm} ||'%'
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(userNm)"> 
+       		AND PC.USER_NM LIKE '%' || #{userNm} ||'%'
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(ioCompNm)"> 
+       		AND IW.IO_COMP_NM LIKE '%' || #{ioCompNm} ||'%'
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(epChkTypeS)"> 
+       		AND EPC.EP_CHK_TYPE = #{epChkTypeS}
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(epChkStatS)"> 
+       		AND EPC.EP_CHK_STAT = #{epChkStatS}
+		</if>
+       	<if test="not @org.springframework.util.StringUtils@isEmpty(inoutPcId)"> 
+       		AND UPPER(PC.INOUT_PC_ID) LIKE '%' || UPPER(TRIM(#{inoutPcId})) ||'%'
+		</if>                  
+        )
+        SELECT 
+			    TOT_CNT
+			  , ROW_NUM
+			  , INOUT_PC_ID
+			  , INOUT_APPL_NO
+			  , USER_NM
+			  , ITEM_SEQ
+			  , EP_CHK_TYPE
+			  , DECODE(EP_CHK_TYPE, '1','반입', '2','반출' )                    EP_CHK_TYPE_NM
+			  , EP_CHK_STAT
+			  , DECODE(EP_CHK_STAT, '1','진행중', '2','점검완료','3','반입불가','4','취소' ) EP_CHK_STAT_NM
+			  , TO_CHAR(EP_CHK_IN_DTM, 'YYYY-MM-DD')                          	EP_CHK_IN_DTM_YMD
+			  , TO_CHAR(EP_CHK_IN_DTM,'YYYY-MM-DD HH24:MI:SS')					EP_CHK_IN_DTM
+			  , IO_EMP_NM
+			  , IO_COMP_NM
+          FROM T		
+	</select>	
+	
+	<select id="selectPcEpView" parameterType="Map" resultType="CamelHashMap">
+		/* PcEpRepository.selectPcEpView (dmIoInoutPcEpView) */
+	SELECT PC.INOUT_APPL_NO
+             , PC.ITEM_SEQ
+             , IW.IO_COMP_ID
+             , IW.IO_COMP_NM
+             , IW.IO_EMP_NM ||'('|| IW.IO_EMP_ID ||')' AS IO_EMP_NM
+             , IW.IO_TEL_NO
+             , FN_GET_CODE('A030', IW.COMPANYNO, 'ETC1' ) COMPANYNO
+             , IW.COMP_ID
+             , IW.GATE_NM
+             , FN_GET_CODE('A024', IW.IO_CAUSE, 'ETC1') IO_CAUSE
+             , DECODE(IW.INOUT_GBN, '1', '반입/반출', '2','반입/미반출') INOUT_GBN
+             , IW.DEPT_NM
+             , IW.EMP_NM ||'(' || FN_GET_JW_NM((SELECT CO.JW_ID FROM CO_EMP CO WHERE CO.EMP_ID = IW.EMP_ID)) || ')' AS EMP_NM
+             , FN_GET_JW_NM((SELECT CO.JW_ID FROM CO_EMP CO WHERE CO.EMP_ID = IW.EMP_ID)) JW_NM
+             , IW.TEL_NO
+             , IW.IO_CAUSE_DETAIL
+             , TO_CHAR(TO_DATE(IW.IN_EXPT_DATE, 'YYYYMMDD'), 'YYYY-MM-DD') IN_EXPT_DATE
+             , TO_CHAR(TO_DATE(PC.OUT_EXPT_DATE, 'YYYYMMDD'), 'YYYY-MM-DD') OUT_EXPT_DATE
+             , PC.USER_NM ||'('|| PC.USER_ID ||')' AS USER_NM
+             , PC.USER_ID
+             , PC.USER_HP_NO
+             , DECODE(PC.PC_TYPE, 1, '데스크탑', 2, '노트북', '3', 'HDD', '4', 'SSD', '5', '라이센스KEY') PC_TYPE
+             , PC.MAKER
+             , PC.SERIAL_NO
+             , FN_GET_CODE('D007', PC.PC_OS, 'ETC1') PC_OS_NM
+             , PC.PC_OS
+             , PC.MAC_ADDR
+             , DECODE(PC.SCRT_SLTN_INST_YN, 'Y', '가능', 'N', '불가능') SCRT_SLTN_INST_YN
+             , PC.IN_DENY_RSN
+             , DECODE(EPC.EP_CHK_STAT, '1', '진행중', '2', '점검완료','3','반입불가','4','취소') EP_CHK_STAT_NM
+             , EPC.EP_CHK_STAT
+             , DECODE(EPC.EP_CHK_TYPE, '1', '반입', '2', '반출') EP_CHK_TYPE_NM
+             , EPC.EP_CHK_TYPE
+             , EPC.EP_CHK_DONE_DTM
+             , EPC.EP_CHK_CANCEL_DTL
+             , TO_CHAR(EPC.EP_CHK_DONE_DTM, 'YYYY-MM-DD') EP_CHK_DONE_DTM_YMD
+             , EPC.EP_CHK_IN_DTM
+             , TO_CHAR(EPC.EP_CHK_IN_DTM, 'YYYY-MM-DD') EP_CHK_IN_DTM_YMD
+             , IW.IOINOUTSERIALNO
+             , PC.INOUT_PC_ID
+          FROM IO_INOUTWRITE IW 
+               INNER JOIN IO_INOUTPCLIST PC ON IW.INOUT_APPL_NO = PC.INOUT_APPL_NO
+               INNER JOIN IO_INOUTPC_EP_CHK EPC ON PC.INOUT_APPL_NO = EPC.INOUT_APPL_NO AND PC.ITEM_SEQ=EPC.ITEM_SEQ
+                 WHERE PC.INOUT_APPL_NO = #{inoutApplNo}
+                     	AND PC.ITEM_SEQ = #{itemSeq}
+                       	AND EPC.EP_CHK_IN_DTM=TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+	</select>
+	
+	
+	<select id="selectPcEpReceiveView" parameterType="Map" resultType="CamelHashMap">
+		/* PcEpRepository.selectPcEpReceiveView (dmIoInoutPcEpReceiveView) */
+	SELECT * 
+  FROM (
+		SELECT A.INOUT_APPL_NO
+		     , A.ITEM_SEQ
+		     , A.INOUT_PC_ID AS IOINOUTSERIALNO
+		     , A.PC_TYPE
+		     , DECODE(A.PC_TYPE, '1', '데스크탑', '2', '노트북', '3', 'HDD', '4', 'SSD', '5', '라이센스KEY', '') AS PC_TYPE_NM
+		     , A.USER_ID
+		     , A.USER_NM ||'('|| A.USER_ID ||')' AS USER_NM
+		     , A.USER_HP_NO
+		     , FN_GET_IO_COMP_ID(A.USER_ID) AS USER_COMP_ID
+		     , FN_GET_IO_COMP_KO_NM(FN_GET_IO_COMP_ID(A.USER_ID)) AS USER_COMP_NM
+		     , TO_CHAR(TO_DATE(A.OUT_EXPT_DATE, 'YYYYMMDD'), 'YYYY-MM-DD') OUT_EXPT_DATE
+		     , A.MAKER
+		     , A.SERIAL_NO
+		     , A.PC_OS
+		     , FN_GET_CODE('D007', A.PC_OS, 'ETC1') PC_OS_NM
+		     , A.MAC_ADDR
+		     , DECODE(A.SCRT_SLTN_INST_YN, 'Y', '가능', 'N', '불가능') SCRT_SLTN_INST_YN
+		     , A.OPEN_GBN
+		     , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A025' AND DETL_CD = A.OPEN_GBN ) AS OPEN_GBN_NM
+		     , A.OPEN_BIT
+		     , A.OPEN_RSN
+		     , A.ITEM_STAT
+		     , DECODE(A.ITEM_STAT, 'C', '저장', 'U', '수정', 'D', '삭제', 'I', '반입', 'O', '반출', '') AS ITEM_STAT_NM
+		     , A.INOUT_PC_ID
+		     , A.IN_COMP_ID
+		     , A.IN_EXPT_GATE_ID
+		     , A.IN_EXPT_GATE_NM
+		     , A.LAST_IN_GATE_ID
+		     , A.LAST_IN_GATE_NM
+		     , A.EP_IN_CHK_NEED_YN
+		     , A.EP_IN_CHK_DONE_YN
+		     , TO_CHAR(A.EP_IN_CHK_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_IN_CHK_DONE_DTM
+		     , A.EP_OUT_CHK_NEED_YN
+		     , A.EP_OUT_CHK_DONE_YN
+		     , TO_CHAR(A.EP_OUT_CHK_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_OUT_CHK_DONE_DTM
+		     , A.SELF_FRMT_DONE_YN
+		     , TO_CHAR(A.SELF_FRMT_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS SELF_FRMT_DONE_DTM
+		     , A.DPT_INSTALL_YN
+		     , A.IN_DENY_YN
+		     , A.IN_DENY_RSN
+		     , A.OUTGATEETC
+		     , CASE WHEN A.IN_DENY_YN = 'Y' OR A.EP_OUT_CHK_DONE_YN = 'Y' 
+                          THEN 'N' ELSE 'Y' 
+                      END AS ENTER_BUILDING_YN
+                   , CASE WHEN A.IN_DENY_YN = 'N' AND A.EP_OUT_CHK_NEED_YN = 'Y' AND EP_OUT_CHK_DONE_YN = 'N' 
+                          THEN 'N' ELSE 'Y' 
+                      END AS ENTER_GATE_YN
+		     , TO_CHAR(B.MOVE_STRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS MOVE_STRT_DTM
+		     , B.MOVE_TYPE
+		     , CASE B.MOVE_TYPE WHEN '1' THEN '반입' WHEN '2' THEN '반출' WHEN '3' THEN '건물간이동' END AS MOVE_TYPE_NM
+		     , B.MOVE_STAT
+		     , CASE B.MOVE_STAT WHEN '1' THEN '이동중' WHEN '2' THEN '이동완료' WHEN '3' THEN '이동취소' END AS MOVE_STAT_NM
+		     , B.MOVE_END_DTM
+		     , B.MOVE_IO_EMP_ID
+		     , B.MOVE_IO_EMP_NM
+		     , B.MOVE_IO_EMP_HP_NO
+		     , B.FR_GATE_ID
+		     , B.FR_GATE_NM
+		     , B.FR_XEMP_ID
+		     , B.FR_XEMP_NM
+		     , B.TO_GATE_ID
+		     , B.TO_GATE_NM
+		     , B.TO_XEMP_ID
+		     , B.TO_XEMP_NM
+		     , B.MOVE_CANCEL_DTL
+		     , TO_CHAR(C.EP_CHK_IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_CHK_IN_DTM
+             , TO_CHAR(C.EP_CHK_IN_DTM, 'YYYY-MM-DD') EP_CHK_IN_DTM_YMD
+             , C.EP_CHK_TYPE
+             , DECODE(C.EP_CHK_TYPE, '1', '반입', '2', '반출') EP_CHK_TYPE_NM
+             , C.EP_CHK_STAT
+             , DECODE(C.EP_CHK_STAT, '1', '진행중', '2', '점검완료','3','반입불가','4','취소') EP_CHK_STAT_NM
+             , IW.IO_COMP_ID
+             , IW.IO_COMP_NM
+             , IW.IO_EMP_NM ||'('|| IW.IO_EMP_ID ||')' AS IO_EMP_NM
+             , IW.IO_TEL_NO
+             , FN_GET_CODE('A030', IW.COMPANYNO, 'ETC1' ) COMPANYNO
+             , IW.COMP_ID
+             , IW.GATE_NM
+             , FN_GET_CODE('A024', IW.IO_CAUSE, 'ETC1') IO_CAUSE
+             , DECODE(IW.INOUT_GBN, '1', '반입/반출', '2','반입/미반출') INOUT_GBN
+             , IW.DEPT_NM
+             , IW.EMP_NM ||'(' || FN_GET_JW_NM((SELECT CO.JW_ID FROM CO_EMP CO WHERE CO.EMP_ID = IW.EMP_ID)) || ')' AS EMP_NM
+             , FN_GET_JW_NM((SELECT CO.JW_ID FROM CO_EMP CO WHERE CO.EMP_ID = IW.EMP_ID)) JW_NM
+             , IW.TEL_NO
+             , IW.IO_CAUSE_DETAIL
+             , TO_CHAR(TO_DATE(IW.IN_EXPT_DATE, 'YYYYMMDD'), 'YYYY-MM-DD') IN_EXPT_DATE
+             , C.EP_CHK_DONE_DTM
+             , C.EP_CHK_CANCEL_DTL
+             , TO_CHAR(C.EP_CHK_DONE_DTM, 'YYYY-MM-DD') EP_CHK_DONE_DTM_YMD
+             , (SELECT GATE_KND FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = #{xempId} AND ROWNUM = 1) AS GATE_KND
+		  FROM IO_INOUTPCLIST A
+		     , IO_INOUTPC_MOVE B
+		     , IO_INOUTPC_EP_CHK C
+             , IO_INOUTWRITE IW
+		 WHERE A.INOUT_APPL_NO = B.INOUT_APPL_NO(+) 
+		   AND A.ITEM_SEQ = B.ITEM_SEQ(+)
+		   AND A.INOUT_APPL_NO = C.INOUT_APPL_NO(+)
+		   AND A.INOUT_APPL_NO = IW.INOUT_APPL_NO(+)  
+		   AND A.ITEM_SEQ = C.ITEM_SEQ(+)
+           AND C.EP_CHK_STAT(+) = '1'
+		   AND A.INOUT_PC_ID = UPPER(#{inoutPcId})
+         ORDER BY B.MOVE_STRT_DTM DESC
+          )
+ WHERE ROWNUM = 1
+	</select>
+	
+	<select id="selectInPcEpResult" parameterType="Map" resultType="CamelHashMap">
+		/* PcEpRepository.selectInPcEpResult (dmIoInPcEpResultSelect) */
+		SELECT 
+		       PC_OS
+		      ,MAC_ADDR
+		      ,DLP_INSTALL_YN
+		      ,SEP_INSTALL_YN
+		      ,USB_LOCK_YN
+		      ,NAC_EXPT_YN
+		      ,IN_ETC
+		FROM IO_INOUTPC_EP_IN_CHK_RSLT
+		WHERE INOUT_APPL_NO  = #{inoutApplNo}
+		   AND ITEM_SEQ      = #{itemSeq}
+		   AND EP_CHK_IN_DTM =TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+	</select>
+	
+	<select id="selectOutPcEpResult" parameterType="Map" resultType="CamelHashMap">
+		/* PcEpRepository.selectOutPcEpResult (dmIoOutPcEpResultSelect) */
+		SELECT 
+			   FORMAT_YN
+		      ,DEGAUSING_YN
+		      ,USB_LOCK_REMOVE_YN
+		      ,OUT_ETC
+		FROM IO_INOUTPC_EP_OUT_CHK_RSLT
+		WHERE INOUT_APPL_NO  = #{inoutApplNo}
+		   AND ITEM_SEQ      = #{itemSeq}
+		   AND EP_CHK_IN_DTM =TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+	</select>
+		
+	
+	<insert id="insertInPcEp" parameterType="Map">
+	/* PcEpRepository.insertInPcEp (dmIoInPcEpResultInsert) */
+	INSERT INTO IO_INOUTPC_EP_IN_CHK_RSLT	
+        (
+           INOUT_APPL_NO
+         , ITEM_SEQ
+         , EP_CHK_IN_DTM
+         , PC_OS
+         , MAC_ADDR
+         , DLP_INSTALL_YN
+         , SEP_INSTALL_YN
+         , USB_LOCK_YN
+         , NAC_EXPT_YN
+         , IN_ETC
+        )
+        VALUES
+        (
+           #{inoutApplNo}
+         , #{itemSeq}
+         , TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+         , #{pcOs}
+         , #{macAddr}
+         , #{dlpInstallYn}
+         , #{sepInstallYn}
+         , #{usbLockYn}
+         , #{nacExptYn}
+         , #{inEtc}
+        )
+	</insert>
+	
+	<insert id="insertOutPcEp" parameterType="Map">
+	/* PcEpRepository.insertOutPcEp (dmIoOutPcEpResultInsert) */	
+	
+        INSERT INTO IO_INOUTPC_EP_OUT_CHK_RSLT
+        (
+           INOUT_APPL_NO
+         , ITEM_SEQ
+         , EP_CHK_IN_DTM
+         , FORMAT_YN
+         , DEGAUSING_YN
+         , USB_LOCK_REMOVE_YN
+         , OUT_ETC
+        )
+        VALUES
+        (
+           #{inoutApplNo}
+         , #{itemSeq}
+         , TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+         , #{formatYn}
+         , #{degausingYn}
+         , #{usbLockRemoveYn}
+         , #{outEtc}
+        )
+	</insert>
+	
+	<select id="selectInPcEpCheckInDate" parameterType="Map" resultType="CamelHashMap">
+	/* PcEpRepository.selectInPcEpCheckInDate (dmIoOutEpCheckInDateSelect) */
+	SELECT TO_CHAR(EP_CHK_IN_DTM, 'YYYY-MM-DD HH24:MI:SS') EP_CHK_IN_DTM
+	          FROM IO_INOUTPC_EP_CHK
+	         WHERE INOUT_APPL_NO = #{inoutApplNo}
+	           AND ITEM_SEQ = #{itemSeq} 
+	           AND EP_CHK_IN_DTM = TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+	</select>
+	
+	<update id="updatePcEpChkCase" parameterType="Map">
+	/* PcEpRepository.updatePcEpChkCase (dmIoInOutPcEpChkCaseUpdate) */
+ 	UPDATE IO_INOUTPC_EP_CHK
+		<if test='"InPcEpResultInsert".equals(epResultCase)'>
+	           SET EP_CHK_STAT ='2'
+             , EP_CHK_EMP_NO  = #{epChkEmpNo}
+             , EP_CHK_EMP_NM  = #{epChkEmpNm}
+             , EP_CHK_DONE_DTM = SYSDATE 			
+		</if>
+		<if test='"OutPcEpResultInsert".equals(epResultCase)'>
+	           SET EP_CHK_STAT ='2'
+             , EP_CHK_EMP_NO  = #{epChkEmpNo}
+             , EP_CHK_EMP_NM  = #{epChkEmpNm}
+             , EP_CHK_DONE_DTM = SYSDATE 			
+		</if>
+		<if test='"InOutPcEpResultCancelUpdate".equals(epResultCase)'>
+	           SET EP_CHK_STAT ='3'
+             , EP_CHK_EMP_NO  = #{epChkEmpNo}
+             , EP_CHK_EMP_NM  = #{epChkEmpNm}
+             , EP_CHK_DONE_DTM = SYSDATE 			
+		</if>
+		<if test='"InPcEptCancelCheckUpdate".equals(epResultCase)'>
+	           SET EP_CHK_STAT ='4'
+             , EP_CHK_EMP_NO  = #{epChkEmpNo}
+             , EP_CHK_EMP_NM  = #{epChkEmpNm}
+             , EP_CHK_DONE_DTM = SYSDATE 		
+             , EP_CHK_CANCEL_DTL=#{epChkCancelDtl}	
+		</if>	
+         WHERE INOUT_APPL_NO = #{inoutApplNo}
+           AND ITEM_SEQ = #{itemSeq}
+           AND EP_CHK_IN_DTM = TO_DATE(#{epChkInDtm},'YYYY-MM-DD HH24:MI:SS')
+	</update>
+	
+	<update id="updatePcListCase" parameterType="Map">
+	/* PcEpRepository.updatePcListCase (dmIoInOutPcListCaseUpdate) */
+    UPDATE IO_INOUTPCLIST
+   		<if test='"InPcEpResultInsert".equals(epResultCase)'>
+           SET EP_IN_CHK_DONE_YN = 'Y'
+             , MAC_ADDR = #{macAddr}
+             , PC_OS = #{pcOs}
+             , EP_IN_CHK_DONE_DTM = SYSDATE		
+		</if>
+		<if test='"OutPcEpResultInsert".equals(epResultCase)'>
+           SET EP_OUT_CHK_DONE_YN ='Y'
+             , EP_OUT_CHK_DONE_DTM=SYSDATE	
+		</if>
+		<if test='"InOutPcEpResultCancelUpdate".equals(epResultCase)'>
+           SET IN_DENY_YN ='Y'
+             , IN_DENY_RSN = #{inDenyRsn}	
+		</if>
+         WHERE INOUT_APPL_NO = #{inoutApplNo}
+           AND ITEM_SEQ = #{itemSeq}
+	</update>	
+	
+	<select id="selectOutNetworkInfoNcaIF" parameterType="Map" resultType="CamelHashMap">
+	/* PcEpRepository.selectOutNetworkInfoNcaIF (dmIoInoutPc_getOutNetworkInfo_NcaIF) */
+	SELECT 
+		    A.COMPANYNO AS LOC_TYPE
+		   ,B.USER_ID AS USER_ID
+		   ,CASE WHEN C.NATION = 'Z0011001' THEN SUBSTR(C.JUMIN_NO,1,6) 
+		           ELSE C.PASSPORT_NO 
+		      END AS USER_PASS
+		   , B.MAC_ADDR AS MAC_ADDR
+		   , SUBSTR(B.OUT_EXPT_DATE,'1','4')||'-'||SUBSTR(B.OUT_EXPT_DATE,'5','2')||'-'||SUBSTR(B.OUT_EXPT_DATE,'7','2') AS CARRY_OUT
+		   ,  CASE WHEN 
+		       TO_DATE(B.OUT_EXPT_DATE, 'YYYY-MM-DD') -    TO_DATE(A.IN_EXPT_DATE, 'YYYY-MM-DD') > 30 
+		      THEN 'Y'  ELSE 'N' END 
+		      AS FORCE_PRO_YN
+		   , B.INOUT_APPL_NO AS REQ_ID
+		   , C.EMP_NM AS USER_NAME
+		   , C.HP_NO AS USER_MOBILE
+		   , C.EMAIL_ADDR AS USER_EMAIL
+		   , NVL(FN_GET_IO_COMP_KO_NM(C.IO_COMP_ID), FN_GET_IO_COMP_EN_NM(C.IO_COMP_ID)) AS USER_COMPANY
+		   , A.DEPT_NM AS REQ_DEPT
+		   <choose>
+		   		<when test="!@org.springframework.util.StringUtils@isEmpty(toGateNm)">
+		   			, TRIM(#{toGateNm}) AS INCOME_BUILD
+		   		</when>
+		   		<otherwise>
+		   			, TRIM(B.IN_EXPT_GATE_NM) AS INCOME_BUILD
+		   		</otherwise>
+		   </choose>
+		   , A.EMP_NM AS MANAGER_NAME
+		   , (SELECT FN_GET_DEPT_NM(TT.UPDEPT_ID)  FROM CO_DEPT TT WHERE TT.DEPT_ID = A.DEPT_ID)  AS REQ_TEAM
+		   , A.EMP_ID AS MANAGER_ID
+		FROM IO_INOUTWRITE A
+		   , IO_INOUTPCLIST B
+		   , IO_EMP C
+		  WHERE A.INOUT_APPL_NO = B.INOUT_APPL_NO
+		    AND A.PC_YN ='Y'
+		    AND A.APPL_STAT = 'Z0331005'
+		    AND A.DOC_ID IS NOT NULL
+		    AND B.USER_ID = C.IO_EMP_ID
+		    AND B.INOUT_APPL_NO = #{inoutApplNo}
+		    AND B.ITEM_SEQ = #{itemSeq}
+	</select>	
+	
+	<select id="selectNacExceptInfoNcaIF" parameterType="Map" resultType="CamelHashMap">
+	/* PcEpRepository.selectNacExceptInfoNcaIF (dmIoInoutPc_getNacExceptInfo_NcaIf) */
+	SELECT 
+		PC.MAC_ADDR
+		, '' AS IP_ADDR
+		, '02' AS EXCEPT_TYPE /*MAC+IP :01, MAC Onlye:01 */
+		, DECODE(II.COMP_ID,'1101000001','1101000001','1108000001','1108000001','1102000001') AS LOC_TYPE
+		, SUBSTR(PC.OUT_EXPT_DATE,'1','4')||'-'||SUBSTR(PC.OUT_EXPT_DATE,'5','2')||'-'||SUBSTR(PC.OUT_EXPT_DATE,'7','2') AS EXPIRE_DATE
+		, PC.USER_ID AS USER_ID
+		, PC.USER_NM AS USER_NAME
+		, II.IO_CAUSE AS REQ_REASON
+		, PC.INOUT_APPL_NO AS REQ_ID
+	FROM IO_INOUTWRITE II
+	   		, IO_INOUTPCLIST PC
+	  WHERE II.INOUT_APPL_NO = PC.INOUT_APPL_NO
+	    AND II.PC_YN ='Y'
+	    AND II.APPL_STAT = 'Z0331005'
+	    AND PC.INOUT_APPL_NO = #{inoutApplNo}
+	    AND PC.ITEM_SEQ = #{itemSeq}
+	</select>	
+	
+	
+	
+	
+	<select id="selectPcXempInfo" parameterType="Map" resultType="CamelHashMap">
+	/* PcEpRepository.selectPcXempInfo (dmIoInoutPcXempInfo) */
+		SELECT CO_XEMP_BUILDING_OUT_APPL_NO
+		     , GATE_ID
+		     , GATE_NAME
+		     , XEMP_ID
+		     , XEMP_NAME
+		     , COMP_ID
+		     , GATE_KND
+		  FROM CO_XEMP_BUILDING_OUT
+		 WHERE DEL_YN = 'N'
+		   AND XEMP_ID = UPPER( #{xempId} )
+		   AND ROWNUM = 1
+	</select>		
+	
+	<select id="selectPcInfoBuilding" parameterType="Map" resultType="CamelHashMap">
+	/* PcEpRepository.selectPcInfoBuilding (dmIoInoutPcInfoBuilding) */
+	SELECT * 
+		  FROM (
+				SELECT A.INOUT_APPL_NO
+				     , A.ITEM_SEQ
+				     , A.INOUT_PC_ID AS IOINOUTSERIALNO
+				     , A.PC_TYPE
+				     , DECODE(A.PC_TYPE, '1', '데스크탑', '2', '노트북', '3', 'HDD', '4', 'SSD', '5', '라이센스KEY', '') AS PC_TYPE_NM
+				     , A.USER_ID
+				     , A.USER_NM
+				     , A.USER_HP_NO
+				     , FN_GET_IO_COMP_ID(A.USER_ID) AS USER_COMP_ID
+				     , FN_GET_IO_COMP_KO_NM(FN_GET_IO_COMP_ID(A.USER_ID)) AS USER_COMP_NM
+				     , A.OUT_EXPT_DATE
+				     , A.MAKER
+				     , A.SERIAL_NO
+				     , A.PC_OS
+				     , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'D007' AND ETC1 = A.PC_OS) AS PC_OS_NM
+				     , A.MAC_ADDR
+				     , A.SCRT_SLTN_INST_YN
+				     , A.OPEN_GBN
+				     , (SELECT DETL_NM FROM CO_CODE_D WHERE GRP_CD = 'A025' AND DETL_CD = A.OPEN_GBN ) AS OPEN_GBN_NM
+				     , A.OPEN_BIT
+				     , A.OPEN_RSN
+				     , A.ITEM_STAT
+				     , DECODE(A.ITEM_STAT, 'C', '저장', 'U', '수정', 'D', '삭제', 'I', '반입', 'O', '반출', '') AS ITEM_STAT_NM
+				     , A.INOUT_PC_ID
+				     , A.IN_COMP_ID
+				     , A.IN_EXPT_GATE_ID
+				     , A.IN_EXPT_GATE_NM
+				     , A.LAST_IN_GATE_ID
+				     , A.LAST_IN_GATE_NM
+				     , A.EP_IN_CHK_NEED_YN
+				     , A.EP_IN_CHK_DONE_YN
+				     , TO_CHAR(A.EP_IN_CHK_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_IN_CHK_DONE_DTM
+				     , A.EP_OUT_CHK_NEED_YN
+				     , A.EP_OUT_CHK_DONE_YN
+				     , TO_CHAR(A.EP_OUT_CHK_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_OUT_CHK_DONE_DTM
+				     , A.SELF_FRMT_DONE_YN
+				     , TO_CHAR(A.SELF_FRMT_DONE_DTM,'YYYY-MM-DD HH24:MI:SS') AS SELF_FRMT_DONE_DTM
+				     , A.DPT_INSTALL_YN
+				     , A.IN_DENY_YN
+				     , A.IN_DENY_RSN
+				     , A.OUTGATEETC
+				     , CASE WHEN A.IN_DENY_YN = 'Y' OR A.EP_OUT_CHK_DONE_YN = 'Y' 
+                            THEN 'N' ELSE 'Y' 
+                        END AS ENTER_BUILDING_YN
+                     , CASE WHEN A.IN_DENY_YN = 'N' AND A.EP_OUT_CHK_NEED_YN = 'Y' AND EP_OUT_CHK_DONE_YN = 'N' 
+                            THEN 'N' ELSE 'Y' 
+                        END AS ENTER_GATE_YN
+				     , TO_CHAR(B.MOVE_STRT_DTM,'YYYY-MM-DD HH24:MI:SS') AS MOVE_STRT_DTM
+				     , B.MOVE_TYPE
+				     , CASE B.MOVE_TYPE WHEN '1' THEN '반입' WHEN '2' THEN '반출' WHEN '3' THEN '건물간이동' END AS MOVE_TYPE_NM
+				     , B.MOVE_STAT
+				     , CASE B.MOVE_STAT WHEN '1' THEN '이동중' WHEN '2' THEN '이동완료' WHEN '3' THEN '이동취소' END AS MOVE_STAT_NM
+				     , B.MOVE_END_DTM
+				     , B.MOVE_IO_EMP_ID
+				     , B.MOVE_IO_EMP_NM
+				     , B.MOVE_IO_EMP_HP_NO
+				     , B.FR_GATE_ID
+				     , B.FR_GATE_NM
+				     , B.FR_XEMP_ID
+				     , B.FR_XEMP_NM
+				     , B.TO_GATE_ID
+				     , B.TO_GATE_NM
+				     , B.TO_XEMP_ID
+				     , B.TO_XEMP_NM
+				     , B.MOVE_CANCEL_DTL
+				     , TO_CHAR(C.EP_CHK_IN_DTM,'YYYY-MM-DD HH24:MI:SS') AS EP_CHK_IN_DTM
+                     , C.EP_CHK_TYPE
+                     , C.EP_CHK_STAT
+				  FROM IO_INOUTPCLIST A
+				     , IO_INOUTPC_MOVE B
+				     , IO_INOUTPC_EP_CHK C
+				 WHERE A.INOUT_APPL_NO = B.INOUT_APPL_NO(+) AND A.ITEM_SEQ = B.ITEM_SEQ(+)
+				   AND A.INOUT_APPL_NO = C.INOUT_APPL_NO(+) AND A.ITEM_SEQ = C.ITEM_SEQ(+)
+                   AND C.EP_CHK_STAT(+) = '1'
+				   AND A.INOUT_PC_ID LIKE UPPER( #{inoutPcId} ) || '%'
+		         ORDER BY B.MOVE_STRT_DTM DESC
+	           )
+		 WHERE ROWNUM = 1
+	</select>			
+	
+	<select id="selectPcEpNotEndCnt" parameterType="Map" resultType="int">
+	/* PcEpRepository.selectPcEpNotEndCnt (dmIoInoutPcEpNotEndCnt) */
+		SELECT COUNT(*) AS CNT 
+		  FROM IO_INOUTPC_EP_CHK
+		 WHERE INOUT_APPL_NO = #{inoutApplNo}
+		   AND ITEM_SEQ = #{itemSeq}
+		   AND EP_CHK_STAT = '1'
+	</select>	
+	
+	<insert id="insertPcBuildingOut" parameterType="Map">
+	/* PcEpRepository.insertPcBuildingOut (dmIoInoutPcBuildingOut_inoutPcMove) */	
+	INSERT INTO IO_INOUTPC_MOVE 
+			 ( INOUT_APPL_NO
+			 , ITEM_SEQ
+			 , MOVE_STRT_DTM
+			 , MOVE_TYPE
+			 , MOVE_STAT
+			 , MOVE_IO_EMP_ID
+			 , MOVE_IO_EMP_NM
+			 , MOVE_IO_EMP_HP_NO
+			 , FR_GATE_ID
+			 , FR_GATE_NM
+			 , FR_XEMP_ID
+			 , FR_XEMP_NM
+	       	<if test="not @org.springframework.util.StringUtils@isEmpty(toGateId)"> 
+			 , TO_GATE_ID
+			 , TO_GATE_NM
+			</if>			
+		     )
+		SELECT INOUT_APPL_NO
+		     , ITEM_SEQ
+		     , SYSDATE
+		     , #{moveType}
+		     , '1'
+		     , UPPER( #{moveIoEmpId} )
+		     , ( SELECT EMP_NM FROM IO_EMP WHERE IO_EMP_ID = UPPER( #{moveIoEmpId} ) ) 
+		     , ( SELECT HP_NO FROM IO_EMP WHERE IO_EMP_ID = UPPER( #{moveIoEmpId} ) ) 
+		     , ( SELECT GATE_ID FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+		     , ( SELECT GATE_NAME FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+		     , UPPER( #{xempId} )
+		     , ( SELECT XEMP_NAME FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+	       	<if test="not @org.springframework.util.StringUtils@isEmpty(toGateId)"> 
+		     , #{toGateId}
+		     , ( SELECT GATE_NAME FROM CO_XEMP_BUILDING_OUT WHERE GATE_ID = UPPER( #{toGateId} ) AND ROWNUM = 1 )
+			</if>
+		  FROM IO_INOUTPCLIST 
+		 WHERE INOUT_PC_ID = #{inoutPcId}
+
+	</insert>
+	
+	<update id="updatePcBuildingInInoutList" parameterType="Map">
+	/* PcEpRepository.updatePcBuildingInInoutList (dmIoInoutPcBuildingIn_inoutPcList) */
+		UPDATE IO_INOUTPCLIST SET 
+			   LAST_IN_GATE_ID = ( SELECT GATE_ID FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId}  ) AND ROWNUM = 1 )
+			 , LAST_IN_GATE_NM = ( SELECT GATE_NAME FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId}  ) AND ROWNUM = 1 )
+			 , MOD_BY = UPPER( #{xempId} )
+			 , MOD_DTM = SYSDATE
+		 WHERE INOUT_PC_ID = #{inoutPcId}
+	</update>	
+	
+	<update id="updatePcBuildingInInoutPcMove" parameterType="Map">
+	/* PcEpRepository.updatePcBuildingInInoutPcMove (dmIoInoutPcBuildingIn_inoutPcMove) */
+    		UPDATE IO_INOUTPC_MOVE SET
+		       MOVE_STAT = '2'
+		     , MOVE_END_DTM = SYSDATE
+		     , TO_GATE_ID = ( SELECT GATE_ID FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+		     , TO_GATE_NM = ( SELECT GATE_NAME FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+		     , TO_XEMP_ID = UPPER( #{xempId} )
+		     , TO_XEMP_NM = ( SELECT XEMP_NAME FROM CO_XEMP_BUILDING_OUT WHERE XEMP_ID = UPPER( #{xempId} ) AND ROWNUM = 1 )
+		 WHERE ( INOUT_APPL_NO, ITEM_SEQ, MOVE_STRT_DTM ) 
+		       IN 
+		       ( SELECT A.INOUT_APPL_NO, A.ITEM_SEQ, B.MOVE_STRT_DTM
+		           FROM IO_INOUTPCLIST A, IO_INOUTPC_MOVE B
+		          WHERE A.INOUT_APPL_NO = B.INOUT_APPL_NO
+		            AND A.ITEM_SEQ = B.ITEM_SEQ
+		            AND A.INOUT_PC_ID = #{inoutPcId}
+		            AND B.MOVE_STRT_DTM = TO_DATE(#{moveStrtDtm}, 'YYYY-MM-DD HH24:MI:SS')
+		       )
+	</update>	
+	
+	<update id="updatePcBuildingMoveType" parameterType="Map">
+	/* PcEpRepository.updatePcBuildingMoveType (dmIoInoutPcBuildingMoveTypeUpdate) */
+		/* IO: 선정범,2019-09-03T15:16:01(선정범,2019-09-03T15:16:01) */
+		UPDATE IO_INOUTPC_MOVE SET
+		       MOVE_TYPE = '3'
+   		 WHERE INOUT_APPL_NO  = #{inoutApplNo}
+		   AND ITEM_SEQ      = #{itemSeq}
+		   AND MOVE_STRT_DTM = TO_DATE(#{moveStrtDtm}, 'YYYY-MM-DD HH24:MI:SS')
+	</update>	
+	
+	<insert id="insertPcBuildingInEp" parameterType="Map">
+	/* PcEpRepository.insertPcBuildingInEp (dmIoInoutPcBuildingIn_EpInsert) */
+	INSERT INTO IO_INOUTPC_EP_CHK	
+	( 
+		INOUT_APPL_NO,
+		ITEM_SEQ,
+		EP_CHK_IN_DTM,
+		EP_CHK_TYPE,
+		EP_CHK_STAT 
+	)VALUES 
+	( 
+		#{inoutApplNo},
+	    #{itemSeq},
+		SYSDATE,
+	    #{epchktype},
+        '1' 
+     )
+	</insert>
+	
+</mapper>

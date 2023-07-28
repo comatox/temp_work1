@@ -1,0 +1,290 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>&lt;명세서&gt;</title>
+<link rel="stylesheet" href="newreportstyle.css">
+</head>
+
+<body>
+<!-- REPORTHEADER-END -->
+<!-- REPORTTITLE-BEGIN -->
+<!-- REPORTTITLE-END -->
+<!-- PAGEHEADER-BEGIN -->
+<!-- 타이틀에 표현할 logo와 조건의 이름이 위치하는 영역(모든페이지의 앞에 표기된다.) -->
+
+
+<br>
+<table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+	<tr>
+		<td width="165" height="17" align="left" style="padding-bottom:3px;" class="font4"><img src="{{ER_EagletReportUrl}}/images/logo.gif"/></td>
+		<td width="320" align="center" class="font3">명세서</td>
+		<td width="165" valign="bottom" align="right" class="font4" style="padding:0,10,3,0;">{{ER_ReportMakeTime}}<br>
+	    Page : {{ER_Page}} of {{ER_TotalPage}}</td>
+	</tr>
+</table>
+<table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td colspan="3"><table width="650" border="0" cellspacing="0" cellpadding="0">
+		<tr>
+          <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_l_2.gif" width="10" height="11" /></td>
+          <td width="70" class="bg1" height="11"></td>
+          <td class="bg1" width="1"></td>
+          <td width="244" class="bg1" height="11"></td>
+          <td width="80" class="bg1" height="11"></td>
+          <td width="235" height="11" class="bg1"></td>
+          <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_r_2.gif" width="10" height="11" /></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="title1_left font2 center">기준일자</td>
+          <td class="bg1" width="1"></td>
+          <td class="cell1">&nbsp;{{DATE_TERM}}</td>
+          <td class="title1_center font2 center">거래처</td>
+          <td colspan="2" class="cell1">&nbsp;{{PARNTER_ID}}</td>
+        </tr>
+		<tr>
+          <td colspan="2" class="title1_left font2 center">부서명</td>
+          <td class="bg1" width="1"></td>
+          <td class="cell1">&nbsp;{{DEPT_ID}}</td>
+          <td class="title1_center font2 center">제품</td>
+          <td colspan="2" class="cell1">&nbsp;{{PROD_TERM}}</td>
+        </tr>
+        <tr>
+          <td colspan="10" class="bg1" height="2"></td>
+        </tr>
+      </table></td>
+  </tr>
+</table>
+
+<br />
+<table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td colspan="3"><!-- PAGEHEADER-END -->
+        <!-- TABLEHEADER1-BEGIN -->
+        <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+        <table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+          <tr>
+            <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_l_2.gif" width="10" height="11" /></td>
+            <td width="33" class="bg1" height="11"></td>
+            <td class="bg1" width="1"></td>
+            <td width="117" class="bg1"></td>
+            <td width="7" class="bg1"></td>
+            <td width="64" class="bg1" height="11"></td>
+            <td width="81" class="bg1" height="11"></td>
+            <td width="12" class="bg1" height="11"></td>
+            <td width="81" class="bg1" height="11"></td>
+            <td width="12" class="bg1" height="11"></td>
+            <td width="58" class="bg1" height="11"></td>
+            <td width="21" class="bg1" height="11"></td>
+            <td width="16" class="bg1" height="11"></td>
+            <td width="12" class="bg1" height="11"></td>
+            <td width="16" class="bg1" height="11"></td>
+            <td width="43" class="bg1" height="11"></td>
+            <td width="56" class="bg1" height="11"></td>
+            <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_r_2.gif" width="10" height="11" /></td>
+          </tr>
+          <tr height="5">
+				<td class="title1_left center" colspan="11" rowspan="3">&nbsp;</td>
+				<td class="cell3 center" width="25" rowspan="3">&nbsp;</td>
+				<td class="cell1 center" width="50" colspan="3">&nbsp;</td>
+				<td class="cell1 center" width="50">&nbsp;</td>
+				<td colspan="2" class="cell1 center" width="50">&nbsp;</td>
+			</tr>
+			<tr height="40">
+				<td class="cell1 center" colspan="3">&nbsp;</td>
+				<td class="cell1 center">&nbsp;</td>
+				<td colspan="2" class="cell1 center" >&nbsp;</td>
+			</tr>
+			<tr height="5">
+				<td class="cell1 center" colspan="3">&nbsp;</td>
+				<td class="cell1 center">&nbsp;</td>
+				<td colspan="2" class="cell1 center" >&nbsp;</td>
+			</tr>
+          <tr height="30">
+            <td colspan="2" class="font1 bg1 center" ><b>No</b></td>
+            <td class="bg1" width="1"></td>
+            <td class="font1 bg1 center" colspan="2">품명</td>
+            <td class="font1 bg1 center">수량</td>
+            <td class="font1 bg1 center" colspan="2">단가</td>
+            <td class="font1 bg1 center" colspan="2">금액</td>
+            <td class="font1 bg1 center" colspan="4">증치세</td>
+            <td colspan="4" class="font1 bg1 center" >합계금액</td>
+          </tr>
+          <!-- TABLEHEADER1-END -->
+          <!-- TABLEDETAIL1-BEGIN -->
+          <!-- 데이터가위치하는 영역 -->
+          <tr height="25">
+            <td colspan="2" class="title1_left center">{{no}}</td>
+            <td class="bg1" width="1"></td>
+            <td class="cell1 left" colspan="2">&nbsp;{{r1c1}}</td>
+            <td class="cell1 left">&nbsp;{{r1c2}}</td>
+            <td class="cell1 right">&nbsp;{{r1c3}}</td>
+            <td class="cell1 right">&nbsp;</td>
+            <td class="cell1 right">&nbsp;{{r1c4}}</td>
+            <td class="cell1 right">&nbsp;</td>
+            <td class="cell1 right" colspan="3">&nbsp;{{r1c5}}</td>
+            <td class="cell1 right">&nbsp;</td>
+            <td class="cell1 right" colspan="3">&nbsp;{{r1c6}}</td>
+            <td class="cell1 right">&nbsp;</td>
+          </tr>
+          <!-- TABLEDETAIL1-END -->
+          <!-- TABLEFOOTER1-BEGIN -->
+          <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+          <tr>
+            <td colspan="21" class="bg1" height="2"></td>
+          </tr>
+      <br>
+      <br>
+        <!-- TABLEFOOTER1-END -->
+        <!-- TABLEHEADER2-BEGIN -->
+        <!-- TABLEHEADER2-END -->
+        <!-- TABLEDETAIL2-BEGIN -->
+        <!-- 데이터가위치하는 영역 -->
+  <tr height="25">
+      <td colspan="5" class="title1_left2 center">합계</td>
+      <td width="64" class="cell1 left">&nbsp;{{r1c2}}</td>
+      <td class="cell1 right" colspan="2">&nbsp;{{r1c3}}</td>
+      <td class="cell1 right" colspan="2">&nbsp;{{r1c4}}</td>
+      <td class="cell1 right" colspan="4">&nbsp;{{r1c5}}</td>
+      <td class="cell1 right" colspan="4">&nbsp;{{r1c6}}</td>
+  </tr>
+  <!-- TABLEDETAIL2-END -->
+  <!-- TABLEFOOTER2-BEGIN -->
+  <!-- TABLEFOOTER2-END -->
+  <!-- TABLEHEADER3-BEGIN -->
+  <!-- 데이터가 표현될 이름이 위치하는 영역 -->
+  </table>
+  <table width="650" border="0" cellspacing="0" cellpadding="0" align="center">
+    <tr>
+      <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_l_2.gif" width="10" height="11" /></td>
+      <td width="15" class="bg1" height="11"></td>
+      <td class="bg1" width="1"></td>
+      <td width="136" class="bg1"></td>
+      <td width="48" class="bg1" height="11"></td>
+      <td width="60" class="bg1" height="11"></td>
+      <td width="60" class="bg1" height="11"></td>
+      <td width="60" class="bg1" height="11"></td>
+      <td width="60" class="bg1" height="11"></td>
+      <td width="25" class="bg1" height="11"></td>
+      <td width="25" class="bg1" height="11"></td>
+      <td width="50" class="bg1" height="11"></td>
+      <td width="50" class="bg1" height="11"></td>
+      <td width="40" class="bg1" height="11"></td>
+      <td width="10"><img src="{{ER_EagletReportUrl}}/images/top_r_2.gif" width="10" height="11" /></td>
+    </tr>
+    <tr height="5">
+      <td class="title1_left center" colspan="10" rowspan="3">&nbsp;</td>
+      <td class="cell3 center" rowspan="3">&nbsp;</td>
+      <td class="cell1 center" >&nbsp;</td>
+      <td class="cell1 center" >&nbsp;</td>
+      <td colspan="2" class="cell1 center">&nbsp;</td>
+    </tr>
+    <tr height="40">
+      <td class="cell1 center">&nbsp;</td>
+      <td class="cell1 center">&nbsp;</td>
+      <td colspan="2" class="cell1 center" >&nbsp;</td>
+    </tr>
+    <tr height="5">
+      <td class="cell1 center">&nbsp;</td>
+      <td class="cell1 center">&nbsp;</td>
+      <td colspan="2" class="cell1 center" >&nbsp;</td>
+    </tr>
+    <tr height="30">
+      <td colspan="2" class="font1 bg1 center" rowspan="2"><b>No</b></td>
+      <td class="bg1" width="1" rowspan="2"></td>
+      <td class="font1 bg1 center" rowspan="2">품명</td>
+      <td class="font1 bg1 center" rowspan="2">수량</td>
+      <td class="font1 bg1 center" colspan="4">&nbsp;</td>
+      <td class="font1 bg1 center" colspan="6" rowspan="2">제조번호</td>
+    </tr>
+    <tr height="30">
+      <td class="font1 bg1 center">출고</td>
+      <td class="font1 bg1 center">미출</td>
+      <td class="font1 bg1 center">조정</td>
+      <td class="font1 bg1 center">합계</td>
+    </tr>
+    <!-- TABLEHEADER3-END -->
+    <!-- TABLEDETAIL3-BEGIN -->
+    <!-- 데이터가위치하는 영역 -->
+    <tr height="25">
+      <td colspan="2" class="title1_left center">{{no}}</td>
+      <td class="bg1" width="1"></td>
+      <td class="cell1 left">&nbsp;{{r1c1}}</td>
+      <td class="cell1 left">&nbsp;{{r1c2}}</td>
+      <td class="cell1 right">&nbsp;{{r1c3}}</td>
+      <td class="cell1 right">&nbsp;{{r1c4}}</td>
+      <td class="cell1 right">&nbsp;{{r1c5}}</td>
+      <td class="cell1 right">&nbsp;{{r1c6}}</td>
+      <td class="cell1 right" colspan="6">&nbsp;{{r1c7}}</td>
+    </tr>
+    <!-- TABLEDETAIL3-END -->
+    <!-- TABLEFOOTER3-BEGIN -->
+    <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+    <tr>
+      <td colspan="21" class="bg1" height="2"></td>
+    </tr>
+  
+  <!-- TABLEFOOTER3-END -->
+  <!-- TABLEHEADER4-BEGIN -->
+  <!-- TABLEHEADER4-END -->
+  <!-- TABLEDETAIL4-BEGIN -->
+  <!-- 데이터가위치하는 영역 -->
+  <tr height="25">
+    <td colspan="4" class="title1_left center">합계</td>
+    <td width="53" class="cell1 left">&nbsp;{{r1c2}}</td>
+    <td class="cell1 right">&nbsp;{{r1c3}}</td>
+    <td width="53" class="cell1 right">&nbsp;{{r1c4}}</td>
+    <td width="53" class="cell1 right">&nbsp;{{r1c5}}</td>
+    <td width="53" class="cell1 right">&nbsp;{{r1c6}}</td>
+    <td class="cell1 right" colspan="6">&nbsp;</td>
+  </tr>
+  
+  <!-- TABLEDETAIL4-END -->
+  <!-- TABLEFOOTER4-BEGIN -->
+  <!-- 모든 페이지의 마지막에 위치하는 영역 -->
+  <!-- TABLEFOOTER4-END -->
+  <!-- TABLEHEADER5-BEGIN -->
+  <!-- TABLEHEADER5-END -->
+  <!-- TABLEDETAIL5-BEGIN -->
+  <tr height="25">
+    <td colspan="2" class="title1_left center">&nbsp;</td>
+    <td class="bg1" width="219"></td>
+    <td class="cell1 left" colspan="2">&nbsp;</td>
+    <td class="cell1 left">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td width="4" class="cell1 right">&nbsp;</td>
+    <td class="cell1 right" colspan="3">&nbsp;</td>
+    <td width="29" class="cell1 right">&nbsp;</td>
+    <td class="cell1 right" colspan="3">&nbsp;</td>
+    <td width="29" class="cell1 right">&nbsp;</td>
+  </tr>
+  <!-- TABLEDETAIL5-END -->
+  <!-- TABLEFOOTER5-BEGIN -->
+  <!-- TABLEFOOTER5-END -->
+  <!-- TABLEHEADER6-BEGIN -->
+  <!-- TABLEHEADER6-END -->
+  <!-- TABLEDETAIL6-BEGIN -->
+  <tr height="25">
+    <td colspan="2" class="title1_left center">&nbsp;</td>
+    <td class="bg1" width="219"></td>
+    <td width="4" class="cell1 left">&nbsp;</td>
+    <td class="cell1 left">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right">&nbsp;</td>
+    <td class="cell1 right" colspan="6">&nbsp;</td>
+  </tr>
+  <!-- TABLEDETAIL6-END -->
+  <!-- TABLEFOOTER6-BEGIN -->
+  <!-- TABLEFOOTER6-END -->
+  <!-- PAGEFOOTER-BEGIN -->
+  <td width="217"></td>
+  </tr>
+</table>
+<!-- PAGEFOOTER-END -->
+<!-- REPORTFOOTER-BEGIN -->
+</body>
+</html>
+<!-- REPORTFOOTER-END -->
