@@ -19,7 +19,7 @@ spring:
       pool-name: default-hikari-pool
       driver-class-name: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
       #jdbc-url: jdbc:log4jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=172.20.251.32)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=XE)))
-      jdbc-url: jdbc:log4jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=XE)))
+      jdbc-url: jdbc:log4jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=121.165.117.109)(PORT=5252)))(CONNECT_DATA=(SERVICE_NAME=XE)))
       username: securityadm
       password: ENC(9ttb4iYMUnb2pEe/7sroag==)
       minimum-idle: 2
