@@ -82,4 +82,22 @@ public class InoutChangeViewController {
         return "tiles:/inoutasset/inoutchange/inoutkndchange2_request";
     }
 
+    @GetMapping("/finishchange/list")
+    @MenuId("P08010613")
+    public String finishchangeList(Model model) {
+        return "tiles:/inoutasset/inoutchange/finishchange_list";
+    }
+
+    @GetMapping("/finishchange/detail")
+    @MenuId("P08010613")
+    public String finishchangeDetail(Model model) {
+        return "tiles:/inoutasset/inoutchange/finishchange_detail";
+    }
+
+    @GetMapping("/finishchange/request")
+    @MenuId("P08010614")
+    public String finishchangeRequest(Model model) {
+        return "tiles:/inoutasset/inoutchange/finishchange_request";
+    }
+
 }

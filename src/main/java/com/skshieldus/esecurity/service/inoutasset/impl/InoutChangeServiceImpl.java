@@ -1,6 +1,7 @@
 package com.skshieldus.esecurity.service.inoutasset.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skshieldus.esecurity.common.component.FileUpload;
 import com.skshieldus.esecurity.common.exception.EsecurityException;
 import com.skshieldus.esecurity.common.model.ListDTO;
 import com.skshieldus.esecurity.model.common.ApprovalDTO;
@@ -8,12 +9,14 @@ import com.skshieldus.esecurity.model.common.ApprovalDocDTO;
 import com.skshieldus.esecurity.repository.inoutasset.InoutChangeRepository;
 import com.skshieldus.esecurity.service.common.ApprovalService;
 import com.skshieldus.esecurity.service.inoutasset.InoutChangeService;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -26,6 +29,8 @@ public class InoutChangeServiceImpl implements InoutChangeService {
     private final ApprovalService approvalService;
 
     private final ObjectMapper objectMapper;
+
+    private final FileUpload fileUpload;
 
     @Override
     public ListDTO<Map<String, Object>> selectInDateChangeList(Map<String, Object> paramMap) {
@@ -103,6 +108,47 @@ public class InoutChangeServiceImpl implements InoutChangeService {
                 ApprovalDocDTO approvalDoc = approvalService.insertApproval(approval);
                 paramMap.put("docId", approvalDoc.getDocId());
                 repository.updateInOutKndChangeDocId(paramMap);
+            }
+        } catch (Exception e) {
+            throw new EsecurityException(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.toString());
+        }
+    }
+
+    @Override
+    public ListDTO<Map<String, Object>> selectFinishChangeList(Map<String, Object> paramMap) {
+        return ListDTO.getInstance(repository.selectFinishChangeList(paramMap), repository.selectFinishChangeCount(paramMap));
+    }
+
+    @Override
+    public void insertFinishChange(Map<String, Object> paramMap, MultipartFile file1, MultipartFile file2) {
+        try {
+            if (file1 != null && !file1.isEmpty()) {
+                Map<String, Object> resultFile1 = fileUpload.uploadFile(file1, "inoutwrite");
+                paramMap.put("filename1", resultFile1.get("fileName"));
+                paramMap.put("svrFilePath01", resultFile1.get("filePath"));
+                paramMap.put("fileid1", resultFile1.get("fileId"));
+            }
+
+            if (file2 != null && !file2.isEmpty()) {
+                Map<String, Object> resultFile2 = fileUpload.uploadFile(file2, "inoutwrite");
+                paramMap.put("filename2", resultFile2.get("fileName"));
+                paramMap.put("svrFilePath02", resultFile2.get("filePath"));
+                paramMap.put("fileid2", resultFile2.get("fileId"));
+            }
+
+            repository.insertFinishChangeHistory(paramMap);
+            repository.updateFinishChange(paramMap);
+
+            ApprovalDTO approval = objectMapper.readValue((String) paramMap.get("approval"), ApprovalDTO.class);
+            approval.setLid(Integer.parseInt(paramMap.get("finishApplNo").toString()));
+
+            int requestLineLen = approval.getSavedRequestApproverLine().size();
+            int permitLineLen = approval.getSavedPermitApproverLine().size();
+
+            if (requestLineLen > 0 || permitLineLen > 0) {
+                ApprovalDocDTO approvalDoc = approvalService.insertApproval(approval);
+                paramMap.put("docId", approvalDoc.getDocId());
+                repository.updateFinishChangeDocId(paramMap);
             }
         } catch (Exception e) {
             throw new EsecurityException(HttpStatus.INTERNAL_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value(), e.toString());

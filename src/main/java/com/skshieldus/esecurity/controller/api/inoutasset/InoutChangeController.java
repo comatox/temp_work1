@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Tag(name = "자산반출입 변경요청 API")
@@ -130,6 +131,42 @@ public class InoutChangeController {
     @PostMapping(value = "/inoutkndchange")
     public @ResponseBody ResponseModel<Boolean> insertInOutKndChange(@RequestBody HashMap<String, Object> paramMap) throws EsecurityException {
         service.insertInOutKndChange(paramMap);
+        return new ResponseModel<>(HttpStatus.OK, true);
+    }
+
+    /**
+     * 물품반입확인서 목록 조회
+     *
+     * @param paramMap
+     * @return
+     *
+     * @throws EsecurityException
+     */
+    @Operation(summary = "물품반입확인서 목록 조회", description = "물품반입확인서 목록을 조회한다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully search data"), @ApiResponse(responseCode = "404", description = "error") })
+    @GetMapping(value = "/finishchange")
+    public @ResponseBody ResponseModel<List<Map<String, Object>>> selectFinishChangeList(@RequestParam HashMap<String, Object> paramMap) throws EsecurityException {
+        ListDTO<Map<String, Object>> listDTO = service.selectFinishChangeList(paramMap);
+        return new ResponseModel<>(HttpStatus.OK, listDTO.getList(), listDTO.getTotalCount());
+    }
+
+    /**
+     * 물품반입확인서 신청 저장/상신
+     *
+     * @param paramMap
+     * @param file1
+     * @param file2
+     * @return
+     *
+     * @throws EsecurityException
+     */
+    @Operation(summary = "물품반입확인서 신청 저장/상신", description = "물품반입확인서 신청 정보를 저장/상신한다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully insert data"), @ApiResponse(responseCode = "404", description = "error") })
+    @PostMapping(value = "/finishchange")
+    public @ResponseBody ResponseModel<Boolean> saveInoutwrite(@RequestParam HashMap<String, Object> paramMap, @RequestParam("file1") MultipartFile file1, @RequestParam("file2") MultipartFile file2) throws EsecurityException {
+        service.insertFinishChange(paramMap, file1, file2);
         return new ResponseModel<>(HttpStatus.OK, true);
     }
 

@@ -1,7 +1,9 @@
 package com.skshieldus.esecurity.service.inoutasset;
 
 import com.skshieldus.esecurity.common.model.ListDTO;
+import java.util.List;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface InoutChangeService {
 
@@ -16,5 +18,9 @@ public interface InoutChangeService {
     ListDTO<Map<String, Object>> selectInOutKndChangeList(Map<String, Object> paramMap);
 
     void insertInOutKndChange(Map<String, Object> paramMap);
+
+    ListDTO<Map<String, Object>> selectFinishChangeList(Map<String, Object> paramMap);
+
+    void insertFinishChange(Map<String, Object> paramMap, MultipartFile file1, MultipartFile file2);
 
 }

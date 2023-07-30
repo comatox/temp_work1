@@ -37,4 +37,14 @@ public interface InoutChangeRepository {
 
     int updateInOutKndChangeDocId(Map<String, Object> paramMap);
 
+    Integer selectFinishChangeCount(Map<String, Object> paramMap);
+
+    List<Map<String, Object>> selectFinishChangeList(Map<String, Object> paramMap);
+
+    int insertFinishChangeHistory(Map<String, Object> paramMap);
+
+    int updateFinishChange(Map<String, Object> paramMap);
+
+    int updateFinishChangeDocId(Map<String, Object> paramMap);
+
 }

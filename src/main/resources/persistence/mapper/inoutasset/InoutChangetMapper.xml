@@ -906,4 +906,314 @@
     WHERE  INOUT_CHANGE_APPL_NO = #{inoutChangeApplNo}
   </update>
 
+  <select id="selectFinishChangeCount" resultType="Integer" parameterType="Map">
+    SELECT
+    COUNT(*) AS TOTAL_COUNT
+    FROM (
+      SELECT A.*,
+        CASE
+        WHEN OUTCOMPANYKND = '1' THEN (select DETL_NM from co_code_d where grp_cd = 'F003' and (ETC2 = MYCOMPANYNO OR ETC3 = MYCOMPANYNO OR ETC4 = MYCOMPANYNO))
+        WHEN OUTCOMPANYKND = '2' THEN SYSTEMPARTNERNM||' '||PARTNER_ETC_NM
+        WHEN OUTCOMPANYKND = '3' THEN FN_GET_FOREIGN_COMP_NM(FOREIGN_COMP)
+        ELSE ''
+        END AS PARTNERORCOMPANYNAME
+      FROM INOUTWRITE A, CO_DEPT B, CO_EMP C
+      WHERE A.DEPT_CD = B.DEPT_ID
+      AND   A.EMP_NO = C.EMP_ID
+      AND   A.APPROVALREQUESTYN = 1
+      AND   A.OUTGATEOKYN = 1	/* 정문 반출 */
+      AND   A.FINISHKND IN (0, 2) /* 진행 또는 부결  */
+      AND   A.PUBLISHDEPTCHKYN = PUBLISHDEPTOKYN /* 요청부서 승인완료 */
+      AND   A.LEAVEDEPTCHKYN   = LEAVEDEPTOKYN   /* 허가부서 승인완료 */
+    /* 작성일자 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(fromWritedate)">
+      AND A.WRITEDATE &gt;= #{fromWritedate}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(toWritedate)">
+      AND A.WRITEDATE &lt;= #{toWritedate}
+    </if>
+    /* 반입예정일자 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(fromIndate)">
+      AND A.INDATE &gt;= #{fromIndate}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(toIndate)">
+      AND A.INDATE &lt;= #{toIndate}
+    </if>
+    /* 반출입번호 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchInoutserialno)">
+      AND A.INOUTSERIALNO LIKE '%'||#{searchInoutserialno}||'%'
+    </if>
+    /* 상대처 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchOutcompanyknd)">
+      AND A.OUTCOMPANYKND = #{searchOutcompanyknd}
+    </if>
+    /* 문서구분 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(doctype)">
+      <if test='"1".equals(doctype)'>
+        AND A.EMP_NO = #{empId}
+      </if>
+      <if test='"2".equals(doctype)'>
+        AND A.EMP_NO IN ( SELECT EMP_ID FROM CO_EMP WHERE DEPT_ID = #{deptId} )
+      </if>
+      <if test='"3".equals(doctype)'>
+        AND A.EMP_NO IN ( SELECT EMP_ID FROM CO_EMP WHERE DEPT_ID = #{deptId} AND HT_CD = 'T' )
+      </if>
+    </if>
+    /* 퇴사구분 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+      AND C.HT_CD = #{searchHtCd}
+    </if>
+    /* 작성자(명) */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(writeEmpNm)">
+      AND C.EMP_NM LIKE #{writeEmpNm}||'%'
+    </if>
+    /* 작성자(부서) */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(writeDeptNm)">
+      AND B.DEPT_NM LIKE '%'||#{writeDeptNm}||'%'
+    </if>
+    ) T
+    WHERE 1 = 1
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchPartnerNm)">
+      <choose>
+        <when test='"3".equals(searchOutcompanyknd)'>
+          AND T.FOREIGN_COMP = #{searchPartnerNm}
+        </when>
+        <otherwise>
+          AND T.PARTNERORCOMPANYNAME LIKE '%' || #{searchPartnerNm} || '%'
+        </otherwise>
+      </choose>
+    </if>
+  </select>
+
+  <select id="selectFinishChangeList" resultType="CamelHashMap" parameterType="Map">
+    WITH T AS (
+    SELECT
+    ROW_NUMBER() OVER( ORDER BY A.WRITEDATE DESC, A.INOUTSERIALNO DESC ) AS ROW_NUM,
+    A.INOUT_APPL_NO AS INOUT_APPL_NO,
+    A.WRITEDATE AS WRITEDATE,
+    A.WRITESEQ AS WRITESEQ,
+    A.COMPANYKND AS COMPANYKND,
+    A.COMPANYAREAKND AS COMPANYAREAKND,
+    A.COMPANYNO AS COMPANYNO,
+    A.INOUTSERIALNO AS INOUTSERIALNO,
+    B.DEPT_NM AS DEPT_NM,
+    C.EMP_NM AS EMP_NM,
+    C.JW_ID AS JW_ID,
+    C.EMP_ID AS EMP_ID,
+    B.DEPT_ID AS DEPT_ID,
+    C.HT_CD AS HT_CD,
+    A.INOUTKND AS INOUTKND,
+    A.OUTCOMPANYKND AS OUTCOMPANYKND,
+    A.MYCOMPANYNO AS MYCOMPANYNO,
+    A.SYSTEMPARTNERID AS SYSTEMPARTNERID,
+    A.OUTCOMPANYDEPT_CD AS OUTCOMPANYDEPT_CD,
+    A.APPROVALKND AS APPROVALKND,
+    A.APPROVALREQUESTYN AS APPROVALREQUESTYN,
+    A.ARTICLEKNDNO AS ARTICLEKNDNO,
+    A.ARTICLEGROUPID AS ARTICLEGROUPID,
+    A.DOC_ID AS DOC_ID,
+    A.INDATE AS INDATE,
+    A.REALINDATE AS REALINDATE,
+    A.OUTDATE AS OUTDATE,
+    A.OUTREASONID AS OUTREASONID,
+    A.DOCUMENTMOVEKND AS DOCUMENTMOVEKND,
+    A.FINISHKND AS FINISHKND,
+    A.OUTGATEOKYN AS OUTGATEOKYN,
+    A.PUBLISHDEPTOKYN AS PUBLISHDEPTOKYN,
+    A.LEAVEDEPTOKYN AS LEAVEDEPTOKYN,
+    A.FOREIGN_COMP		AS FOREIGN_COMP,
+    A.PARTNER_ETC_NM	AS PARTNER_ETC_NM,
+    A.FINISHED_CHANGE AS FINISHED_CHANGE,
+    A.SYSTEMPARTNERNM AS SYSTEMPARTNERNM,
+    CASE
+    WHEN OUTCOMPANYKND = '1' THEN (select DETL_NM from co_code_d where grp_cd = 'F003' and (ETC2 = MYCOMPANYNO OR ETC3 = MYCOMPANYNO OR ETC4 = MYCOMPANYNO))
+    WHEN OUTCOMPANYKND = '2' THEN SYSTEMPARTNERNM||' '||PARTNER_ETC_NM
+    WHEN OUTCOMPANYKND = '3' THEN FN_GET_FOREIGN_COMP_NM(FOREIGN_COMP)
+    ELSE ''
+    END AS PARTNERORCOMPANYNAME
+    FROM INOUTWRITE A, CO_DEPT B, CO_EMP C
+    WHERE A.DEPT_CD = B.DEPT_ID
+    AND   A.EMP_NO = C.EMP_ID
+    AND   A.APPROVALREQUESTYN = 1
+    AND   A.OUTGATEOKYN = 1	/* 정문 반출 */
+    AND   A.FINISHKND IN (0, 2) /* 진행 또는 부결  */
+    AND   A.PUBLISHDEPTCHKYN = PUBLISHDEPTOKYN /* 요청부서 승인완료 */
+    AND   A.LEAVEDEPTCHKYN   = LEAVEDEPTOKYN   /* 허가부서 승인완료 */
+    /* 작성일자 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(fromWritedate)">
+      AND A.WRITEDATE &gt;= #{fromWritedate}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(toWritedate)">
+      AND A.WRITEDATE &lt;= #{toWritedate}
+    </if>
+    /* 반입예정일자 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(fromIndate)">
+      AND A.INDATE &gt;= #{fromIndate}
+    </if>
+    <if test="not @org.springframework.util.StringUtils@isEmpty(toIndate)">
+      AND A.INDATE &lt;= #{toIndate}
+    </if>
+    /* 반출입번호 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchInoutserialno)">
+      AND A.INOUTSERIALNO LIKE '%'||#{searchInoutserialno}||'%'
+    </if>
+    /* 상대처 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchOutcompanyknd)">
+      AND A.OUTCOMPANYKND = #{searchOutcompanyknd}
+    </if>
+    /* 문서구분 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(doctype)">
+      <if test='"1".equals(doctype)'>
+        AND A.EMP_NO = #{empId}
+      </if>
+      <if test='"2".equals(doctype)'>
+        AND A.EMP_NO IN ( SELECT EMP_ID FROM CO_EMP WHERE DEPT_ID = #{deptId} )
+      </if>
+      <if test='"3".equals(doctype)'>
+        AND A.EMP_NO IN ( SELECT EMP_ID FROM CO_EMP WHERE DEPT_ID = #{deptId} AND HT_CD = 'T' )
+      </if>
+    </if>
+    /* 퇴사구분 */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchHtCd)">
+      AND C.HT_CD = #{searchHtCd}
+    </if>
+    /* 작성자(명) */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(writeEmpNm)">
+      AND C.EMP_NM LIKE #{writeEmpNm}||'%'
+    </if>
+    /* 작성자(부서) */
+    <if test="not @org.springframework.util.StringUtils@isEmpty(writeDeptNm)">
+      AND B.DEPT_NM LIKE '%'||#{writeDeptNm}||'%'
+    </if>
+    )
+    SELECT
+    INOUT_APPL_NO,
+    WRITEDATE,
+    WRITESEQ,
+    COMPANYKND,
+    COMPANYAREAKND,
+    COMPANYNO,
+    INOUTSERIALNO,
+    DEPT_NM,
+    EMP_NM || ' ' || FN_GET_JW_NM(JW_ID) AS EMP_NM,
+    EMP_ID,
+    DEPT_ID,
+    HT_CD,
+    INOUTKND,
+    CASE
+    WHEN OUTCOMPANYKND = '1' THEN DECODE(INOUTKND, '1', '반입필요', '2', '반입불요', '')
+    ELSE DECODE(INOUTKND, '1', '반입필요', '2', '반입불요(무상)', '3', '반입불요(유상)', '')
+    END AS INOUTKNDNAME,
+    PARTNERORCOMPANYNAME,
+    FN_GET_DEPT_NM(OUTCOMPANYDEPT_CD) AS OUTCOMPANYDEPT_NM,
+    APPROVALKND,
+    CASE
+    WHEN APPROVALKND = '0' THEN '반출결재'
+    WHEN APPROVALKND = '1' THEN '반출지연결재'
+    WHEN APPROVALKND = '2' THEN '부결결재'
+    ELSE '반출결재'
+    END AS APPROVALKNDNAME,
+    APPROVALREQUESTYN,
+    ARTICLEKNDNO,
+    FN_GET_ARTICLE_GROUP_NM(ARTICLEKNDNO, ARTICLEGROUPID) AS ARTICLEGROUPNAME,
+    ARTICLEGROUPID,
+    DOC_ID,
+    FN_PUBLISH_STATUS_NM( INOUT_APPL_NO, DOC_ID ) AS PUBLISH_STATUS_NM,
+    FN_LEAVE_STATUS_NM( INOUT_APPL_NO, DOC_ID ) AS LEAVE_STATUS_NM,
+    INDATE,
+    REALINDATE,
+    OUTDATE,
+    FN_GET_CODE_NM('D001', OUTREASONID) AS OUTREASONID_NM,
+    DOCUMENTMOVEKND,
+    PUBLISHDEPTOKYN,
+    LEAVEDEPTOKYN,
+    FINISHED_CHANGE,
+    CASE
+    WHEN FINISHED_CHANGE = '0' THEN ''
+    WHEN FINISHED_CHANGE = '1' THEN '신청'
+    WHEN FINISHED_CHANGE = '2' THEN '승인'
+    WHEN FINISHED_CHANGE = '3' THEN '승인'
+    WHEN FINISHED_CHANGE = '4' THEN '부결'
+    WHEN FINISHED_CHANGE = '5' THEN '부결'
+    ELSE ''
+    END AS APPROVALSTATE_NAME
+    FROM T
+    WHERE ROW_NUM BETWEEN ( (#{pageIndex} - 1) * #{pageSize}) + 1
+    AND ( (#{pageIndex} - 1) * #{pageSize}) + #{pageSize}
+    <if test="not @org.springframework.util.StringUtils@isEmpty(searchPartnerNm)">
+      <choose>
+        <when test='"3".equals(searchOutcompanyknd)'>
+          AND T.FOREIGN_COMP = #{searchPartnerNm}
+        </when>
+        <otherwise>
+          AND T.PARTNERORCOMPANYNAME LIKE '%' || #{searchPartnerNm} || '%'
+        </otherwise>
+      </choose>
+    </if>
+  </select>
+
+  <insert id="insertFinishChangeHistory" parameterType="Map">
+    <selectKey keyProperty="finishApplNo" resultType="Integer" order="BEFORE">
+      SELECT FINISH_APPL_SEQ.NEXTVAL AS FINISH_APPL_NO FROM DUAL
+    </selectKey>
+
+    INSERT INTO SECURITYADM.FINISHED_CHANGE_HISTORY (
+    WRITEDATE, WRITESEQ,
+    COMPANYKND, COMPANYAREAKND, COMPANYNO,
+    REQUESTSEQ,
+    REQUEST_EMPNO,
+    REQUEST_CODE,
+    APPRIP,
+    FINISH_APPL_NO,
+    CRT_DTM,
+    APPROVALSTATE,
+    DMCHANGEETC,
+    REALINDATE,
+    FILENAME1,
+    FILEPATH1,
+    FILEID1,
+    FILENAME2,
+    FILEPATH2,
+    FILEID2
+    )
+    VALUES (
+    #{writedate}, #{writeseq},
+    #{companyknd}, #{companyareaknd}, #{companyno},
+    ( SELECT NVL(MAX(REQUESTSEQ), 0)+1 FROM SECURITYADM.INDATEDELAYHISTORY WHERE WRITEDATE = #{writedate} AND WRITESEQ = #{writeseq} ),
+    #{applEmpId},
+    #{requestCode},
+    #{acIp},
+    #{finishApplNo},
+    SYSDATE,
+    '1',
+    #{dmchangeetc},
+    #{realindate},
+    #{filename1},
+    #{svrFilePath01},
+    #{fileid1},
+    #{filename2},
+    #{svrFilePath02},
+    #{fileid2}
+    )
+  </insert>
+
+  <update id="updateFinishChange">
+    UPDATE INOUTWRITE SET
+        FINISHED_CHANGE	= '1',
+        LASTUPDATEDATE 	= TO_CHAR(SYSDATE, 'YYYY-MM-DD'),
+        LASTUPDATETIME 	= TO_CHAR(SYSDATE, 'HH24:MI:SS')
+    WHERE	WRITEDATE		= #{writedate}
+      AND		WRITESEQ		= #{writeseq}
+  </update>
+
+  <update id="updateFinishChangeDocId">
+    UPDATE SECURITYADM.FINISHED_CHANGE_HISTORY
+    SET
+      DOC_ID  = #{docId},
+      MOD_DTM = SYSDATE
+    WHERE	WRITEDATE		= #{writedate}
+      AND		WRITESEQ		= #{writeseq}
+      AND     FINISH_APPL_NO  = #{finishApplNo}
+  </update>
+
 </mapper>
